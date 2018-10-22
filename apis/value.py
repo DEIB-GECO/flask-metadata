@@ -9,6 +9,19 @@ value = api.model('Value', {
 })
 
 
+@api.route('/')
+class ValueList(Resource):
+    @api.doc('get_value_list')
+    @api.marshal_with(value, )
+    def get(self):
+        '''List all values'''
+        res = column_dict.keys()
+        res = list(res)
+        res = res[:3]
+        res = [{'value': x} for x in res]
+        return res
+
+
 @api.route('/<field>')
 @api.param('field', 'The field')
 @api.response(404, 'Field not found')
@@ -34,7 +47,7 @@ class ValueList(Resource):
             res = res.offset(2)
             res = res.all()
 
-            res = sorted(set([x.__dict__[column_name].lower() for x in res]))
+            res = sorted(set([str(x.__dict__[column_name]).lower() for x in res]))
             res = [{'value': x} for x in res]
             # res = {'result': res}
 
