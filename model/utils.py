@@ -17,7 +17,9 @@ class Column:
 
 def get_column_dict():
     columns = dict()
-    duplicated_columns = []
+    duplicated_columns = [] # the columns with the same name available in different tables
+    tid_columns = []
+    exclude_columns = ['size', 'is_healthy', 'checksum', 'source_url', 'local_url']
     for class_name, model_class in inspect.getmembers(models):
         if inspect.isclass(model_class) and issubclass(model_class, db.Model):
             for column_name, column in list(model_class.__dict__.items()):
@@ -31,9 +33,14 @@ def get_column_dict():
                             # TODO log.WARN
                             # print("multiple "+column_name)
                             duplicated_columns.append(column_name)
+                        if column_name.endswith('_tid'):
+                            tid_columns.append(column_name)
 
                         columns[column_name] = Column(column_name, model_class.__table__, column, model_class)
+
     columns = {k: v for k, v in columns.items() if k not in duplicated_columns}
+    columns = {k: v for k, v in columns.items() if k not in tid_columns}
+    columns = {k: v for k, v in columns.items() if k not in exclude_columns}
     return columns
 
 

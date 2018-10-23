@@ -16,10 +16,8 @@ class ValueList(Resource):
     def get(self):
         '''List all values'''
         res = column_dict.keys()
-        res = list(res)
-        res = res[:3]
         res = [{'value': x} for x in res]
-        return res
+        return res #[4:6]
 
 
 @api.route('/<field>')
@@ -40,14 +38,19 @@ class ValueList(Resource):
             column = column.db_column
 
             res = table.query
-            res = res.filter(column != None)
+            res = res.filter(column is not None)
             res = res.distinct(column)
             res = res.order_by(column)
-            res = res.limit(100000000)
+            res = res.limit(100)
             res = res.offset(2)
             res = res.all()
 
-            res = sorted(set([str(x.__dict__[column_name]).lower() for x in res]))
+            # extract value
+            res = map(lambda x: x.__dict__[column_name], res)
+
+            # lowercase
+            res = set(map(lambda x: x.lower() if type(x) == str else x, res))
+
             res = [{'value': x} for x in res]
             # res = {'result': res}
 
