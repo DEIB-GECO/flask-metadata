@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 
 from apis import blueprint
-from model.models import Biosample, db
+from model.models import Biosample, db, Project
 from model.utils import column_dict
 from utils import get_db_uri
 
@@ -33,3 +33,10 @@ def index(path):
 
 if __name__ == '__main__':
     app.run()
+
+prs = Project.query.all()
+
+for pr in prs:
+    app.logger.debug(pr.program_name)
+
+app.logger.debug(Project.query.all())

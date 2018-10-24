@@ -1,6 +1,7 @@
 from flask_restplus import Namespace, Resource, fields
 
 from model.utils import column_dict
+from .flask_models import info, Info
 
 api = Namespace('value', description='Value related operations')
 
@@ -8,16 +9,10 @@ value = api.model('Value', {
     'value': fields.String(required=True, description='Value '),
 })
 
-
-@api.route('/')
-class ValueList(Resource):
-    @api.doc('get_value_list')
-    @api.marshal_with(value, )
-    def get(self):
-        '''List all values'''
-        res = column_dict.keys()
-        res = [{'value': x} for x in res]
-        return res #[4:6]
+values = api.model('Values', {
+    'values': fields.Nested(value, required=True, description='Values'),
+    'info': fields.Nested(info, required=False, description='Info', skip_none=True),
+})
 
 
 @api.route('/<field>')
@@ -25,7 +20,7 @@ class ValueList(Resource):
 @api.response(404, 'Field not found')
 class ValueList(Resource):
     @api.doc('get_value_list')
-    @api.marshal_with(value, )
+    @api.marshal_with(values)
     def get(self, field):
         '''List all values'''
 
@@ -42,7 +37,7 @@ class ValueList(Resource):
             res = res.distinct(column)
             res = res.order_by(column)
             res = res.limit(100)
-            res = res.offset(2)
+            res = res.offset(0)
             res = res.all()
 
             # extract value
@@ -52,7 +47,11 @@ class ValueList(Resource):
             res = set(map(lambda x: x.lower() if type(x) == str else x, res))
 
             res = [{'value': x} for x in res]
-            # res = {'result': res}
+
+            info = Info(len(res), None)
+            res = {'values': res,
+                   'info': info
+                   }
 
             return res
         else:
