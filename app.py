@@ -16,12 +16,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 app.app_context().push()
 
-app.logger.debug("testxx")
-
-app.logger.debug(Biosample.query.first())
-app.logger.debug("test2")
-
-app.logger.debug(column_dict)
+# app.logger.debug("testxx")
+#
+# app.logger.debug(Biosample.query.first())
+# app.logger.debug("test2")
+#
+# app.logger.debug(column_dict)
 
 
 # Make a "catch all route" so all requests match our index.html file. This lets us use the new history APIs in the browser.
@@ -34,9 +34,9 @@ def index(path):
 if __name__ == '__main__':
     app.run()
 
-prs = Project.query.all()
+# prs = Project.query.all()
 
-for pr in prs:
-    app.logger.debug(pr.program_name)
-
-app.logger.debug(Project.query.all())
+# for pr in prs:
+#     app.logger.debug(pr.program_name)
+#
+# app.logger.debug(Project.query.all())

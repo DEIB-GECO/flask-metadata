@@ -6,7 +6,7 @@ from .flask_models import info, Info
 api = Namespace('value', description='Value related operations')
 
 value = api.model('Value', {
-    'value': fields.String(required=True, description='Value '),
+    'value': fields.Raw(required=True, description='Value '),
 })
 
 values = api.model('Values', {
