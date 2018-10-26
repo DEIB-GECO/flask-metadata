@@ -59,7 +59,7 @@ class Query(Resource):
             # set of distinct tables in the query
             filter_tables = set()
             for (column, values) in filter_in.items():
-                table_name = column_table_dict[column]
+                (table_name, _) = column_table_dict[column]
                 filter_tables.add(table_name)
 
             filter_bio_tables = [x for x in biological_view_tables if x in filter_tables]
@@ -80,11 +80,13 @@ class Query(Resource):
 
             sub_where = []
             for (column, values) in filter_in.items():
-                table_name = column_table_dict[column]
+                (table_name, column_type) = column_table_dict[column]
+
                 var_name = table_name[:2].lower()
                 sub_or = 'OR %s.%s IS NULL' % (var_name, column) if None in values else ''
                 values_wo_none = [x for x in values if x is not None]
-                sub_where.append('AND (lower(%s.%s) IN %s %s)' % (var_name, column, str(values_wo_none), sub_or))
+                to_lower = 'to_lower' if column_type == str else ''
+                sub_where.append('AND (%s(%s.%s) IN %s %s)' % (to_lower, var_name, column, str(values_wo_none), sub_or))
 
             cypher_query = ' MATCH ' + \
                            ', '.join(sub_queries) + \

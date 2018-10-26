@@ -14,11 +14,12 @@ extraction_view_tables = ['Dataset']
 
 class Column:
 
-    def __init__(self, column_name, table_name, db_column, table_class):
+    def __init__(self, column_name, table_name, db_column, table_class, column_type):
         self.column_name = column_name
         self.table_name = table_name
         self.db_column = db_column
         self.table_class = table_class
+        self.column_type = column_type
 
     def __str__(self):
         return {
@@ -51,7 +52,7 @@ def get_column_dict():
                             tid_columns.append(column_name)
 
                         # columns[column_name] = Column(column_name, model_class.__tablename__, column, model_class)
-                        columns[column_name] = Column(column_name, class_name, column, model_class)
+                        columns[column_name] = Column(column_name, class_name, column, model_class, exp.type)
 
     columns = {k: v for k, v in columns.items() if k not in duplicated_columns}
     columns = {k: v for k, v in columns.items() if k not in tid_columns}
@@ -62,14 +63,22 @@ def get_column_dict():
 def get_column_table(column_dict):
     columns = dict()
     for column in column_dict.values():
-        columns[column.column_name] = column.table_name
+        table_name = column.table_name
+        column_type = column.column_type
+
+        if table_name == 'CaseStudy':
+            table_name = 'Case'
+
+        columns[column.column_name] = (table_name, column_type)
         # TODO check
-        if column.table_name == 'CaseStudy':
-            columns[column.column_name] = 'Case'
+
     return columns
 
 
 column_dict = get_column_dict()
 column_table_dict = get_column_table(column_dict)
-print(column_dict)
-print(column_table_dict)
+# print(column_dict)
+# print(column_table_dict)
+
+for x in column_table_dict.items():
+    print(x)
