@@ -11,10 +11,6 @@ api = Namespace('query', description='Value related operations')
 #
 
 
-columns = ['source_id', 'size', 'date', 'pipeline', 'platform', 'source_url', 'local_url',
-                       'name', 'data_type', 'format', 'assembly', 'annotation',
-                       'technique', 'feature', 'target', 'antibody',
-                       ]
 
 query = api.model('Query', {
     'source_id': fields.String,
@@ -36,6 +32,7 @@ query = api.model('Query', {
     'target': fields.String,
     'antibody': fields.String
 })
+
 
 #
 # queries = api.model('Values', {
@@ -94,6 +91,8 @@ class Query(Resource):
                            ' WHERE TRUE ' + ' '.join(sub_where) + \
                            ' RETURN i,ex,da ' + \
                            ' LIMIT 100 '
+            print(cypher_query)
+
             results = gdb.query(cypher_query, data_contents=True)
             # columns = ['source_id', 'size', 'date', 'pipeline', 'platform', 'source_url', 'local_url',
             #            'name', 'data_type', 'format', 'assembly', 'annotation',
@@ -101,12 +100,14 @@ class Query(Resource):
             #            ]
             print(results.rows)
 
-            results = [merge_dicts(x) for x in results.rows]
+            if results.rows:
+                results = [merge_dicts(x) for x in results.rows]
+            else:
+                results = []
+
             print(results)
 
             return results
-
-
 
         else:
             api.abort(404)
