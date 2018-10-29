@@ -1,5 +1,6 @@
 from flask_restplus import Namespace, Resource, fields
 from neo4jrestclient.client import GraphDatabase
+from sqlalchemy import String
 
 from model.utils import column_table_dict, \
     biological_view_tables, \
@@ -8,9 +9,6 @@ from model.utils import column_table_dict, \
     extraction_view_tables
 
 api = Namespace('query', description='Value related operations')
-#
-
-
 
 query = api.model('Query', {
     'source_id': fields.String,
@@ -40,8 +38,6 @@ query = api.model('Query', {
 #     'info': fields.Nested(info, required=False, description='Info', skip_none=True),
 # })
 #
-
-gdb = GraphDatabase("http://geco:17474", username='neo4j', password='yellow')
 
 
 @api.route('/')
@@ -85,7 +81,7 @@ class Query(Resource):
                 var_name = table_name[:2].lower()
                 sub_or = 'OR %s.%s IS NULL' % (var_name, column) if None in values else ''
                 values_wo_none = [x for x in values if x is not None]
-                to_lower = 'to_lower' if column_type == str else ''
+                to_lower = 'TOLOWER' if type(column_type) == String else ''
                 sub_where.append('AND (%s(%s.%s) IN %s %s)' % (to_lower, var_name, column, str(values_wo_none), sub_or))
 
             cypher_query = ' MATCH ' + \
@@ -95,6 +91,7 @@ class Query(Resource):
                            ' LIMIT 100 '
             print(cypher_query)
 
+            gdb = GraphDatabase("http://localhost:7474", username='neo4j', password='yellow')
             results = gdb.query(cypher_query, data_contents=True)
             # columns = ['source_id', 'size', 'date', 'pipeline', 'platform', 'source_url', 'local_url',
             #            'name', 'data_type', 'format', 'assembly', 'annotation',
