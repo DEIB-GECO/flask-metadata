@@ -36,7 +36,7 @@ class ValueList(Resource):
             res = res.filter(column is not None)
             res = res.distinct(column)
             res = res.order_by(column)
-            res = res.limit(100)
+            # res = res.limit(100)
             res = res.offset(0)
             res = res.all()
 
@@ -49,6 +49,7 @@ class ValueList(Resource):
             res = [{'value': x} for x in res]
 
             info = Info(len(res), None)
+
             res = {'values': res,
                    'info': info
                    }

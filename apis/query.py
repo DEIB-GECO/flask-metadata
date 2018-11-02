@@ -1,4 +1,5 @@
 from flask_restplus import Namespace, Resource, fields
+from neo4jrestclient import constants
 from neo4jrestclient.client import GraphDatabase
 from sqlalchemy import String
 
@@ -40,6 +41,7 @@ query = api.model('Query', {
 #
 
 
+
 @api.route('/')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
@@ -49,67 +51,80 @@ class Query(Resource):
     def post(self):
         '''List all values'''
 
-        if True:
-            filter_in = api.payload
+        filter_in = api.payload
 
-            # set of distinct tables in the query
-            filter_tables = set()
-            for (column, values) in filter_in.items():
-                (table_name, _) = column_table_dict[column]
-                filter_tables.add(table_name)
+        cypher_query = query_generator(filter_in)
+        print(cypher_query)
 
-            filter_bio_tables = [x for x in biological_view_tables if x in filter_tables]
-            filter_mngm_tables = [x for x in management_view_tables if x in filter_tables]
-            filter_tech_tables = technological_view_tables  # [x for x in tech_tables if x in filter_tables]
-            filter_extract_tables = extraction_view_tables  # [x for x in extract_tables if x in filter_tables]
-            filter_all_view_tables = (filter_bio_tables, filter_mngm_tables, filter_tech_tables, filter_extract_tables)
+        gdb = GraphDatabase("http://localhost:7474", username='neo4j', password='yellow')
+        print('connected')
 
-            # list of sub_queries
-            sub_queries = []
-            for (i, l) in enumerate(filter_all_view_tables):
-                if len(l) > 0:
-                    sub_query = 'p%d = (i:Item)' % (i)
-                    for table_name in l:
-                        var_name = table_name[:2].lower()
-                        sub_query = sub_query + '-[*..3]->(%s:%s)' % (var_name, table_name)
-                    sub_queries.append(sub_query)
+        results = gdb.query(cypher_query, data_contents=constants.DATA_ROWS)
 
-            sub_where = []
-            for (column, values) in filter_in.items():
-                (table_name, column_type) = column_table_dict[column]
+        print('got results')
 
-                var_name = table_name[:2].lower()
-                sub_or = 'OR %s.%s IS NULL' % (var_name, column) if None in values else ''
-                values_wo_none = [x for x in values if x is not None]
-                to_lower = 'TOLOWER' if type(column_type) == String else ''
-                sub_where.append('AND (%s(%s.%s) IN %s %s)' % (to_lower, var_name, column, str(values_wo_none), sub_or))
-
-            cypher_query = ' MATCH ' + \
-                           ', '.join(sub_queries) + \
-                           ' WHERE TRUE ' + ' '.join(sub_where) + \
-                           ' RETURN i,ex,da ' + \
-                           ' LIMIT 100 '
-            print(cypher_query)
-
-            gdb = GraphDatabase("http://localhost:7474", username='neo4j', password='yellow')
-            results = gdb.query(cypher_query, data_contents=True)
-            # columns = ['source_id', 'size', 'date', 'pipeline', 'platform', 'source_url', 'local_url',
-            #            'name', 'data_type', 'format', 'assembly', 'annotation',
-            #            'technique', 'feature', 'target', 'antibody',
-            #            ]
-            print(results.rows)
-
-            if results.rows:
-                results = [merge_dicts(x) for x in results.rows]
-            else:
-                results = []
-
-            print(results)
-
-            return results
-
+        if results.rows:
+            results = [merge_dicts(x) for x in results.rows]
         else:
-            api.abort(404)
+            results = []
+
+        # print(results)
+
+        return results
+
+
+def query_generator(filter_in):
+    # set of distinct tables in the query
+    filter_tables = set()
+    for (column, values) in filter_in.items():
+        (table_name, _) = column_table_dict[column]
+        filter_tables.add(table_name)
+
+    filter_bio_tables = [x for x in biological_view_tables if x in filter_tables]
+    filter_mngm_tables = [x for x in management_view_tables if x in filter_tables]
+    filter_tech_tables = technological_view_tables  # [x for x in tech_tables if x in filter_tables]
+    filter_extract_tables = extraction_view_tables  # [x for x in extract_tables if x in filter_tables]
+    filter_all_view_tables = (filter_bio_tables, filter_mngm_tables, filter_tech_tables, filter_extract_tables)
+
+    filter_all_view_tables = [x for x in filter_all_view_tables if len(x) > 0]
+
+    # list of sub_queries
+    sub_queries = []
+    for (i, l) in enumerate(filter_all_view_tables):
+        sub_query = 'p%d = (it:Item)' % (i)
+        for table_name in l:
+            var_name = table_name[:2].lower()
+            sub_query = sub_query + '-[*..3]->({var_name}:{table_name})'.format(var_name=var_name,
+                                                                                table_name=table_name)
+        sub_queries.append(sub_query)
+
+    sub_where = []
+    for (column, values) in filter_in.items():
+        (table_name, column_type) = column_table_dict[column]
+
+        var_name = table_name[:2].lower()
+        sub_or = 'OR %s.%s IS NULL' % (var_name, column) if None in values else ''
+        values_wo_none = [x for x in values if x is not None]
+        to_lower = 'TOLOWER' if type(column_type) == String else ''
+        sub_where.append(' ({to_lower}({var_name}.{column}) IN {values_wo_none} {sub_or})'
+                         .format(to_lower=to_lower,
+                                 var_name=var_name,
+                                 column=column,
+                                 values_wo_none=values_wo_none,
+                                 sub_or=sub_or))
+
+    cypher_query = ' MATCH '
+    cypher_query += ', '.join(sub_queries)
+    if sub_where:
+        cypher_query += 'WHERE ' + ' AND '.join(sub_where)
+    cypher_query += ' RETURN it, ex, da '
+
+    cypher_query += ' LIMIT 100 '
+    return cypher_query
+
+
+
+
 
 
 def merge_dicts(dict_args):
