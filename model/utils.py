@@ -34,7 +34,7 @@ def get_column_dict():
     columns = dict()
     duplicated_columns = []  # the columns with the same name available in different tables
     tid_columns = []
-    exclude_columns = ['size', 'checksum', 'source_url', 'local_url', 'date']
+    exclude_columns = ['size', 'checksum', 'source_url', 'local_url', 'date', 'is_ann']
     for class_name, model_class in inspect.getmembers(models):
         if inspect.isclass(model_class) and issubclass(model_class, db.Model):
             for column_name, column in list(model_class.__dict__.items()):
