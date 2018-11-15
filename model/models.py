@@ -113,8 +113,8 @@ class Project(db.Model):
     __tablename__ = 'project'
 
     project_id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
-    project_name = db.Column(db.String, nullable=False, unique=True)
     program_name = db.Column(db.String)
+    project_name = db.Column(db.String, nullable=False, unique=True)
 
 
 class Replicate(db.Model):
