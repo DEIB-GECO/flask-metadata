@@ -47,3 +47,5 @@ app.app_context().push()
 @app.route('/<path:path>')
 def index_all(path):
     return redirect(base_url)
+
+
