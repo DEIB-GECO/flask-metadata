@@ -46,6 +46,13 @@ class ValueList(Resource):
             # lowercase
             res = set(map(lambda x: x.lower() if type(x) == str else x, res))
 
+            has_none = None in res
+
+            res = sorted([x for x in res if x is not None])
+
+            if has_none:
+                res.append(None)
+
             res = [{'value': x} for x in res]
 
             info = Info(len(res), None)
