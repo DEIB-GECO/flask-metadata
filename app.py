@@ -4,7 +4,7 @@ from apis import api_blueprint
 from model.models import db
 from utils import get_db_uri
 
-base_url = '/meta/'
+base_url = '/repo-viewer/'
 api_url = base_url + 'api'
 
 app = Flask(__name__)
