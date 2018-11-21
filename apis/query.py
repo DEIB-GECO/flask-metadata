@@ -56,7 +56,7 @@ class Query(Resource):
         cypher_query = query_generator(filter_in)
         print(cypher_query)
 
-        gdb = GraphDatabase("http://localhost:7474", username='neo4j', password='yellow')
+        gdb = GraphDatabase("http://localhost:17474", username='neo4j', password='yellow')
         print('connected')
 
         results = gdb.query(cypher_query, data_contents=constants.DATA_ROWS)
