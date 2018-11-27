@@ -18,7 +18,7 @@ field_list = api.model('Fields', {
 
 
 @api.route('/')
-class ValueList(Resource):
+class FieldList(Resource):
     @api.doc('get_field_list')
     @api.marshal_with(field_list, skip_none=True)
     def get(self):
@@ -36,3 +36,66 @@ class ValueList(Resource):
         # },
 
         return res  # [4:6]
+
+
+
+
+value = api.model('Value', {
+    'value': fields.Raw(required=True, description='Value '),
+})
+
+values = api.model('Values', {
+    'values': fields.Nested(value, required=True, description='Values'),
+    'info': fields.Nested(info, required=False, description='Info', skip_none=True),
+})
+
+
+@api.route('/<field_name>')
+@api.param('field_name', 'The field')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    @api.doc('get_value_list')
+    @api.marshal_with(values)
+    def get(self, field_name):
+        '''List all values'''
+
+        if field_name in column_dict:
+            column = column_dict[field_name]
+
+            column_name = column.column_name
+
+            table = column.table_class
+            column = column.db_column
+
+            res = table.query
+            res = res.filter(column is not None)
+            res = res.distinct(column)
+            res = res.order_by(column)
+            # res = res.limit(100)
+            res = res.offset(0)
+            res = res.all()
+
+            # extract value
+            res = map(lambda x: x.__dict__[column_name], res)
+
+            # lowercase
+            res = set(map(lambda x: x.lower() if type(x) == str else x, res))
+
+            has_none = None in res
+
+            res = sorted([x for x in res if x is not None])
+
+            if has_none:
+                res.append(None)
+
+            res = [{'value': x} for x in res]
+
+            info = Info(len(res), None)
+
+            res = {'values': res,
+                   'info': info
+                   }
+
+            return res
+        else:
+            api.abort(404)

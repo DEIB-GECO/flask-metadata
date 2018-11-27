@@ -1,3 +1,4 @@
+from flask import Response
 from flask_restplus import Namespace, Resource, fields
 from neo4jrestclient import constants
 from neo4jrestclient.client import GraphDatabase
@@ -11,7 +12,7 @@ from model.utils import column_table_dict, \
 
 api = Namespace('query', description='Value related operations')
 
-query = api.model('Query', {
+query_result = api.model('QueryResult', {
     'source_id': fields.String,
     'size': fields.String,
     'date': fields.String,
@@ -32,21 +33,17 @@ query = api.model('Query', {
     'antibody': fields.String
 })
 
-
-#
-# queries = api.model('Values', {
-#     'values': fields.Nested(value, required=True, description='Values'),
-#     'info': fields.Nested(info, required=False, description='Info', skip_none=True),
-# })
-#
+query = api.model('Query', {
+    # 'values': fields.Nested(value, required=True, description='Values'),
+    # 'info': fields.Nested(info, required=False, description='Info', skip_none=True),
+})
 
 
-
-@api.route('/')
+@api.route('/search')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
     @api.doc('return_query_result')
-    @api.marshal_with(query)
+    @api.marshal_with(query_result)
     @api.expect(query)  # TODO correct this one
     def post(self):
         '''List all values'''
@@ -56,10 +53,7 @@ class Query(Resource):
         cypher_query = query_generator(filter_in)
         print(cypher_query)
 
-        gdb = GraphDatabase("http://localhost:17474", username='neo4j', password='yellow')
-        print('connected')
-
-        results = gdb.query(cypher_query, data_contents=constants.DATA_ROWS)
+        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
 
         print('got results')
 
@@ -68,9 +62,40 @@ class Query(Resource):
         else:
             results = []
 
-        # print(results)
+            # print(results)
 
         return results
+
+
+@api.route('/item/<source_id>/graph')
+@api.response(404, 'Item not found')  # TODO correct
+class ItemGraph(Resource):
+    @api.doc('get_item_graph')
+    def get(self, source_id):
+        cypher_query = "MATCH p1=((i:Item)-[*..3]->(x)) " \
+                       "WHERE NOT 'PairsOfItem' IN labels(x)  " \
+                       f"AND i.source_id='{source_id}' " \
+                       "RETURN *"
+        print(cypher_query)
+
+        results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
+
+        print('got results')
+
+        print(results)
+
+        # resp = Response('hello', mimetype='text/html')
+        # return resp
+        return results.graph
+
+
+
+def run_query(cypher_query, data_contents=None):
+    gdb = GraphDatabase("http://localhost:17474", username='neo4j', password='yellow')
+    print('connected')
+
+    result = gdb.query(cypher_query, data_contents=data_contents)
+    return result
 
 
 def query_generator(filter_in):
@@ -117,14 +142,10 @@ def query_generator(filter_in):
     cypher_query += ', '.join(sub_queries)
     if sub_where:
         cypher_query += 'WHERE ' + ' AND '.join(sub_where)
-    cypher_query += ' RETURN it, ex, da '
+    cypher_query += ' RETURN it, ex, da'
 
     cypher_query += ' LIMIT 100 '
     return cypher_query
-
-
-
-
 
 
 def merge_dicts(dict_args):
