@@ -15,8 +15,8 @@ simple_page = Blueprint('root_pages', __name__,
 
 
 graph_pages = Blueprint('graph_pages', __name__,
-                        static_url_path='static',
-                        static_folder='./static/graph',
+                        # static_url_path='/',
+                        static_folder='./static/',
                         # template_folder='../vue-metadata/dist'
                         )
 
