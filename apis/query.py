@@ -1,15 +1,14 @@
-from flask import Response
 from flask_restplus import Namespace, Resource, fields
 from neo4jrestclient import constants
-from sqlalchemy import String
 
-from model.utils import column_table_dict, \
+from model.utils import columns_dict, \
+    run_query, \
     biological_view_tables, \
     management_view_tables, \
     technological_view_tables, \
     extraction_view_tables
 
-api = Namespace('query', description='Value related operations')
+api = Namespace('query', description='Query related operations')
 
 query_result = api.model('QueryResult', {
     'source_id': fields.String,
@@ -38,11 +37,11 @@ query = api.model('Query', {
 })
 
 
-@api.route('/search')
+@api.route('/table')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
     @api.doc('return_query_result')
-    @api.marshal_with(query_result)
+    # @api.marshal_with(query_result)
     @api.expect(query)  # TODO correct this one
     def post(self):
         '''List all values'''
@@ -56,45 +55,24 @@ class Query(Resource):
 
         print('got results')
 
-        if results.rows:
-            results = [merge_dicts(x) for x in results.rows]
+        # result_columns = results.columns
+        results = results.rows
+
+        if results:
+            results = [merge_dicts(x) for x in results]
         else:
             results = []
 
-            # print(results)
+        # print(results)
 
         return results
-
-
-@api.route('/item/<source_id>/graph')
-@api.response(404, 'Item not found')  # TODO correct
-class ItemGraph(Resource):
-    @api.doc('get_item_graph')
-    def get(self, source_id):
-        cypher_query = "MATCH p1=((i:Item)-[*..3]->(x)) " \
-                       "WHERE NOT 'PairsOfItem' IN labels(x)  " \
-                       f"AND i.source_id='{source_id}' " \
-                       "RETURN *"
-        print(cypher_query)
-
-        results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
-
-        print('got results')
-
-        print(results)
-
-        # resp = Response('hello', mimetype='text/html')
-        # return resp
-        return results.graph
-
-
 
 
 def query_generator(filter_in):
     # set of distinct tables in the query
     filter_tables = set()
     for (column, values) in filter_in.items():
-        (table_name, _) = column_table_dict[column]
+        table_name = columns_dict[column].table_name
         filter_tables.add(table_name)
 
     filter_bio_tables = [x for x in biological_view_tables if x in filter_tables]
@@ -117,12 +95,13 @@ def query_generator(filter_in):
 
     sub_where = []
     for (column, values) in filter_in.items():
-        (table_name, column_type) = column_table_dict[column]
+        table_name = columns_dict[column].table_name
+        column_type = columns_dict[column].column_type
 
         var_name = table_name[:2].lower()
         sub_or = 'OR %s.%s IS NULL' % (var_name, column) if None in values else ''
         values_wo_none = [x for x in values if x is not None]
-        to_lower = 'TOLOWER' if type(column_type) == String else ''
+        to_lower = 'TOLOWER' if type(column_type) == str else ''
         sub_where.append(' ({to_lower}({var_name}.{column}) IN {values_wo_none} {sub_or})'
                          .format(to_lower=to_lower,
                                  var_name=var_name,
