@@ -1,16 +1,10 @@
-from flask_restplus import Namespace, Resource, fields
+from flask_restplus import Namespace, Resource
 from neo4jrestclient import constants
 
 from model.utils import \
-    run_query, \
-    biological_view_tables, \
-    management_view_tables, \
-    technological_view_tables, \
-    extraction_view_tables
+    run_query
 
 api = Namespace('item', description='Item related operations')
-
-
 
 
 @api.route('/item/<source_id>/graph')
@@ -33,6 +27,3 @@ class ItemGraph(Resource):
         # resp = Response('hello', mimetype='text/html')
         # return resp
         return results.graph
-
-
-

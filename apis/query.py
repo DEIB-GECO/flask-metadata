@@ -41,7 +41,7 @@ query = api.model('Query', {
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
     @api.doc('return_query_result')
-    # @api.marshal_with(query_result)
+    @api.marshal_with(query_result)
     @api.expect(query)  # TODO correct this one
     def post(self):
         '''List all values'''
