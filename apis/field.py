@@ -1,8 +1,9 @@
+import flask
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 
-from model.utils import column_dict
-from .flask_models import info, Info
+from model.utils import columns_dict, run_query
+from .flask_models import Info, info
 
 api = Namespace('field', description='Field related operations')
 
@@ -22,22 +23,14 @@ class FieldList(Resource):
     @api.doc('get_field_list')
     @api.marshal_with(field_list, skip_none=True)
     def get(self):
-        '''List all fields'''
-        res = column_dict.values()
+        """List all fields"""
+        res = columns_dict.values()
         res = list(res)
         res_len = len(res)
         info = Info(res_len, res_len)
         res = {'fields': res, 'info': info}
 
-        # add group
-        # {
-        #     "field": "bio_replicate_num",
-        #     "group": "biosample"
-        # },
-
-        return res  # [4:6]
-
-
+        return res
 
 
 value = api.model('Value', {
@@ -57,36 +50,29 @@ class FieldValue(Resource):
     @api.doc('get_value_list')
     @api.marshal_with(values)
     def get(self, field_name):
-        '''List all values'''
+        """List all values"""
 
-        if field_name in column_dict:
-            column = column_dict[field_name]
+        if field_name in columns_dict:
+            column = columns_dict[field_name]
 
             column_name = column.column_name
+            table_name = column.table_name
+            column_type = column.column_type
 
-            table = column.table_class
-            column = column.db_column
+            to_lower = 'TOLOWER' if type(column_type) == str else ''
+            cypher_query = f"MATCH (n: {table_name}) " \
+                f"RETURN DISTINCT {to_lower}(n.{column_name}) " \
+                "ORDER BY 1"
 
-            res = table.query
-            res = res.filter(column is not None)
-            res = res.distinct(column)
-            res = res.order_by(column)
-            # res = res.limit(100)
-            res = res.offset(0)
-            res = res.all()
+            flask.current_app.logger.info(cypher_query)
 
-            # extract value
-            res = map(lambda x: x.__dict__[column_name], res)
+            results = run_query(cypher_query)
+            flask.current_app.logger.info('got results')
 
-            # lowercase
-            res = set(map(lambda x: x.lower() if type(x) == str else x, res))
+            res = results.elements
 
-            has_none = None in res
-
-            res = sorted([x for x in res if x is not None])
-
-            if has_none:
-                res.append(None)
+            # res has only one element in inner list, however I prefer to use general one
+            res = [item for sublist in res for item in sublist]
 
             res = [{'value': x} for x in res]
 
@@ -97,5 +83,6 @@ class FieldValue(Resource):
                    }
 
             return res
+
         else:
             api.abort(404)

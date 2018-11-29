@@ -7,7 +7,7 @@ from utils import get_db_uri
 base_url = '/repo-viewer/'
 api_url = base_url + 'api'
 
-app = Flask(__name__)
+my_app = Flask(__name__)
 
 simple_page = Blueprint('root_pages', __name__,
                         static_folder='../vue-metadata/dist/static',
@@ -40,16 +40,17 @@ def index():
 #     app.run()
 
 # register blueprints
-app.register_blueprint(api_blueprint, url_prefix=api_url)
-app.register_blueprint(graph_pages, url_prefix=base_url + "graph")
+my_app.register_blueprint(api_blueprint, url_prefix=api_url)
+my_app.register_blueprint(graph_pages, url_prefix=base_url + "graph")
 
-app.register_blueprint(simple_page, url_prefix=base_url)
+my_app.register_blueprint(simple_page, url_prefix=base_url)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+my_app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
+my_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
-app.app_context().push()
+db.init_app(my_app)
+my_app.app_context().push()
+
 
 
 # redirect all to base url

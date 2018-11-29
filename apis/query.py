@@ -1,7 +1,6 @@
 from flask import Response
 from flask_restplus import Namespace, Resource, fields
 from neo4jrestclient import constants
-from neo4jrestclient.client import GraphDatabase
 from sqlalchemy import String
 
 from model.utils import column_table_dict, \
@@ -89,13 +88,6 @@ class ItemGraph(Resource):
         return results.graph
 
 
-
-def run_query(cypher_query, data_contents=None):
-    gdb = GraphDatabase("http://localhost:17474", username='neo4j', password='yellow')
-    print('connected')
-
-    result = gdb.query(cypher_query, data_contents=data_contents)
-    return result
 
 
 def query_generator(filter_in):
