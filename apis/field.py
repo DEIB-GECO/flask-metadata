@@ -17,7 +17,7 @@ field_list = api.model('Fields', {
 })
 
 
-@api.route('/')
+@api.route('')
 class FieldList(Resource):
     @api.doc('get_field_list')
     @api.marshal_with(field_list, skip_none=True)
