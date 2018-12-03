@@ -7,7 +7,7 @@ from model.utils import \
 api = Namespace('item', description='Item related operations')
 
 
-@api.route('/item/<source_id>/graph')
+@api.route('/<source_id>/graph')
 @api.response(404, 'Item not found')  # TODO correct
 class ItemGraph(Resource):
     @api.doc('get_item_graph')
