@@ -59,10 +59,11 @@ class FieldValue(Resource):
             table_name = column.table_name
             column_type = column.column_type
 
-            to_lower = 'TOLOWER' if type(column_type) == str else ''
-            cypher_query = f"MATCH (n: {table_name}) " \
-                f"RETURN DISTINCT {to_lower}(n.{column_name}) " \
-                "ORDER BY 1"
+            to_lower = 'TOLOWER' if column_type == str else ''
+            cypher_query = \
+                f"MATCH (n: {table_name}) " \
+                f"RETURN DISTINCT {to_lower}(n.{column_name}) as value " \
+                "ORDER BY value"
 
             flask.current_app.logger.info(cypher_query)
 
