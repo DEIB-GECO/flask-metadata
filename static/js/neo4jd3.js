@@ -557,7 +557,7 @@ function Neo4jD3(_selector, _options) {
                            .on('end', function() {
                                if (options.zoomFit && !justLoaded) {
                                    justLoaded = true;
-                                   zoomFit(2);
+                                   zoomFit(0);
                                }
                            });
 
@@ -973,7 +973,8 @@ function Neo4jD3(_selector, _options) {
         size: size,
         updateWithD3Data: updateWithD3Data,
         updateWithNeo4jData: updateWithNeo4jData,
-        version: version
+        version: version,
+        zoomFit : zoomFit,
     };
 }
 
