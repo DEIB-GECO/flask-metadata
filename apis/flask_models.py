@@ -14,3 +14,4 @@ info = api.model('Info', {
     'total_count': fields.String(attribute='total', description='TODO'),
 
 })
+info_field = fields.Nested(info, required=True, description='Info', skip_none=True)

@@ -27,6 +27,10 @@ def run_query(cypher_query, returns=None, data_contents=None):
     return result
 
 
+def unfold_list(res):
+    return [item for sublist in res for item in sublist]
+
+
 # the view order definitions
 biological_view_tables = ['Replicate', 'Biosample', 'Donor']
 management_view_tables = ['Case', 'Project']
@@ -72,4 +76,3 @@ columns = [
 columns_dict = {x.column_name: x for x in columns}
 
 del columns
-

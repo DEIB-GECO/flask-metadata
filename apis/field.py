@@ -3,7 +3,7 @@ from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 
 from model.utils import columns_dict, run_query
-from .flask_models import Info, info
+from .flask_models import Info, info_field
 
 api = Namespace('field', description='Field related operations')
 
@@ -14,7 +14,7 @@ field = api.model('Field', {
 
 field_list = api.model('Fields', {
     'fields': fields.List(fields.Nested(field, required=True, description='Fields', skip_none=True)),
-    'info': fields.Nested(info, required=True, description='Info', skip_none=True),
+    'info': info_field,
 })
 
 
@@ -39,7 +39,7 @@ value = api.model('Value', {
 
 values = api.model('Values', {
     'values': fields.Nested(value, required=True, description='Values'),
-    'info': fields.Nested(info, required=False, description='Info', skip_none=True),
+    'info': info_field,
 })
 
 
@@ -73,7 +73,7 @@ class FieldValue(Resource):
             res = results.elements
 
             # res has only one element in inner list, however I prefer to use general one
-            res = [item for sublist in res for item in sublist]
+            res = unfoldList(res)
 
             res = [{'value': x} for x in res]
 
