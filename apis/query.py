@@ -101,7 +101,7 @@ def query_generator(filter_in):
         var_name = table_name[:2].lower()
         sub_or = 'OR %s.%s IS NULL' % (var_name, column) if None in values else ''
         values_wo_none = [x for x in values if x is not None]
-        to_lower = 'TOLOWER' if type(column_type) == str else ''
+        to_lower = 'TOLOWER' if column_type == str else ''
         sub_where.append(' ({to_lower}({var_name}.{column}) IN {values_wo_none} {sub_or})'
                          .format(to_lower=to_lower,
                                  var_name=var_name,
