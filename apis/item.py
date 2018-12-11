@@ -8,16 +8,47 @@ from .flask_models import info_field, Info
 
 api = Namespace('item', description='Item related operations')
 
+parser = api.parser()
+parser.add_argument('vocabulary', type=bool, help='Has vocabulary ')
+
+
+# parser.add_argument('onto', type=bool, help='Ontological ', default=False)
+
 
 @api.route('/<source_id>/graph')
 @api.response(404, 'Item not found')  # TODO correct
 class ItemGraph(Resource):
     @api.doc('get_item_graph')
+    @api.expect(parser)
     def get(self, source_id):
-        cypher_query = "MATCH p1=((i:Item)-[*]->(x)) " \
-                       "WHERE NOT 'PairsOfItem' IN labels(x)  " \
+
+        args = parser.parse_args()
+        voc = args['vocabulary']
+
+        if voc:
+            max_voc_count = 1
+        else:
+            max_voc_count = 0
+
+        cypher_query = "MATCH p=((i:Item)-[*]->(x)) " \
+            f"WHERE size([n in nodes(p) WHERE 'Vocabulary' in labels(n) | n]) <= {max_voc_count} " \
             f"AND i.source_id='{source_id}' " \
                        "RETURN *"
+
+        # MATCH p1=((i:Item)-[*]->(x))
+        # WHERE NOT 'Vocabulary' IN labels(x)
+        # AND NOT 'Synonym' IN labels(x)
+        # AND NOT 'Ontology' IN labels(x)
+        # AND NOT 'XRef' IN labels(x)
+        # AND i.source_id='08fbbee6-0780-4d19-bbab-346dda361e08-msm' RETURN *
+
+        # if it is only 0 then without any vocabulary
+        # MATCH p=((i:Item)-[*]->(x))
+        # WHERE TRUE
+        # AND size([n in nodes(p) WHERE 'Vocabulary' in labels(n) | n]) < 2
+        # AND i.source_id='08fbbee6-0780-4d19-bbab-346dda361e08-msm'
+        # RETURN p, size([n in nodes(p1) WHERE 'Vocabulary' in labels(n) | n])
+
         print(cypher_query)
 
         results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
