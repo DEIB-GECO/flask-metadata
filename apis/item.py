@@ -14,7 +14,7 @@ api = Namespace('item', description='Item related operations')
 class ItemGraph(Resource):
     @api.doc('get_item_graph')
     def get(self, source_id):
-        cypher_query = "MATCH p1=((i:Item)-[*..3]->(x)) " \
+        cypher_query = "MATCH p1=((i:Item)-[*]->(x)) " \
                        "WHERE NOT 'PairsOfItem' IN labels(x)  " \
             f"AND i.source_id='{source_id}' " \
                        "RETURN *"
