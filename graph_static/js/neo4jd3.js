@@ -246,7 +246,7 @@ function Neo4jD3(_selector, _options) {
                    })
                    .html(function(d) {
                        var _icon = icon(d);
-                       var label = d.labels[0] == 'ExperimentType' ? 'Exp Type' : d.labels[0];
+                       var label = d.labels[0] == 'ExperimentType' ? 'ExpType' : d.labels[0];
                        return _icon ? '&#x' + _icon : label;
                    });
     }
