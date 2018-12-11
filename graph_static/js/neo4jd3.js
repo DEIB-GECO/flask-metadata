@@ -559,7 +559,7 @@ function Neo4jD3(_selector, _options) {
                            .on('end', function() {
                                if (options.zoomFit && !justLoaded) {
                                    justLoaded = true;
-                                   zoomFit(2);
+                                   // zoomFit(2);
                                }
                            });
 
