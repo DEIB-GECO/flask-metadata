@@ -1,16 +1,16 @@
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
+from flask_restplus import inputs
 from neo4jrestclient import constants
 
 from model.utils import \
     run_query, unfold_list
-from utils import str2bool
 from .flask_models import info_field, Info
 
 api = Namespace('item', description='Item related operations')
 
 parser = api.parser()
-parser.add_argument('voc', type=str2bool, help='Has vocabulary ')
+parser.add_argument('voc', type=inputs.boolean, help='Has vocabulary (true/false)', default=False)
 
 
 # parser.add_argument('onto', type=bool, help='Ontological ', default=False)
