@@ -41,6 +41,7 @@ my_app.register_blueprint(simple_page, url_prefix=base_url)
 my_app.app_context().push()
 
 
+
 # redirect all to base url
 @my_app.route('/', defaults={'path': ''})
 @my_app.route('/<path:path>')
@@ -49,3 +50,19 @@ def index_all(path):
 
 # if __name__ == '__main__':
 #     my_app.run()
+
+
+# prevent cached responses
+@my_app.after_request
+def add_header(r):
+    """
+    Add headers to both force latest IE rendering engine or Chrome Frame,
+    and also to cache the rendered page for 10 minutes.
+    """
+    if "Cache-Control" not in  r.headers:
+        r.cache_control.max_age = 300 # 5 min
+        # r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        # r.headers["Pragma"] = "no-cache"
+        # r.headers["Expires"] = "0"
+        # r.headers['Cache-Control'] = 'public, max-age=0'
+    return r

@@ -12,7 +12,28 @@ module.exports = neo4jd3;
 
 function Neo4jD3(_selector, _options) {
     var container, graph, info, node, nodes, relationship, relationshipOutline, relationshipOverlay, relationshipText, relationships, selector, simulation, svg, svgNodes, svgRelationships, svgScale, svgTranslate,
-        classes2colors = {},
+        classes2colors = {
+            Item: '#70edee', // turquoise
+
+            Replicate: '#faafc2', // light pink
+
+
+            Biosample: '#ff928c', // light red
+            Donor: '#fa5f86', // dark pink
+
+
+            Case: '#ffc766', // light orange
+            Project: '#ffab1a', // dark orange
+
+            Dataset: "#b3daf3",
+            ExperimentType: "#bed9ad",
+
+
+            Vocabulary: '#fff289',
+            Synonym: "#f0f0f0",
+            Ontology: "#c7c9cb",
+            XRef: "#d5d6ff",
+        },
         justLoaded = false,
         numClasses = 0,
         options = {
@@ -247,6 +268,11 @@ function Neo4jD3(_selector, _options) {
                    .html(function(d) {
                        var _icon = icon(d);
                        var label = d.labels[0] == 'ExperimentType' ? 'ExpType' : d.labels[0];
+                       // if(d.labels[0] === 'Vocabulary')
+                       //     label=d.properties["pref_label"];
+                       // if(d.labels[0] === 'Synonym')
+                       //     label=d.properties["label"];
+
                        return _icon ? '&#x' + _icon : label;
                    });
     }
@@ -319,6 +345,7 @@ function Neo4jD3(_selector, _options) {
             color = options.colors[numClasses % options.colors.length];
             classes2colors[cls] = color;
             numClasses++;
+            console.log(classes2colors);
         }
 
         return color;
@@ -559,7 +586,7 @@ function Neo4jD3(_selector, _options) {
                            .on('end', function() {
                                if (options.zoomFit && !justLoaded) {
                                    justLoaded = true;
-                                   // zoomFit(2);
+                                   zoomFit(2);
                                }
                            });
 
