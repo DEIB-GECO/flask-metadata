@@ -79,7 +79,7 @@ class FieldValue(Resource):
                 cypher_query += f"OPTIONAL MATCH(n)-[:HasTid{{onto_attribute:'{column_name}'}}]->(:Vocabulary)-->(s:Synonym) "
                 cypher_query += f"UNWIND [s.label] + [n.{column_name}] as value "
             else:
-                cypher_query += "WITH n.species as value "
+                cypher_query += f"WITH n.{column_name} as value "
             cypher_query += f"RETURN DISTINCT {to_lower}(value) as value "
             cypher_query += "ORDER BY value"
 
