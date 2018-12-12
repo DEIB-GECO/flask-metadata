@@ -1,4 +1,4 @@
-from flask_restplus import Namespace, Resource, fields
+from flask_restplus import Namespace, Resource, fields, inputs
 from neo4jrestclient import constants
 
 from model.utils import columns_dict, \
@@ -9,6 +9,8 @@ from model.utils import columns_dict, \
     extraction_view_tables
 
 api = Namespace('query', description='Query related operations')
+
+
 
 query_result = api.model('QueryResult', {
     'source_id': fields.String,
@@ -37,14 +39,25 @@ query = api.model('Query', {
 })
 
 
+
+
+parser = api.parser()
+parser.add_argument('voc', type=inputs.boolean, help='Has vocabulary (true/false)', default=False)
+parser.add_argument('body', type="json", help='json ', location='json',)
+
+
 @api.route('/table')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
     @api.doc('return_query_result')
     @api.marshal_with(query_result)
-    @api.expect(query)  # TODO correct this one
+    @api.expect(parser)  # TODO correct this one
     def post(self):
         '''List all values'''
+
+        args = parser.parse_args()
+        voc = args['voc']
+
 
         filter_in = api.payload
 
