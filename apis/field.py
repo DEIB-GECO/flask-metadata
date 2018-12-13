@@ -66,6 +66,7 @@ class FieldValue(Resource):
             column_name = column.column_name
             table_name = column.table_name
             column_type = column.column_type
+            has_tid = column.has_tid
 
             # MATCH (n: Donor)
             # OPTIONAL MATCH(n)-[:HasTid{onto_attribute:'species'}]->(:Vocabulary)-->(s:Synonym)
@@ -75,7 +76,7 @@ class FieldValue(Resource):
 
             to_lower = 'TOLOWER' if column_type == str else ''
             cypher_query = f"MATCH (n: {table_name}) "
-            if voc:
+            if voc and has_tid:
                 cypher_query += f"OPTIONAL MATCH(n)-[:HasTid{{onto_attribute:'{column_name}'}}]->(:Vocabulary)-->(s:Synonym) "
                 cypher_query += f"UNWIND [s.label] + [n.{column_name}] as value "
             else:
