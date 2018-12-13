@@ -345,7 +345,7 @@ function Neo4jD3(_selector, _options) {
             color = options.colors[numClasses % options.colors.length];
             classes2colors[cls] = color;
             numClasses++;
-            console.log(classes2colors);
+            // console.log(classes2colors);
         }
 
         return color;
