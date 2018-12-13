@@ -1,3 +1,4 @@
+import flask
 from flask import Flask, render_template, redirect, Blueprint, url_for
 
 from apis import api_blueprint
@@ -22,7 +23,7 @@ graph_pages = Blueprint('static', __name__,
 # base url defined in apis init
 @simple_page.route('/')
 def index():
-    print("serve index")
+    flask.current_app.logger.info("serve index")
     return render_template('index.html')
 
 

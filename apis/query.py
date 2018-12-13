@@ -1,3 +1,4 @@
+import flask
 from flask_restplus import Namespace, Resource, fields, inputs
 from neo4jrestclient import constants
 
@@ -9,8 +10,6 @@ from model.utils import columns_dict, \
     extraction_view_tables
 
 api = Namespace('query', description='Query related operations')
-
-
 
 query_result = api.model('QueryResult', {
     'source_id': fields.String,
@@ -38,12 +37,9 @@ query = api.model('Query', {
     # 'info': fields.Nested(info, required=False, description='Info', skip_none=True),
 })
 
-
-
-
 parser = api.parser()
 parser.add_argument('voc', type=inputs.boolean, help='Has vocabulary (true/false)', default=False)
-parser.add_argument('body', type="json", help='json ', location='json',)
+parser.add_argument('body', type="json", help='json ', location='json', )
 
 
 @api.route('/table')
@@ -58,15 +54,14 @@ class Query(Resource):
         args = parser.parse_args()
         voc = args['voc']
 
-
         filter_in = api.payload
 
-        cypher_query = query_generator(filter_in)
-        print(cypher_query)
+        cypher_query = query_generator(filter_in, voc)
+        flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
 
-        print('got results')
+        flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
         results = results.rows
@@ -81,7 +76,7 @@ class Query(Resource):
         return results
 
 
-def query_generator(filter_in):
+def query_generator(filter_in, voc):
     # set of distinct tables in the query
     filter_tables = set()
     for (column, values) in filter_in.items():

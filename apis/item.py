@@ -1,3 +1,4 @@
+import flask
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
@@ -50,13 +51,13 @@ class ItemGraph(Resource):
         # AND i.source_id='08fbbee6-0780-4d19-bbab-346dda361e08-msm'
         # RETURN p, size([n in nodes(p1) WHERE 'Vocabulary' in labels(n) | n])
 
-        print(cypher_query)
+        flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
 
-        print('got results')
+        flask.current_app.logger.info('got results')
 
-        print(results)
+        flask.current_app.logger.info(results)
 
         # resp = Response('hello', mimetype='text/html')
         # return resp
@@ -87,11 +88,11 @@ class ItemExtra(Resource):
         cypher_query = "MATCH (i:Item) " \
             f"WHERE i.source_id='{source_id}' " \
                        "RETURN i"
-        print(cypher_query)
+        flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query)
 
-        print('got results')
+        flask.current_app.logger.info('got results')
 
         res = results.elements
 
