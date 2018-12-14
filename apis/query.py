@@ -88,26 +88,21 @@ def query_generator(filter_in, voc):
         if len(tables):
             filter_all_view_tables[view_name] = tables
 
-    # filter_bio_tables = [x for x in view_tables['biological'] if x in filter_tables]
-    # filter_mngm_tables = [x for x in view_tables['management'] if x in filter_tables]
-    # filter_tech_tables = view_tables['technological']  # [x for x in view_tables['technological'] if x in filter_tables]
-    # filter_extract_tables = view_tables['extraction']  # [x for x in view_tables['extraction'] if x in filter_tables]
-    # filter_all_view_tables = (filter_bio_tables, filter_mngm_tables, filter_tech_tables, filter_extract_tables)
-    # filter_all_view_tables = [x for x in filter_all_view_tables if len(x) > 0]
-
     # list of sub_queries
     sub_matches = []
     for (i, (view_name, tables)) in enumerate(filter_all_view_tables.items()):
-        sub_query = f'p{i} = (it)'
+        sub_query = ''
+        # sub_query += f'p{i} = '
+        sub_query += '(it)'
         pre_table = 'Item'
         for table_name in tables:
             distance = calc_distance(view_name, pre_table, table_name)
             if distance > 1:
-                dist = f"[*..{distance}]"
+                dist = f'[*..{distance}]'
             else:
-                dist = ""
+                dist = ''
             var_table_par = var_table(table_name)
-            sub_query = sub_query + f'-{dist}->({var_table_par}:{table_name})'
+            sub_query += f'-{dist}->({var_table_par}:{table_name})'
             pre_table = table_name
 
         sub_matches.append(sub_query)
@@ -129,6 +124,12 @@ def query_generator(filter_in, voc):
                 "WITH * " \
                 f"WHERE ({where_part1} OR {where_part2}) "
 
+            # TODO
+            # OPTIONAL MATCH (do)-->(:Vocabulary)-->(s_sp:Synonym)
+            # ******* WHERE (TOLOWER(s_sp.label) IN ['homo sapiens', 'man', 'human']) ***********
+            # WITH *
+            # WHERE ( (TOLOWER(do.species) IN ['homo sapiens', 'man', 'human']) OR  (TOLOWER(s_sp.label) IN ['homo sapiens', 'man', 'human']))
+
             sub_optional_match.append(optional)
         else:
             where_part = create_where_part(column, values, False)
@@ -139,9 +140,9 @@ def query_generator(filter_in, voc):
     if sub_where:
         cypher_query += 'WHERE ' + ' AND '.join(sub_where)
     if sub_optional_match:
-        cypher_query += ' ' +  ''.join(sub_optional_match)
+        cypher_query += ' ' + ''.join(sub_optional_match)
 
-    cypher_query += ' RETURN it, ex, da'
+    cypher_query += ' RETURN DISTINCT it, ex, da'
 
     cypher_query += ' LIMIT 100 '
     return cypher_query
