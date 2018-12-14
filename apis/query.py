@@ -2,7 +2,7 @@ import flask
 from flask_restplus import Namespace, Resource, fields, inputs
 from neo4jrestclient import constants
 
-from model.utils import columns_dict, \
+from utils import columns_dict, \
     run_query, views, calc_distance, var_table
 
 api = Namespace('query', description='Query related operations')

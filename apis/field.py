@@ -3,7 +3,7 @@ from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
 
-from model.utils import columns_dict, run_query, unfold_list
+from utils import columns_dict, run_query, unfold_list
 from .flask_models import Info, info_field
 
 api = Namespace('field', description='Field related operations')

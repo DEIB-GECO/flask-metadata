@@ -4,7 +4,7 @@ from flask_restplus import fields
 from flask_restplus import inputs
 from neo4jrestclient import constants
 
-from model.utils import \
+from utils import \
     run_query, unfold_list
 from .flask_models import info_field, Info
 
