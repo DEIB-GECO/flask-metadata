@@ -87,7 +87,7 @@ class ItemExtra(Resource):
     def get(self, source_id):
         # TODO correct with pairs
 
-        cypher_query = "MATCH (it:Item)<--(pa:Pair) " \
+        cypher_query = "MATCH (it:Item)--(pa:Pair) " \
             f"WHERE it.source_id='{source_id}' " \
                        "RETURN pa "
 
