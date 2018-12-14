@@ -34,6 +34,7 @@ class ItemGraph(Resource):
 
         cypher_query = "MATCH p=((i:Item)-[*]->(x)) " \
             f"WHERE size([n in nodes(p) WHERE 'Vocabulary' in labels(n) | n]) <= {max_voc_count} " \
+                       "AND NOT 'Pair' IN labels(x) " \
             f"AND i.source_id='{source_id}' " \
                        "RETURN *"
 
@@ -85,9 +86,11 @@ class ItemExtra(Resource):
     @api.marshal_with(extras)
     def get(self, source_id):
         # TODO correct with pairs
-        cypher_query = "MATCH (i:Item) " \
-            f"WHERE i.source_id='{source_id}' " \
-                       "RETURN i"
+
+        cypher_query = "MATCH (it:Item)<--(pa:Pair) " \
+            f"WHERE it.source_id='{source_id}' " \
+                       "RETURN pa "
+
         flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query)
@@ -100,7 +103,7 @@ class ItemExtra(Resource):
         res = unfold_list(res)
 
         if len(res) > 0:
-            res = [{'key': key, 'value': value} for (key, value) in res[0]['data'].items()]
+            res = [{'key': pa['data']['key'], 'value': pa['data']['value']} for pa in res]
 
             info = Info(len(res), None)
 
