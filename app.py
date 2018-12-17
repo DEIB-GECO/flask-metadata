@@ -1,7 +1,25 @@
+from logging.config import dictConfig
+
 import flask
 from flask import Flask, render_template, redirect, Blueprint, url_for
 
 from apis import api_blueprint
+
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['wsgi']
+    }
+})
 
 base_url = '/repo-viewer/'
 api_url = base_url + 'api'
@@ -42,12 +60,12 @@ my_app.register_blueprint(simple_page, url_prefix=base_url)
 my_app.app_context().push()
 
 
-
 # redirect all to base url
 @my_app.route('/', defaults={'path': ''})
 @my_app.route('/<path:path>')
 def index_all(path):
     return redirect(base_url)
+
 
 # if __name__ == '__main__':
 #     my_app.run()
@@ -60,8 +78,8 @@ def add_header(r):
     Add headers to both force latest IE rendering engine or Chrome Frame,
     and also to cache the rendered page for 10 minutes.
     """
-    if "Cache-Control" not in  r.headers:
-        r.cache_control.max_age = 300 # 5 min
+    if "Cache-Control" not in r.headers:
+        r.cache_control.max_age = 300  # 5 min
         # r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         # r.headers["Pragma"] = "no-cache"
         # r.headers["Expires"] = "0"
