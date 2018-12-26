@@ -57,7 +57,7 @@ def calc_distance(view_name, pre_table, table_name):
 columns = [
     Column('Biosample', 'type', str, False),
     Column('Biosample', 'tissue', str, True),
-    Column('Biosample', 'cell_line', str, True),
+    Column('Biosample', 'cell', str, True),
     Column('Biosample', 'is_healthy', bool, False),
     Column('Biosample', 'disease', str, True),
 
