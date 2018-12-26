@@ -98,6 +98,10 @@
 .relationship text {
   cursor: default;
 }
+.relationship .onto {
+  font-size: 10px;
+}
+
 
 .relationship.selected .overlay,
 .relationship:hover .overlay {

@@ -312,14 +312,17 @@ function Neo4jD3(_selector, _options) {
 
     function appendTextToRelationship(r) {
         return r.append('text')
-                .attr('class', 'text')
+                .attr('class', function(d) {
+                    return d.type === "HasTid" ? "text onto" : "text";
+                })
                 .attr('fill', '#000000')
                 .attr('font-size', '8px')
                 .attr('pointer-events', 'none')
                 .attr('text-anchor', 'middle')
                 .text(function(d) {
+                    return d.type === "HasTid" ? d.properties.onto_attribute : null;
                     // return d.type;
-                    return null; //ARIF: no text in the relationship
+                    // return null; //ARIF: no text in the relationship
                 });
     }
 
