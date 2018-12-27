@@ -72,7 +72,48 @@ class Query(Resource):
         return results
 
 
-def query_generator(filter_in, voc):
+count_result = api.model('QueryResult', {
+     'name': fields.String,
+    'count': fields.Integer,
+})
+
+
+# TODO check code repetition
+@api.route('/count')
+@api.response(404, 'Field not found')  # TODO correct
+class Query(Resource):
+    @api.doc('return_query_result')
+    @api.marshal_with(count_result)
+    @api.expect(parser)  # TODO correct this one
+    def post(self):
+        '''List all values'''
+
+        args = parser.parse_args()
+        voc = args['voc']
+
+        filter_in = api.payload
+
+        cypher_query = query_generator(filter_in, voc, 'count')
+        flask.current_app.logger.info(cypher_query)
+
+        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
+
+        flask.current_app.logger.info('got results')
+
+        # result_columns = results.columns
+        results = results.rows
+
+        if results:
+            results = [{'name': x[0], 'count': x[1]} for x in results]
+        else:
+            results = []
+
+        # print(results)
+
+        return results
+
+
+def query_generator(filter_in, voc, return_type='table'):
     # set of distinct tables in the query, the result must have always ...
     filter_tables = set()
     filter_tables.add('Dataset')
@@ -142,9 +183,14 @@ def query_generator(filter_in, voc):
     if sub_optional_match:
         cypher_query += ' ' + ''.join(sub_optional_match)
 
-    cypher_query += ' RETURN DISTINCT it, ex, da'
+    cypher_query += ' WITH DISTINCT it, ex, da'
 
-    cypher_query += ' LIMIT 100 '
+    if return_type == 'table':
+        cypher_query += ' RETURN *'
+        cypher_query += ' LIMIT 100 '
+    else:
+        cypher_query += ' RETURN da.name, count(*) '
+        # cypher_query += ' ORDER BY da.name '
     return cypher_query
 
 
