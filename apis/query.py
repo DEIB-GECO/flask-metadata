@@ -42,7 +42,7 @@ parser.add_argument('body', type="json", help='json ', location='json', )
 @api.route('/table')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
-    @api.doc('return_query_result')
+    @api.doc('return_query_result1')
     @api.marshal_with(query_result)
     @api.expect(parser)  # TODO correct this one
     def post(self):
@@ -74,16 +74,16 @@ class Query(Resource):
 
 
 count_result = api.model('QueryResult', {
-     'name': fields.String,
+    'name': fields.String,
     'count': fields.Integer,
 })
 
 
 # TODO check code repetition
-@api.route('/count')
+@api.route('/count/dataset')
 @api.response(404, 'Field not found')  # TODO correct
-class QueryCount(Resource):
-    @api.doc('return_query_result')
+class QueryCountDataset(Resource):
+    @api.doc('return_query_result2')
     @api.marshal_with(count_result)
     @api.expect(parser)  # TODO correct this one
     def post(self):
@@ -94,7 +94,42 @@ class QueryCount(Resource):
 
         filter_in = api.payload
 
-        cypher_query = query_generator(filter_in, voc, 'count')
+        cypher_query = query_generator(filter_in, voc, 'count-dataset')
+        flask.current_app.logger.info(cypher_query)
+
+        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
+
+        flask.current_app.logger.info('got results')
+
+        # result_columns = results.columns
+        results = results.rows
+
+        if results:
+            results = [{'name': x[0], 'count': x[1]} for x in results]
+        else:
+            results = []
+
+        # print(results)
+
+        return results
+
+
+# TODO check code repetition
+@api.route('/count/source')
+@api.response(404, 'Field not found')  # TODO correct
+class QueryCountSource(Resource):
+    @api.doc('return_query_result3')
+    @api.marshal_with(count_result)
+    @api.expect(parser)  # TODO correct this one
+    def post(self):
+        '''Count all values'''
+
+        args = parser.parse_args()
+        voc = args['voc']
+
+        filter_in = api.payload
+
+        cypher_query = query_generator(filter_in, voc, 'count-source')
         flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
@@ -189,9 +224,12 @@ def query_generator(filter_in, voc, return_type='table'):
     if return_type == 'table':
         cypher_query += ' RETURN *'
         cypher_query += ' LIMIT 100 '
-    else:
+    elif return_type == 'count-dataset':
         cypher_query += ' RETURN da.name, count(*) '
-        # cypher_query += ' ORDER BY da.name '
+        cypher_query += ' ORDER BY da.name '
+    elif return_type == 'count-source':
+        cypher_query += ' RETURN da.source, count(*) '
+        cypher_query += ' ORDER BY da.source '
     return cypher_query
 
 
