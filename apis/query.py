@@ -15,12 +15,13 @@ query_result = api.model('QueryResult', {
     'platform': fields.String,
     'source_url': fields.String,
     'local_url': fields.String,
+    'content_type': fields.String,
 
     'name': fields.String,
     'data_type': fields.String,
     'format': fields.String,
     'assembly': fields.String,
-    'annotation': fields.String,
+    'is_ann': fields.String,
 
     'technique': fields.String,
     'feature': fields.String,
@@ -81,12 +82,12 @@ count_result = api.model('QueryResult', {
 # TODO check code repetition
 @api.route('/count')
 @api.response(404, 'Field not found')  # TODO correct
-class Query(Resource):
+class QueryCount(Resource):
     @api.doc('return_query_result')
     @api.marshal_with(count_result)
     @api.expect(parser)  # TODO correct this one
     def post(self):
-        '''List all values'''
+        '''Count all values'''
 
         args = parser.parse_args()
         voc = args['voc']

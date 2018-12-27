@@ -68,7 +68,7 @@ columns = [
     Column('Dataset', 'data_type', str, False),
     Column('Dataset', 'format', str, False),
     Column('Dataset', 'assembly', str, False),
-    Column('Dataset', 'annotation', str, False),  # TO BE REMOVED
+    Column('Dataset', 'is_ann', bool, False),
 
     Column('Donor', 'species', str, True),
     Column('Donor', 'age', int, False),
@@ -82,7 +82,7 @@ columns = [
 
     Column('Item', 'platform', str, True),
     Column('Item', 'pipeline', str),
-    # Column('Item', 'content_type', str, True), #TO BE ADDED
+    Column('Item', 'content_type', str, True), #TO BE ADDED
 
     Column('Project', 'program_name', str, False),
     Column('Project', 'project_name', str, False),
