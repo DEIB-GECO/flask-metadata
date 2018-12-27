@@ -1,4 +1,5 @@
 import flask
+from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
 from neo4jrestclient import constants
 
@@ -149,6 +150,46 @@ class QueryCountSource(Resource):
         return results
 
 
+# TODO check code repetition
+@api.route('/download')
+@api.response(404, 'Field not found')  # TODO correct
+class QueryCountSource(Resource):
+    @api.doc('return_query_result4')
+    @api.expect(parser)  # TODO correct this one
+    def post(self):
+        '''Items local url'''
+
+        args = parser.parse_args()
+        voc = args['voc']
+
+        filter_in = api.payload
+
+        cypher_query = query_generator(filter_in, voc, 'download-links')
+        flask.current_app.logger.info(cypher_query)
+
+        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
+
+        flask.current_app.logger.info('got results')
+
+        # result_columns = results.columns
+        results = results.rows
+
+        results = [x[0] for x in results]
+
+        results = [x.replace("www.gmql.eu", "genomic.deib.polimi.it") for x in results]
+        results = [x + "?authToken=DOWNLOAD-TOKEN" for x in results]
+
+        results = '\n'.join(results)
+        # if results:
+        #     results = [{'name': x[0], 'count': x[1]} for x in results]
+        # else:
+        #     results = []
+
+        # print(results)
+
+        return Response(results, mimetype='text/plain')
+
+
 def query_generator(filter_in, voc, return_type='table'):
     # set of distinct tables in the query, the result must have always ...
     filter_tables = set()
@@ -230,6 +271,10 @@ def query_generator(filter_in, voc, return_type='table'):
     elif return_type == 'count-source':
         cypher_query += ' RETURN da.source, count(*) '
         cypher_query += ' ORDER BY da.source '
+    elif return_type == 'download-links':
+        cypher_query += ' WHERE it.local_url is not null '
+        cypher_query += ' RETURN it.local_url '
+
     return cypher_query
 
 
