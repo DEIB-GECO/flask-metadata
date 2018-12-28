@@ -264,7 +264,7 @@ def query_generator(filter_in, voc, return_type='table'):
 
     if return_type == 'table':
         cypher_query += ' RETURN *'
-        cypher_query += ' LIMIT 100 '
+        cypher_query += ' LIMIT 1000 '
     elif return_type == 'count-dataset':
         cypher_query += ' RETURN da.name, count(*) '
         cypher_query += ' ORDER BY da.name '
