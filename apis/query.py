@@ -18,11 +18,11 @@ query_result = api.model('QueryResult', {
     'local_url': fields.String,
     'content_type': fields.String,
 
-    'name': fields.String,
+    'dataset_name': fields.String,
     'data_type': fields.String,
-    'format': fields.String,
+    'file_format': fields.String,
     'assembly': fields.String,
-    'is_ann': fields.String,
+    'is_annotation': fields.String,
 
     'technique': fields.String,
     'feature': fields.String,

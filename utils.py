@@ -43,7 +43,7 @@ def unfold_list(res):
 # the view order definitions
 views = {
     'biological': ['Item', 'Replicate', 'Biosample', 'Donor'],
-    'management': ['Item', 'Case', 'Project'],
+    'management': ['Item', 'CaseStudy', 'Project'],
     'technological': ['Item', 'ExperimentType'],
     'extraction': ['Item', 'Dataset'],
 }
@@ -55,40 +55,40 @@ def calc_distance(view_name, pre_table, table_name):
 
 
 columns = [
-    Column('Biosample', 'type', str, False),
-    Column('Biosample', 'tissue', str, True),
-    Column('Biosample', 'cell', str, True),
-    Column('Biosample', 'is_healthy', bool, False),
-    Column('Biosample', 'disease', str, True),
+    Column('Biosample', 'biosample_type', str, False,"Kind of material sample used for the experiment"),
+    Column('Biosample', 'tissue', str, True, "Multicellular component in its natural state, or provenance tissue of cell"),
+    Column('Biosample', 'cell', str, True, "Single cells (natural state), immortalized cell lines, or cells differentiated from specific cell types"),
+    Column('Biosample', 'is_healthy', bool, False, "True for healthy/normal/control samples, False for non-healthy/tumoral samples"),
+    Column('Biosample', 'disease', str, True, "Illness investigated within the sample"),
 
-    Column('Case', 'source_site', str, False),
-    Column('Case', 'external_ref', str, False),
+    Column('CaseStudy', 'source_site', str, False, "Physical site where material was analysed"),
+    Column('CaseStudy', 'external_ref', str, False, "Identifiers from alternative data sources"),
 
-    Column('Dataset', 'name', str, False),
-    Column('Dataset', 'data_type', str, False),
-    Column('Dataset', 'format', str, False),
-    Column('Dataset', 'assembly', str, False),
-    Column('Dataset', 'is_ann', bool, False),
+    Column('Dataset', 'dataset_name', str, False, "Directory in which items are stored for tertiary analysis"),
+    Column('Dataset', 'data_type', str, False, "Specific kind of genomic data contained in the items"),
+    Column('Dataset', 'file_format', str, False, "Standard data format used in the region items"),
+    Column('Dataset', 'assembly', str, False, "Reference genome alignment"),
+    Column('Dataset', 'is_annotation', bool, False, "True for annotations, False for experimental items"),
 
-    Column('Donor', 'species', str, True),
-    Column('Donor', 'age', int, False),
-    Column('Donor', 'gender', str, False),
-    Column('Donor', 'ethnicity', str, True),
+    Column('Donor', 'species', str, True, "Specific organism from which the biological sample was derived (or cell line established)"),
+    Column('Donor', 'age', int, False, "Age of individual from which the biological sample was derived (or cell line established)"),
+    Column('Donor', 'gender', str, False, "Gender/sex of the individual"),
+    Column('Donor', 'ethnicity', str, True, "Ethnicity/race information of the individual"),
 
-    Column('ExperimentType', 'technique', str, True),
-    Column('ExperimentType', 'feature', str, True),
-    Column('ExperimentType', 'target', str, True),
-    Column('ExperimentType', 'antibody', str),
+    Column('ExperimentType', 'technique', str, True,"Investigative procedure conducted to produce the items"),
+    Column('ExperimentType', 'feature', str, True,"Specific genomic aspect described by the experiment"),
+    Column('ExperimentType', 'target', str, True,"Gene or protein which is targeted by the experiment"),
+    Column('ExperimentType', 'antibody', str, False, "Antibody protein against specific target"),
 
-    Column('Item', 'platform', str, True),
-    Column('Item', 'pipeline', str),
-    Column('Item', 'content_type', str, True),  # TO BE ADDED
+    Column('Item', 'platform', str, True, "Instrument used to sequence the raw data related to the items"),
+    Column('Item', 'pipeline', str, False, "Methods used for processing phases, from raw data to processed data"),
+    Column('Item', 'content_type', str, True, "Type of represented regions"),
 
-    Column('Project', 'program_name', str, False),
-    Column('Project', 'project_name', str, False),
+    Column('Project', 'source', str, False, "Program or consortia responsible for the production of items"),
+    Column('Project', 'project_name', str, False, "Project context in which items are created"),
 
-    Column('Replicate', 'bio_replicate_num', int, False),
-    Column('Replicate', 'tech_replicate_num', int, False),
+    Column('Replicate', 'biological_replicate_number', int, False, "Progressive number of biosample on which the experimental protocol was performed"),
+    Column('Replicate', 'technical_replicate_number', int, False, "Progressive number of distinct replicates from the same biosample (each treated identically)"),
 ]
 
 columns_dict = {x.column_name: x for x in columns}

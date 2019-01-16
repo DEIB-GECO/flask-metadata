@@ -22,7 +22,7 @@ function Neo4jD3(_selector, _options) {
             Donor: '#fa5f86', // dark pink
 
 
-            Case: '#ffc766', // light orange
+            CaseStudy: '#ffc766', // light orange
             Project: '#ffab1a', // dark orange
 
             Dataset: "#b3daf3",
