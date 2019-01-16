@@ -11,6 +11,7 @@ api = Namespace('field', description='Field related operations')
 field = api.model('Field', {
     'name': fields.String(attribute='column_name', required=True, description='Field name '),
     'group': fields.String(attribute='table_name', description='Field group '),
+    'description': fields.String(attribute='description', description='Field description '),
 })
 
 field_list = api.model('Fields', {

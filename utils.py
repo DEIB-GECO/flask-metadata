@@ -5,16 +5,15 @@ from neo4jrestclient.constants import DATA_GRAPH, DATA_ROWS, RAW
 
 class Column:
 
-    def __init__(self, table_name, column_name, column_type, has_tid=False):
+    def __init__(self, table_name, column_name, column_type, has_tid=False, description=""):
         self.table_name = table_name
         self.column_name = column_name
         self.column_type = column_type
         self.has_tid = has_tid
+        self.description = description
 
     def var_table(self):
         return var_table(self.table_name)
-
-
 
     def var_column(self):
         return self.column_name[:2].lower()
@@ -28,6 +27,7 @@ class Column:
 
 def var_table(table_name):
     return table_name[:2].lower()
+
 
 def run_query(cypher_query, returns=None, data_contents=None):
     gdb = GraphDatabase("http://localhost:7474", username='neo4j', password='yellow')
@@ -82,7 +82,7 @@ columns = [
 
     Column('Item', 'platform', str, True),
     Column('Item', 'pipeline', str),
-    Column('Item', 'content_type', str, True), #TO BE ADDED
+    Column('Item', 'content_type', str, True),  # TO BE ADDED
 
     Column('Project', 'program_name', str, False),
     Column('Project', 'project_name', str, False),
