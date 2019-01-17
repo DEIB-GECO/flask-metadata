@@ -8,21 +8,23 @@ from utils import \
     run_query, unfold_list
 from .flask_models import info_field, Info
 
-api = Namespace('item', description='Item related operations')
+api = Namespace('item', description='Operations applicable on single items')
 
 parser = api.parser()
-parser.add_argument('voc', type=inputs.boolean, help='Has vocabulary (true/false)', default=False)
+parser.add_argument('voc', type=inputs.boolean, help='Enable inclusion of controlled vocabulary terms, synonyms and external references (true/false)', default=False)
 
 
 # parser.add_argument('onto', type=bool, help='Ontological ', default=False)
 
 
 @api.route('/<source_id>/graph')
+@api.param('source_id', 'The requested object identifier (as appearing in the source)')
 @api.response(404, 'Item not found')  # TODO correct
 class ItemGraph(Resource):
     @api.doc('get_item_graph')
     @api.expect(parser)
     def get(self, source_id):
+        '''For the specified item identifier, it retrieves the corresponding sub-graph in JSON'''
 
         args = parser.parse_args()
         voc = args['voc']
@@ -80,11 +82,13 @@ extras = api.model('Fields', {
 
 
 @api.route('/<source_id>/extra')
+@api.param('source_id', 'The requested object identifier (as appearing in the source)')
 @api.response(404, 'Item not found')  # TODO correct
 class ItemExtra(Resource):
     @api.doc('get_item_extra')
     @api.marshal_with(extras)
     def get(self, source_id):
+        '''For the specified item identifier, it retrieves a list of key-value metadata pairs'''
         # TODO correct with pairs
 
         cypher_query = "MATCH (it:Item)--(pa:Pair) " \

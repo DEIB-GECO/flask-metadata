@@ -6,7 +6,7 @@ from neo4jrestclient import constants
 from utils import columns_dict, \
     run_query, views, calc_distance, var_table
 
-api = Namespace('query', description='Query related operations')
+api = Namespace('query', description='Operations to perform queries using metadata')
 
 query_result = api.model('QueryResult', {
     'source_id': fields.String,
@@ -36,7 +36,7 @@ query = api.model('Query', {
 })
 
 parser = api.parser()
-parser.add_argument('voc', type=inputs.boolean, help='Has vocabulary (true/false)', default=False)
+parser.add_argument('voc', type=inputs.boolean, help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)', default=False)
 parser.add_argument('body', type="json", help='json ', location='json', )
 
 
@@ -47,7 +47,7 @@ class Query(Resource):
     @api.marshal_with(query_result)
     @api.expect(parser)  # TODO correct this one
     def post(self):
-        '''List all values'''
+        '''For the posted query, it retrieves a list of items with selected characteristics'''
 
         args = parser.parse_args()
         voc = args['voc']
@@ -88,7 +88,7 @@ class QueryCountDataset(Resource):
     @api.marshal_with(count_result)
     @api.expect(parser)  # TODO correct this one
     def post(self):
-        '''Count all values'''
+        '''For the posted query, it retrieves number of items aggregated by dataset'''
 
         args = parser.parse_args()
         voc = args['voc']
@@ -123,7 +123,7 @@ class QueryCountSource(Resource):
     @api.marshal_with(count_result)
     @api.expect(parser)  # TODO correct this one
     def post(self):
-        '''Count all values'''
+        '''For the posted query, it retrieves number of items aggregated by source'''
 
         args = parser.parse_args()
         voc = args['voc']
@@ -157,7 +157,7 @@ class QueryCountSource(Resource):
     @api.doc('return_query_result4')
     @api.expect(parser)  # TODO correct this one
     def post(self):
-        '''Items local url'''
+        '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
         args = parser.parse_args()
         voc = args['voc']
@@ -266,8 +266,8 @@ def query_generator(filter_in, voc, return_type='table'):
         cypher_query += ' RETURN *'
         cypher_query += ' LIMIT 1000 '
     elif return_type == 'count-dataset':
-        cypher_query += ' RETURN da.name, count(*) '
-        cypher_query += ' ORDER BY da.name '
+        cypher_query += ' RETURN da.dataset_name, count(*) '
+        cypher_query += ' ORDER BY da.dataset_name '
     elif return_type == 'count-source':
         cypher_query += ' RETURN da.source, count(*) '
         cypher_query += ' ORDER BY da.source '

@@ -6,7 +6,7 @@ from flask_restplus import inputs
 from utils import columns_dict, run_query, unfold_list
 from .flask_models import Info, info_field
 
-api = Namespace('field', description='Field related operations')
+api = Namespace('field', description='Operations related to fields (i.e., attributes from the Genomic Conceptual Model)')
 
 field = api.model('Field', {
     'name': fields.String(attribute='column_name', required=True, description='Field name '),
@@ -25,7 +25,7 @@ class FieldList(Resource):
     @api.doc('get_field_list')
     @api.marshal_with(field_list, skip_none=True)
     def get(self):
-        """List all fields"""
+        """List all available fields with description and belonging group"""
         res = columns_dict.values()
         res = list(res)
         res_len = len(res)
@@ -45,18 +45,18 @@ values = api.model('Values', {
 })
 
 parser = api.parser()
-parser.add_argument('voc', type=inputs.boolean, help='Has vocabulary (true/false)', default=False)
+parser.add_argument('voc', type=inputs.boolean, help='Enable inclusion of controlled vocabulary terms and synonyms (true/false)', default=False)
 
 
 @api.route('/<field_name>')
-@api.param('field_name', 'The field')
+@api.param('field_name', 'The requested field')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
     @api.doc('get_value_list')
     @api.marshal_with(values)
     @api.expect(parser)
     def get(self, field_name):
-        """List all values"""
+        """For a specified field, it lists all possible values"""
 
         args = parser.parse_args()
         voc = args['voc']
