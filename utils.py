@@ -62,7 +62,7 @@ columns = [
     Column('Biosample', 'disease', str, True, "Illness investigated within the sample"),
 
     Column('CaseStudy', 'source_site', str, False, "Physical site where material was analysed"),
-    Column('CaseStudy', 'external_ref', str, False, "Identifiers from alternative data sources"),
+    Column('CaseStudy', 'external_reference', str, False, "Identifiers from alternative data sources"),
 
     Column('Dataset', 'dataset_name', str, False, "Directory in which items are stored for tertiary analysis"),
     Column('Dataset', 'data_type', str, False, "Specific kind of genomic data contained in the items"),
