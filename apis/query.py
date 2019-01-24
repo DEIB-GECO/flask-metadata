@@ -37,7 +37,56 @@ query = api.model('Query', {
 
 parser = api.parser()
 parser.add_argument('voc', type=inputs.boolean, help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)', default=False)
-parser.add_argument('body', type="json", help='json ', location='json', )
+parser.add_argument('body', type="json", help='json ', location='json')
+
+
+parser_graph = api.parser()
+parser_graph.add_argument('limit', type=int, default=5)
+parser_graph.add_argument('biological_view',type=inputs.boolean)
+parser_graph.add_argument('management_view',type=inputs.boolean)
+parser_graph.add_argument('technological_view',type=inputs.boolean)
+parser_graph.add_argument('extraction_view',type=inputs.boolean)
+parser_graph.add_argument('body', type="json", help='json ', location='json')
+
+query_results = []
+
+
+@api.route('/graph')
+@api.response(404, 'Field not found')  # TODO correct
+class QueryGraph(Resource):
+    @api.doc('return_query_graph')
+    @api.expect(parser_graph)  # TODO correct this one
+    def post(self):
+        '''Generate graph'''
+
+        args = parser_graph.parse_args()
+        limit = args['limit']
+        bioView = args['biological_view']
+        mgmtView = args['management_view']
+        techView = args['technological_view']
+        extrView = args['extraction_view']
+        include_views = []
+
+        if bioView:
+            include_views.append('biological')
+        if mgmtView:
+            include_views.append('management')
+        if techView:
+            include_views.append('technological')
+        if extrView:
+            include_views.append('extraction')
+
+        filter_in = api.payload
+
+        cypher_query = query_generator(filter_in, voc=False, return_type='graph',include_views=include_views,limit=limit)
+        flask.current_app.logger.info(cypher_query)
+        results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
+
+        if len(results):
+            return results.graph
+        else:
+            return api.abort(404, f'Not found')
+
 
 
 @api.route('/table')
@@ -190,7 +239,7 @@ class QueryCountSource(Resource):
         return Response(results, mimetype='text/plain')
 
 
-def query_generator(filter_in, voc, return_type='table'):
+def query_generator(filter_in, voc, return_type='table', include_views=[], limit=1000):
     # set of distinct tables in the query, the result must have always ...
     filter_tables = set()
     filter_tables.add('Dataset')
@@ -260,20 +309,43 @@ def query_generator(filter_in, voc, return_type='table'):
     if sub_optional_match:
         cypher_query += ' ' + ''.join(sub_optional_match)
 
-    cypher_query += ' WITH DISTINCT it, ex, da'
-
     if return_type == 'table':
+        cypher_query += ' WITH DISTINCT it, ex, da'
         cypher_query += ' RETURN *'
-        cypher_query += ' LIMIT 1000 '
+        cypher_query += f' LIMIT {limit} '
     elif return_type == 'count-dataset':
+        cypher_query +=' WITH DISTINCT it, da'
         cypher_query += ' RETURN da.dataset_name, count(*) '
         cypher_query += ' ORDER BY da.dataset_name '
     elif return_type == 'count-source':
+        cypher_query +=' WITH DISTINCT it, da'
         cypher_query += ' RETURN da.source, count(*) '
         cypher_query += ' ORDER BY da.source '
     elif return_type == 'download-links':
+        cypher_query += ' WITH DISTINCT it'
         cypher_query += ' WHERE it.local_url is not null '
         cypher_query += ' RETURN it.local_url '
+    elif return_type == 'graph':
+        cypher_query += ' WITH DISTINCT it'
+        cypher_query += f' LIMIT {limit}'
+        pre_table = 'Item'
+        cypher_query += ' MATCH (it: Item)'
+        match_view_pre = ' (it)'
+        return_part = ' return it'
+        if len(include_views):
+            for view in include_views:
+                p_name = f'p_{view}'
+                cypher_query += f', {p_name} ='
+                last = views.get(view)[-1]
+                cypher_query += match_view_pre
+                distance = calc_distance(view, pre_table, last)
+                if distance > 1:
+                    dist = f'[*..{distance}]'
+                else:
+                    dist = ''
+                cypher_query += f'-{dist}->({last[:2].lower()}:{last})'
+                return_part += f', {p_name}'
+        cypher_query += return_part
 
     return cypher_query
 

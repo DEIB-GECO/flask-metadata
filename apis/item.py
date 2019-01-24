@@ -4,6 +4,8 @@ from flask_restplus import fields
 from flask_restplus import inputs
 from neo4jrestclient import constants
 
+import requests
+
 from utils import \
     run_query, unfold_list
 from .flask_models import info_field, Info
@@ -15,6 +17,73 @@ parser.add_argument('voc', type=inputs.boolean, help='Enable inclusion of contro
 
 
 # parser.add_argument('onto', type=bool, help='Ontological ', default=False)
+
+def count(id):
+    query_count = f"match p=((n)--(x)) where ID(n) = {id} AND NOT 'Pair' IN labels(x) return count(x)"
+
+    count = run_query(query_count, data_contents=constants.DATA_ROWS)
+
+    if len(count):
+        return count.rows[0][0]
+    else:
+        item_na_error(id)
+
+
+@api.route('/<id>/count')
+@api.response(404, 'Item not found')  # TODO correct
+class NodeCount(Resource):
+    @api.doc('get_node_relations_count')
+    # @api.expect(parser)
+    def get(self, id):
+        return count(id)
+
+
+@api.route('/<label>/<id>/relations')
+@api.response(404, 'Item not found')  # TODO correct
+class NodeRel(Resource):
+    @api.doc('get_node_relations')
+    # @api.expect(parser)
+    def get(self, label, id):
+
+        # url = f'/repo-viewer/api/item/{id}/count'
+        # r = requests.get(url)
+        #
+        # count = r.content
+
+        cypher_query_header = f'match p=((n)--(x)) where ID(n) = {id}'
+
+        cypher_query_where = ''
+
+        if label.lower() == "item":
+            cypher_query_where = ' AND '
+            cypher_query_where += "not 'Pair' in labels(x)"
+
+        cypher_query_return = ' return *'
+
+        cypher_query_limit = ''
+
+        threshold = 30
+
+        flask.current_app.logger.info(count(id))
+
+        if count(id) > threshold:
+            cypher_query_limit = f' limit {threshold}'
+
+        cypher_query = cypher_query_header + cypher_query_where + cypher_query_return + cypher_query_limit
+        flask.current_app.logger.info(cypher_query)
+
+        results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
+
+        flask.current_app.logger.info('got results')
+
+        flask.current_app.logger.info(results)
+
+
+
+        if len(results):
+            return results.graph
+        else:
+            item_na_error(id)
 
 
 @api.route('/<source_id>/graph')
