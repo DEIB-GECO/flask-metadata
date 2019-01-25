@@ -36,16 +36,17 @@ query = api.model('Query', {
 })
 
 parser = api.parser()
-parser.add_argument('voc', type=inputs.boolean, help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)', default=False)
+parser.add_argument('voc', type=inputs.boolean,
+                    help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
+                    default=False)
 parser.add_argument('body', type="json", help='json ', location='json')
-
 
 parser_graph = api.parser()
 parser_graph.add_argument('limit', type=int, default=5)
-parser_graph.add_argument('biological_view',type=inputs.boolean)
-parser_graph.add_argument('management_view',type=inputs.boolean)
-parser_graph.add_argument('technological_view',type=inputs.boolean)
-parser_graph.add_argument('extraction_view',type=inputs.boolean)
+parser_graph.add_argument('biological_view', type=inputs.boolean)
+parser_graph.add_argument('management_view', type=inputs.boolean)
+parser_graph.add_argument('technological_view', type=inputs.boolean)
+parser_graph.add_argument('extraction_view', type=inputs.boolean)
 parser_graph.add_argument('body', type="json", help='json ', location='json')
 
 query_results = []
@@ -78,7 +79,8 @@ class QueryGraph(Resource):
 
         filter_in = api.payload
 
-        cypher_query = query_generator(filter_in, voc=False, return_type='graph',include_views=include_views,limit=limit)
+        cypher_query = query_generator(filter_in, voc=False, return_type='graph', include_views=include_views,
+                                       limit=limit)
         flask.current_app.logger.info(cypher_query)
         results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
 
@@ -86,7 +88,6 @@ class QueryGraph(Resource):
             return results.graph
         else:
             return api.abort(404, f'Not found')
-
 
 
 @api.route('/table')
@@ -106,12 +107,12 @@ class Query(Resource):
         cypher_query = query_generator(filter_in, voc)
         flask.current_app.logger.info(cypher_query)
 
-        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
+        results = run_query(cypher_query)
 
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
-        results = results.rows
+        results = results.elements
 
         if results:
             results = [merge_dicts(x) for x in results]
@@ -147,12 +148,12 @@ class QueryCountDataset(Resource):
         cypher_query = query_generator(filter_in, voc, 'count-dataset')
         flask.current_app.logger.info(cypher_query)
 
-        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
+        results = run_query(cypher_query)
 
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
-        results = results.rows
+        results = results.elements
 
         if results:
             results = [{'name': x[0], 'count': x[1]} for x in results]
@@ -182,12 +183,12 @@ class QueryCountSource(Resource):
         cypher_query = query_generator(filter_in, voc, 'count-source')
         flask.current_app.logger.info(cypher_query)
 
-        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
+        results = run_query(cypher_query)
 
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
-        results = results.rows
+        results = results.elements
 
         if results:
             results = [{'name': x[0], 'count': x[1]} for x in results]
@@ -202,7 +203,7 @@ class QueryCountSource(Resource):
 # TODO check code repetition
 @api.route('/download')
 @api.response(404, 'Field not found')  # TODO correct
-class QueryCountSource(Resource):
+class QueryDownload(Resource):
     @api.doc('return_query_result4')
     @api.expect(parser)  # TODO correct this one
     def post(self):
@@ -216,12 +217,12 @@ class QueryCountSource(Resource):
         cypher_query = query_generator(filter_in, voc, 'download-links')
         flask.current_app.logger.info(cypher_query)
 
-        results = run_query(cypher_query, data_contents=constants.DATA_ROWS)
+        results = run_query(cypher_query)
 
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
-        results = results.rows
+        results = results.elements
 
         results = [x[0] for x in results]
 
@@ -237,6 +238,58 @@ class QueryCountSource(Resource):
         # print(results)
 
         return Response(results, mimetype='text/plain')
+
+
+@api.route('/gmql')
+@api.response(404, 'Field not found')  # TODO correct
+class QueryGmql(Resource):
+    @api.doc('return_query_result5')
+    @api.expect(parser)  # TODO correct this one
+    def post(self):
+        '''Creates gmql query from repository viewer query'''
+
+        args = parser.parse_args()
+        voc = args['voc']
+
+        filter_in = api.payload
+
+        cypher_query = query_generator(filter_in, voc, 'gmql')
+        flask.current_app.logger.info(cypher_query)
+
+        results = run_query(cypher_query)
+
+        flask.current_app.logger.info('got results')
+
+        # result_columns = results.columns
+        results = results.elements
+
+        length = len(results)
+
+        if length:
+            gmql_query = []
+            for idx, (dataset_name, files) in enumerate(results):
+                files = map(lambda x: f'gcm_curated__file_name == "{x}"', files)
+                files = " OR ".join(files)
+                gmql_query.append(f'D_{idx} = SELECT({files}) {dataset_name};')
+                # gmql_query.append(f'D_{idx} = SELECT({""}) {dataset_name};')
+
+            if length > 1:
+                gmql_query.append("")
+                gmql_query.append("# UNION PART")
+                if length == 2:
+                    gmql_query.append(f'ALL_DS = UNION() D_0 D_1;')
+                else:
+                    gmql_query.append(f'U_0 = UNION() D_0 D_1;')
+                    for idx in range(2, length - 1):
+                        gmql_query.append(f'U_{idx-1} = UNION() U_{idx - 2} D_{idx};')
+                    gmql_query.append(f'ALL_DS = UNION() U_{length - 3} D_{length - 1};')
+
+            gmql_query.append("")
+            gmql_query = "\n".join(gmql_query)
+        else:
+            gmql_query = "No result!!"
+
+        return Response(gmql_query, mimetype='text/plain')
 
 
 def query_generator(filter_in, voc, return_type='table', include_views=[], limit=1000):
@@ -314,11 +367,11 @@ def query_generator(filter_in, voc, return_type='table', include_views=[], limit
         cypher_query += ' RETURN *'
         cypher_query += f' LIMIT {limit} '
     elif return_type == 'count-dataset':
-        cypher_query +=' WITH DISTINCT it, da'
+        cypher_query += ' WITH DISTINCT it, da'
         cypher_query += ' RETURN da.dataset_name, count(*) '
         cypher_query += ' ORDER BY da.dataset_name '
     elif return_type == 'count-source':
-        cypher_query +=' WITH DISTINCT it, da'
+        cypher_query += ' WITH DISTINCT it, da'
         cypher_query += ' RETURN da.source, count(*) '
         cypher_query += ' ORDER BY da.source '
     elif return_type == 'download-links':
@@ -326,6 +379,7 @@ def query_generator(filter_in, voc, return_type='table', include_views=[], limit
         cypher_query += ' WHERE it.local_url is not null '
         cypher_query += ' RETURN it.local_url '
     elif return_type == 'graph':
+        # TODO Andrea, do you need to add limit to this?
         cypher_query += ' WITH DISTINCT it'
         cypher_query += f' LIMIT {limit}'
         pre_table = 'Item'
@@ -346,6 +400,11 @@ def query_generator(filter_in, voc, return_type='table', include_views=[], limit
                 cypher_query += f'-{dist}->({last[:2].lower()}:{last})'
                 return_part += f', {p_name}'
         cypher_query += return_part
+    elif return_type == 'gmql':
+        cypher_query += "WITH DISTINCT da,it "
+        cypher_query += ' WHERE it.local_url is not null '
+        # TODO correct attribute name
+        cypher_query += "RETURN da.dataset_name, collect(it.source_id) "
 
     return cypher_query
 
@@ -375,5 +434,5 @@ def merge_dicts(dict_args):
     """
     result = {}
     for dictionary in dict_args:
-        result.update(dictionary)
+        result.update(dictionary['data'])
     return result

@@ -21,10 +21,10 @@ parser.add_argument('voc', type=inputs.boolean, help='Enable inclusion of contro
 def count(id):
     query_count = f"match p=((n)--(x)) where ID(n) = {id} AND NOT 'Pair' IN labels(x) return count(x)"
 
-    count = run_query(query_count, data_contents=constants.DATA_ROWS)
+    count = run_query(query_count)
 
     if len(count):
-        return count.rows[0][0]
+        return count.elements[0][0]
     else:
         item_na_error(id)
 
