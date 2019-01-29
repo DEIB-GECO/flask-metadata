@@ -270,12 +270,14 @@ class QueryGmql(Resource):
             for idx, (dataset_name, files) in enumerate(results):
                 files = map(lambda x: f'gcm_curated__file_name == "{x}"', files)
                 files = " OR ".join(files)
+                gmql_query.append(f"# Selection of items from {dataset_name} dataset")
                 gmql_query.append(f'D_{idx} = SELECT({files}) {dataset_name};')
                 # gmql_query.append(f'D_{idx} = SELECT({""}) {dataset_name};')
+                gmql_query.append("")
 
             if length > 1:
                 gmql_query.append("")
-                gmql_query.append("# UNION PART")
+                gmql_query.append("# Union of all datasets")
                 if length == 2:
                     gmql_query.append(f'ALL_DS = UNION() D_0 D_1;')
                 else:
