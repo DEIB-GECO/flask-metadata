@@ -59,7 +59,6 @@ class QueryGraph(Resource):
     @api.expect(parser_graph)  # TODO correct this one
     def post(self):
         '''Generate graph'''
-
         args = parser_graph.parse_args()
         limit = args['limit']
         bioView = args['biological_view']

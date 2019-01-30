@@ -1236,7 +1236,9 @@
                     } else if (options.neo4jDataUrl) {
                         loadNeo4jDataFromUrl(options.neo4jDataUrl);
                     } else {
-                        console.error('Error: both neo4jData and neo4jDataUrl are empty!');
+                        nodes = [];
+                        relationships = [];
+                        //console.error('Error: both neo4jData and neo4jDataUrl are empty!');
                     }
                 }
 
@@ -1308,7 +1310,6 @@
                         if (error) {
                             throw error;
                         }
-
                         updateWithNeo4jData(data);
                     });
                 }
