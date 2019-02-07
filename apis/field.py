@@ -3,6 +3,7 @@ from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
 from sqlalchemy import func
+from sqlalchemy import or_
 from sqlalchemy.sql import select
 
 from model.models import t_flatten, db
@@ -155,7 +156,20 @@ class FieldValue(Resource):
 
                 for (filter_column, filter_list) in filter_in_new.items():
                     sql_filter_column = t_flatten.c[filter_column]
-                    s = s.where(sql_filter_column.in_(filter_list))
+
+                    conditions = []
+
+                    if None in filter_list:
+                        conditions.append(sql_filter_column.is_(None))
+                        filter_list = [x for x in filter_list if x is not None]
+
+                        # s = s.where(or_(sql_filter_column.in_(filter_list), sql_filter_column.is_(None)))
+                    # else:
+
+                    if len(filter_list):
+                        conditions.append(sql_filter_column.in_(filter_list))
+
+                    s = s.where(or_(*conditions))
 
                 s = s.group_by(sql_column)
                 s = s.order_by(sql_column)
