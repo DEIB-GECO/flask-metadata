@@ -138,7 +138,7 @@ class FieldValue(Resource):
         if field_name in columns_dict:
             if voc:
                 # TODO remove when the synonym view is ready
-                self.from_cypher(field_name, voc)
+                return self.from_cypher(field_name, voc)
             else:
                 column = columns_dict[field_name]
 
