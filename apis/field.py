@@ -2,6 +2,7 @@ import flask
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
+from sqlalchemy import desc
 from sqlalchemy import func
 from sqlalchemy import or_
 from sqlalchemy.sql import select
@@ -41,8 +42,8 @@ class FieldList(Resource):
 
 
 value = api.model('Value', {
-    'value': fields.Raw(required=True, description='Value '),
-    'count': fields.Raw(required=False, description='Count '),
+    'value': fields.String(required=True, description='Value '),
+    'count': fields.Integer(required=False, description='Count '),
 })
 
 values = api.model('Values', {
@@ -172,7 +173,7 @@ class FieldValue(Resource):
                     s = s.where(or_(*conditions))
 
                 s = s.group_by(sql_column)
-                s = s.order_by(sql_column)
+                s = s.order_by(desc('item_count'), sql_column)
 
                 select([t_flatten.c.item_id, t_flatten.c.biosample_type])
                 print(s)
