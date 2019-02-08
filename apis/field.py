@@ -42,7 +42,7 @@ class FieldList(Resource):
 
 
 value = api.model('Value', {
-    'value': fields.String(required=True, description='Value '),
+    'value': fields.Raw(required=True, description='Value '),
     'count': fields.Integer(required=False, description='Count '),
 })
 
