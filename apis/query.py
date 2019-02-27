@@ -9,6 +9,7 @@ from utils import columns_dict, \
 api = Namespace('query', description='Operations to perform queries using metadata')
 
 query_result = api.model('QueryResult', {
+    # ITEM
     'source_id': fields.String,
     'size': fields.String,
     'date': fields.String,
@@ -18,12 +19,14 @@ query_result = api.model('QueryResult', {
     'local_url': fields.String,
     'content_type': fields.String,
 
+    # DATASET
     'dataset_name': fields.String,
     'data_type': fields.String,
     'file_format': fields.String,
     'assembly': fields.String,
     'is_annotation': fields.String,
 
+    # EXPERIMENT TYPE
     'technique': fields.String,
     'feature': fields.String,
     'target': fields.String,
@@ -100,29 +103,30 @@ class Query(Resource):
 
         json = api.payload
 
-        filter_in = json.get('gcm')
+        filter_in = json #.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        print(filter_in, type, pairs)
-        cypher_query = query_generator(filter_in, False)
-        flask.current_app.logger.info(cypher_query)
-
-        results = run_query(cypher_query)
-
+        query = sql_query_generator(filter_in, type, pairs, 'table')
+        print(query)
+        # cypher_query = query_generator(filter_in, False)
+        # flask.current_app.logger.info(cypher_query)
+        #
+        # results = run_query(cypher_query)
+        #
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
-        results = results.elements
-
-        if results:
-            results = [merge_dicts(x) for x in results]
-        else:
-            results = []
+        # results = results.elements
+        #
+        # if results:
+        #     results = [merge_dicts(x) for x in results]
+        # else:
+        #     results = []
 
         # print(results)
 
-        return results
+        # return results
 
 
 count_result = api.model('QueryResult', {
@@ -289,7 +293,7 @@ class QueryGmql(Resource):
                 else:
                     gmql_query.append(f'U_0 = UNION() D_0 D_1;')
                     for idx in range(2, length - 1):
-                        gmql_query.append(f'U_{idx-1} = UNION() U_{idx - 2} D_{idx};')
+                        gmql_query.append(f'U_{idx - 1} = UNION() U_{idx - 2} D_{idx};')
                     gmql_query.append(f'ALL_DS = UNION() U_{length - 3} D_{length - 1};')
 
             gmql_query.append("")
@@ -308,6 +312,7 @@ def query_generator(filter_in, voc, return_type='table', include_views=[], limit
     for (column, values) in filter_in.items():
         table_name = columns_dict[column].table_name
         filter_tables.add(table_name)
+        print(column,values)
 
     filter_all_view_tables = {}
     for (view_name, view_tables) in views.items():
@@ -433,6 +438,49 @@ def create_where_part(column, values, is_syn):
     to_lower_pre = 'TOLOWER(' if column_type == str else ''
     to_lower_post = ')' if column_type == str else ''
     return f' ({to_lower_pre}{var_name}.{column}{to_lower_post} IN {values_wo_none}{sub_or})'
+
+
+def sql_query_generator(gcm_query, search_type, pairs_query, return_type):
+    select_part = ""
+    from_part = "FROM item it " \
+                "join dataset da on it.dataset_id = da.dataset_id " \
+                " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id" \
+                " join replicate2item r2i on it.item_id = r2i.item_id" \
+                " join replicate rep on r2i.replicate_id = rep.replicate_id" \
+                " join biosample bi on rep.biosample_id = bi.biosample_id" \
+                " join donor don on bi.donor_id = don.donor_id" \
+                " join case2item c2i on it.item_id = c2i.item_id" \
+                " join case_study cs on c2i.case_study_id = cs.case_study_id" \
+                " join project pr on cs.project_id = pr.project_id"
+
+    where_part = " WHERE ("
+    download_where_part = ""
+    group_by_part = ""
+
+    if return_type == 'table':
+        select_part = "SELECT DISTINCT item_source_id, size, date, pipeline, platform, source_url," \
+                      "local_url, content_type, dataset_name, data_type, file_format, assembly," \
+                      "is_annotation, technique, feature, target, antibody "
+    elif return_type == 'count-dataset':
+        select_part = "SELECT DISTINCT da.dataset_name, count(*)"
+        group_by_part = "GROUP BY da.dataset_name"
+
+    elif return_type == 'count-source':
+        select_part = "SELECT DISTINCT pr.source, count(*)"
+        group_by_part = "GROUP BY pr.source"
+
+    elif return_type == 'download-links':
+        select_part = "SELECT distinct it.local_url"
+        download_where_part = "AND local_url IS NOT NULL"
+
+    sub_where = []
+    for (column, values) in gcm_query.items():
+        sub_sub_where = [f"{column} ILIKE '{value}'" for value in values]
+        sub_where.append(" OR ".join(sub_sub_where))
+
+    where_part += ") AND (".join(sub_where)+")"
+
+    return select_part + from_part + where_part + download_where_part + group_by_part
 
 
 def merge_dicts(dict_args):
