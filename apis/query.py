@@ -36,74 +36,76 @@ query = api.model('Query', {
 })
 
 parser = api.parser()
-parser.add_argument('voc', type=inputs.boolean,
-                    help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
-                    default=False)
+# parser.add_argument('voc', type=inputs.boolean,
+#                     help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
+#                     default=False)
 parser.add_argument('body', type="json", help='json ', location='json')
 
-parser_graph = api.parser()
-parser_graph.add_argument('limit', type=int, default=5)
-parser_graph.add_argument('biological_view', type=inputs.boolean)
-parser_graph.add_argument('management_view', type=inputs.boolean)
-parser_graph.add_argument('technological_view', type=inputs.boolean)
-parser_graph.add_argument('extraction_view', type=inputs.boolean)
-parser_graph.add_argument('body', type="json", help='json ', location='json')
+# parser_graph = api.parser()
+# parser_graph.add_argument('limit', type=int, default=5)
+# parser_graph.add_argument('biological_view', type=inputs.boolean)
+# parser_graph.add_argument('management_view', type=inputs.boolean)
+# parser_graph.add_argument('technological_view', type=inputs.boolean)
+# parser_graph.add_argument('extraction_view', type=inputs.boolean)
+# parser_graph.add_argument('body', type="json", help='json ', location='json')
 
 query_results = []
 
 
-@api.route('/graph')
-@api.response(404, 'Field not found')  # TODO correct
-class QueryGraph(Resource):
-    @api.doc('return_query_graph')
-    @api.expect(parser_graph)  # TODO correct this one
-    def post(self):
-        '''Generate graph'''
-        args = parser_graph.parse_args()
-        limit = args['limit']
-        bioView = args['biological_view']
-        mgmtView = args['management_view']
-        techView = args['technological_view']
-        extrView = args['extraction_view']
-        include_views = []
-
-        if bioView:
-            include_views.append('biological')
-        if mgmtView:
-            include_views.append('management')
-        if techView:
-            include_views.append('technological')
-        if extrView:
-            include_views.append('extraction')
-
-        filter_in = api.payload
-
-        cypher_query = query_generator(filter_in, voc=False, return_type='graph', include_views=include_views,
-                                       limit=limit)
-        flask.current_app.logger.info(cypher_query)
-        results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
-
-        if len(results):
-            return results.graph
-        else:
-            return api.abort(404, f'Not found')
+# @api.route('/graph')
+# @api.response(404, 'Field not found')  # TODO correct
+# class QueryGraph(Resource):
+#     @api.doc('return_query_graph')
+#     @api.expect(parser_graph)  # TODO correct this one
+#     def post(self):
+#         '''Generate graph'''
+#         args = parser_graph.parse_args()
+#         limit = args['limit']
+#         bioView = args['biological_view']
+#         mgmtView = args['management_view']
+#         techView = args['technological_view']
+#         extrView = args['extraction_view']
+#         include_views = []
+#
+#         if bioView:
+#             include_views.append('biological')
+#         if mgmtView:
+#             include_views.append('management')
+#         if techView:
+#             include_views.append('technological')
+#         if extrView:
+#             include_views.append('extraction')
+#
+#         filter_in = api.payload
+#
+#         cypher_query = query_generator(filter_in, voc=False, return_type='graph', include_views=include_views,
+#                                        limit=limit)
+#         flask.current_app.logger.info(cypher_query)
+#         results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
+#
+#         if len(results):
+#             return results.graph
+#         else:
+#             return api.abort(404, f'Not found')
 
 
 @api.route('/table')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
-    @api.doc('return_query_result1')
+    @api.doc('return_query_result')
     @api.marshal_with(query_result)
-    @api.expect(parser)  # TODO correct this one
+    @api.expect(parser)
     def post(self):
         '''For the posted query, it retrieves a list of items with selected characteristics'''
 
-        args = parser.parse_args()
-        voc = args['voc']
+        json = api.payload
 
-        filter_in = api.payload
+        filter_in = json.get('gcm')
+        type = json.get('type')
+        pairs = json.get('kv')
 
-        cypher_query = query_generator(filter_in, voc)
+        print(filter_in, type, pairs)
+        cypher_query = query_generator(filter_in, False)
         flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query)
@@ -135,16 +137,17 @@ count_result = api.model('QueryResult', {
 class QueryCountDataset(Resource):
     @api.doc('return_query_result2')
     @api.marshal_with(count_result)
-    @api.expect(parser)  # TODO correct this one
+    @api.expect(parser)
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by dataset'''
 
-        args = parser.parse_args()
-        voc = args['voc']
+        json = api.payload
 
-        filter_in = api.payload
+        filter_in = json.get('gcm')
+        type = json.get('type')
+        pairs = json.get('kv')
 
-        cypher_query = query_generator(filter_in, voc, 'count-dataset')
+        cypher_query = query_generator(filter_in, 'count-dataset')
         flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query)
@@ -174,12 +177,14 @@ class QueryCountSource(Resource):
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by source'''
 
-        args = parser.parse_args()
-        voc = args['voc']
+        json = api.payload
 
-        filter_in = api.payload
+        filter_in = json.get('gcm')
+        type = json.get('type')
+        pairs = json.get('kv')
+        print(filter_in)
 
-        cypher_query = query_generator(filter_in, voc, 'count-source')
+        cypher_query = query_generator(filter_in, 'count-source')
         flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query)
@@ -208,12 +213,13 @@ class QueryDownload(Resource):
     def post(self):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
-        args = parser.parse_args()
-        voc = args['voc']
+        json = api.payload
 
-        filter_in = api.payload
+        filter_in = json.get('gcm')
+        type = json.get('type')
+        pairs = json.get('kv')
 
-        cypher_query = query_generator(filter_in, voc, 'download-links')
+        cypher_query = query_generator(filter_in, 'download-links')
         flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query)
@@ -247,12 +253,13 @@ class QueryGmql(Resource):
     def post(self):
         '''Creates gmql query from repository viewer query'''
 
-        args = parser.parse_args()
-        voc = args['voc']
+        json = api.payload
 
-        filter_in = api.payload
+        filter_in = json.get('gcm')
+        type = json.get('type')
+        pairs = json.get('kv')
 
-        cypher_query = query_generator(filter_in, voc, 'gmql')
+        cypher_query = query_generator(filter_in, 'gmql')
         flask.current_app.logger.info(cypher_query)
 
         results = run_query(cypher_query)
