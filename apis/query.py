@@ -15,9 +15,9 @@ query = api.model('Query', {
 })
 
 parser = api.parser()
-# parser.add_argument('voc', type=inputs.boolean,
-#                     help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
-#                     default=False)
+parser.add_argument('agg', type=inputs.boolean,
+                    help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
+                    default=False)
 parser.add_argument('body', type="json", help='json ', location='json')
 
 # parser_graph = api.parser()
@@ -64,9 +64,11 @@ parser.add_argument('body', type="json", help='json ', location='json')
 #         else:
 #             return api.abort(404, f'Not found')
 
+# TODO CHECK WITH ANNA AND ARIF WHICH ATTRIBUTES TO SHOW
+
 query_result = api.model('QueryResult', {
     # ITEM
-    'source_id': fields.String,
+    'item_source_id': fields.String,
     'size': fields.String,
     'date': fields.String,
     'pipeline': fields.String,
@@ -88,6 +90,8 @@ query_result = api.model('QueryResult', {
     'target': fields.String,
     'antibody': fields.String
 })
+
+
 @api.route('/table')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
@@ -98,10 +102,12 @@ class Query(Resource):
         '''For the posted query, it retrieves a list of items with selected characteristics'''
 
         payload = api.payload
-
-        filter_in = payload  # .get('gcm')
-        type = payload.get('type')
-        pairs = payload.get('kv')
+        print(payload)
+        # agg = parser.parse_args()['agg']
+        filter_in = payload.get("gcm")
+        type = payload.get("type")
+        pairs = payload.get("kv")
+        # print(agg)
 
         query = sql_query_generator(filter_in, type, pairs, 'table')
         res = db.engine.execute(query).fetchall()
@@ -126,13 +132,12 @@ count_result = api.model('QueryResult', {
 class QueryCountDataset(Resource):
     @api.doc('return_query_result2')
     @api.marshal_with(count_result)
-    @api.expect(parser)
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by dataset'''
 
         payload = api.payload
 
-        filter_in = payload#.get('gcm')
+        filter_in = payload.get('gcm')
         type = payload.get('type')
         pairs = payload.get('kv')
 
@@ -155,13 +160,12 @@ class QueryCountDataset(Resource):
 class QueryCountSource(Resource):
     @api.doc('return_query_result3')
     @api.marshal_with(count_result)
-    @api.expect(parser)  # TODO correct this one
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by source'''
 
         json = api.payload
 
-        filter_in = json#.get('gcm')
+        filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
@@ -180,13 +184,12 @@ class QueryCountSource(Resource):
 @api.response(404, 'Field not found')  # TODO correct
 class QueryDownload(Resource):
     @api.doc('return_query_result4')
-    @api.expect(parser)  # TODO correct this one
     def post(self):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
         json = api.payload
 
-        filter_in = json#.get('gcm')
+        filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
@@ -211,13 +214,12 @@ class QueryDownload(Resource):
 @api.response(404, 'Field not found')  # TODO correct
 class QueryGmql(Resource):
     @api.doc('return_query_result5')
-    @api.expect(parser)  # TODO correct this one
     def post(self):
         '''Creates gmql query from repository viewer query'''
 
         json = api.payload
 
-        filter_in = json#.get('gcm')
+        filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
@@ -261,6 +263,87 @@ class QueryGmql(Resource):
         return Response(gmql_query, mimetype='text/plain')
 
 
+def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False):
+    select_part = ""
+    from_part = "FROM item it " \
+                "join dataset da on it.dataset_id = da.dataset_id " \
+                " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id" \
+                " join replicate2item r2i on it.item_id = r2i.item_id" \
+                " join replicate rep on r2i.replicate_id = rep.replicate_id" \
+                " join biosample bi on rep.biosample_id = bi.biosample_id" \
+                " join donor don on bi.donor_id = don.donor_id" \
+                " join case2item c2i on it.item_id = c2i.item_id" \
+                " join case_study cs on c2i.case_study_id = cs.case_study_id" \
+                " join project pr on cs.project_id = pr.project_id"
+
+    where_part = ""
+    if(gcm_query):
+        where_part = " WHERE ("
+    download_where_part = ""
+    group_by_part = ""
+
+    if return_type == 'table':
+        # if agg:
+        select_part = "SELECT item_source_id, size, date, pipeline, platform, source_url," \
+                      "local_url, content_type, dataset_name, data_type, file_format, assembly," \
+                      "is_annotation, technique, feature, target, antibody "
+        # else:
+        #     select_part = "SELECT * "
+
+    elif return_type == 'count-dataset':
+        select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
+        group_by_part = " GROUP BY da.dataset_name"
+
+    elif return_type == 'count-source':
+        select_part = "SELECT pr.source as name, count(distinct it.item_id) as count "
+        group_by_part = " GROUP BY pr.source"
+
+    elif return_type == 'download-links':
+        select_part = "SELECT distinct it.local_url "
+        download_where_part = "AND local_url IS NOT NULL"
+
+    elif return_type == 'gmql':
+        select_part = "SELECT dataset_name, array_agg(file_name)"
+        download_where_part = "AND local_url IS NOT NULL "
+        group_by_part = "GROUP BY dataset_name"
+
+    sub_where = []
+    for (column, values) in gcm_query.items():
+        sub_sub_where = [f"{column} ILIKE '{value}'" for value in values]
+        sub_where.append(" OR ".join(sub_sub_where))
+
+    if gcm_query: where_part += ") AND (".join(sub_where) + ")"
+
+    return select_part + from_part + where_part + download_where_part + group_by_part + " limit 1000"
+
+
+
+
+def merge_dicts(dict_args):
+    """
+    Given any number of dicts, shallow copy and merge into a new dict,
+    precedence goes to key value pairs in latter dicts.
+    """
+    result = {}
+    for dictionary in dict_args:
+        result.update(dictionary['data'])
+    return result
+def create_where_part(column, values, is_syn):
+    col = columns_dict[column]
+    column_type = col.column_type
+    var_name = col.var_table()
+    var_col_name = col.var_column()
+    if is_syn:
+        var_name = "s_" + var_col_name
+        column = 'label'
+        sub_or = ''
+    else:
+        sub_or = f' OR {var_name}.{column} IS NULL' if None in values else ''
+    values_wo_none = [x for x in values if x is not None]
+
+    to_lower_pre = 'TOLOWER(' if column_type == str else ''
+    to_lower_post = ')' if column_type == str else ''
+    return f' ({to_lower_pre}{var_name}.{column}{to_lower_post} IN {values_wo_none}{sub_or})'
 def query_generator(filter_in, voc, return_type='table', include_views=[], limit=1000):
     # set of distinct tables in the query, the result must have always ...
     filter_tables = set()
@@ -377,82 +460,3 @@ def query_generator(filter_in, voc, return_type='table', include_views=[], limit
         cypher_query += "RETURN da.dataset_name, collect(it.source_id) "
 
     return cypher_query
-
-
-def create_where_part(column, values, is_syn):
-    col = columns_dict[column]
-    column_type = col.column_type
-    var_name = col.var_table()
-    var_col_name = col.var_column()
-    if is_syn:
-        var_name = "s_" + var_col_name
-        column = 'label'
-        sub_or = ''
-    else:
-        sub_or = f' OR {var_name}.{column} IS NULL' if None in values else ''
-    values_wo_none = [x for x in values if x is not None]
-
-    to_lower_pre = 'TOLOWER(' if column_type == str else ''
-    to_lower_post = ')' if column_type == str else ''
-    return f' ({to_lower_pre}{var_name}.{column}{to_lower_post} IN {values_wo_none}{sub_or})'
-
-
-def sql_query_generator(gcm_query, search_type, pairs_query, return_type):
-    select_part = ""
-    from_part = "FROM item it " \
-                "join dataset da on it.dataset_id = da.dataset_id " \
-                " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id" \
-                " join replicate2item r2i on it.item_id = r2i.item_id" \
-                " join replicate rep on r2i.replicate_id = rep.replicate_id" \
-                " join biosample bi on rep.biosample_id = bi.biosample_id" \
-                " join donor don on bi.donor_id = don.donor_id" \
-                " join case2item c2i on it.item_id = c2i.item_id" \
-                " join case_study cs on c2i.case_study_id = cs.case_study_id" \
-                " join project pr on cs.project_id = pr.project_id"
-    where_part = ""
-    if(gcm_query):
-        where_part = " WHERE ("
-    download_where_part = ""
-    group_by_part = ""
-
-    if return_type == 'table':
-        select_part = "SELECT DISTINCT item_source_id as source_id, size, date, pipeline, platform, source_url," \
-                      "local_url, content_type, dataset_name, data_type, file_format, assembly," \
-                      "is_annotation, technique, feature, target, antibody "
-    elif return_type == 'count-dataset':
-        select_part = "SELECT DISTINCT da.dataset_name as name, count(*) as count "
-        group_by_part = "GROUP BY da.dataset_name"
-
-    elif return_type == 'count-source':
-        select_part = "SELECT DISTINCT pr.source as name, count(*) as count "
-        group_by_part = "GROUP BY pr.source"
-
-    elif return_type == 'download-links':
-        select_part = "SELECT distinct it.local_url "
-        download_where_part = "AND local_url IS NOT NULL"
-
-    elif return_type == 'gmql':
-        select_part = "SELECT dataset_name, string_agg(item_source_id, ',') "
-        download_where_part = "AND local_url IS NOT NULL "
-        group_by_part = "GROUP BY dataset_name"
-
-
-    sub_where = []
-    for (column, values) in gcm_query.items():
-        sub_sub_where = [f"{column} ILIKE '{value}'" for value in values]
-        sub_where.append(" OR ".join(sub_sub_where))
-
-    if gcm_query: where_part += ") AND (".join(sub_where) + ")"
-
-    return select_part + from_part + where_part + download_where_part + group_by_part
-
-
-def merge_dicts(dict_args):
-    """
-    Given any number of dicts, shallow copy and merge into a new dict,
-    precedence goes to key value pairs in latter dicts.
-    """
-    result = {}
-    for dictionary in dict_args:
-        result.update(dictionary['data'])
-    return result
