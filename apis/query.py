@@ -1,37 +1,13 @@
 import flask
 from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
-from neo4jrestclient import constants
-
+from model.models import db
+import json
 from utils import columns_dict, \
     run_query, views, calc_distance, var_table
 
 api = Namespace('query', description='Operations to perform queries using metadata')
 
-query_result = api.model('QueryResult', {
-    # ITEM
-    'source_id': fields.String,
-    'size': fields.String,
-    'date': fields.String,
-    'pipeline': fields.String,
-    'platform': fields.String,
-    'source_url': fields.String,
-    'local_url': fields.String,
-    'content_type': fields.String,
-
-    # DATASET
-    'dataset_name': fields.String,
-    'data_type': fields.String,
-    'file_format': fields.String,
-    'assembly': fields.String,
-    'is_annotation': fields.String,
-
-    # EXPERIMENT TYPE
-    'technique': fields.String,
-    'feature': fields.String,
-    'target': fields.String,
-    'antibody': fields.String
-})
 
 query = api.model('Query', {
     # 'values': fields.Nested(value, required=True, description='Values'),
@@ -51,9 +27,6 @@ parser.add_argument('body', type="json", help='json ', location='json')
 # parser_graph.add_argument('technological_view', type=inputs.boolean)
 # parser_graph.add_argument('extraction_view', type=inputs.boolean)
 # parser_graph.add_argument('body', type="json", help='json ', location='json')
-
-query_results = []
-
 
 # @api.route('/graph')
 # @api.response(404, 'Field not found')  # TODO correct
@@ -91,7 +64,30 @@ query_results = []
 #         else:
 #             return api.abort(404, f'Not found')
 
+query_result = api.model('QueryResult', {
+    # ITEM
+    'source_id': fields.String,
+    'size': fields.String,
+    'date': fields.String,
+    'pipeline': fields.String,
+    'platform': fields.String,
+    'source_url': fields.String,
+    'local_url': fields.String,
+    'content_type': fields.String,
 
+    # DATASET
+    'dataset_name': fields.String,
+    'data_type': fields.String,
+    'file_format': fields.String,
+    'assembly': fields.String,
+    'is_annotation': fields.String,
+
+    # EXPERIMENT TYPE
+    'technique': fields.String,
+    'feature': fields.String,
+    'target': fields.String,
+    'antibody': fields.String
+})
 @api.route('/table')
 @api.response(404, 'Field not found')  # TODO correct
 class Query(Resource):
@@ -101,40 +97,29 @@ class Query(Resource):
     def post(self):
         '''For the posted query, it retrieves a list of items with selected characteristics'''
 
-        json = api.payload
+        payload = api.payload
 
-        filter_in = json #.get('gcm')
-        type = json.get('type')
-        pairs = json.get('kv')
+        filter_in = payload  # .get('gcm')
+        type = payload.get('type')
+        pairs = payload.get('kv')
 
         query = sql_query_generator(filter_in, type, pairs, 'table')
-        print(query)
-        # cypher_query = query_generator(filter_in, False)
-        # flask.current_app.logger.info(cypher_query)
-        #
-        # results = run_query(cypher_query)
-        #
+        res = db.engine.execute(query).fetchall()
+        result = []
+        for row in res:
+            result.append({f'{x}': row[x] for x in query_result.keys()})
+
+        flask.current_app.logger.info(query)
+
         flask.current_app.logger.info('got results')
 
-        # result_columns = results.columns
-        # results = results.elements
-        #
-        # if results:
-        #     results = [merge_dicts(x) for x in results]
-        # else:
-        #     results = []
-
-        # print(results)
-
-        # return results
+        return result
 
 
 count_result = api.model('QueryResult', {
     'name': fields.String,
     'count': fields.Integer,
 })
-
-
 # TODO check code repetition
 @api.route('/count/dataset')
 @api.response(404, 'Field not found')  # TODO correct
@@ -145,30 +130,23 @@ class QueryCountDataset(Resource):
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by dataset'''
 
-        json = api.payload
+        payload = api.payload
 
-        filter_in = json.get('gcm')
-        type = json.get('type')
-        pairs = json.get('kv')
+        filter_in = payload#.get('gcm')
+        type = payload.get('type')
+        pairs = payload.get('kv')
 
-        cypher_query = query_generator(filter_in, 'count-dataset')
-        flask.current_app.logger.info(cypher_query)
-
-        results = run_query(cypher_query)
+        query = sql_query_generator(filter_in, type, pairs, 'count-dataset')
+        flask.current_app.logger.info(query)
 
         flask.current_app.logger.info('got results')
 
-        # result_columns = results.columns
-        results = results.elements
+        res = db.engine.execute(query).fetchall()
+        result = []
+        for row in res:
+            result.append({f'{x}':row[x] for x in count_result.keys()})
 
-        if results:
-            results = [{'name': x[0], 'count': x[1]} for x in results]
-        else:
-            results = []
-
-        # print(results)
-
-        return results
+        return result
 
 
 # TODO check code repetition
@@ -183,30 +161,19 @@ class QueryCountSource(Resource):
 
         json = api.payload
 
-        filter_in = json.get('gcm')
+        filter_in = json#.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
-        print(filter_in)
 
-        cypher_query = query_generator(filter_in, 'count-source')
-        flask.current_app.logger.info(cypher_query)
+        query = sql_query_generator(filter_in, type, pairs, 'count-source')
+        flask.current_app.logger.info(query)
 
-        results = run_query(cypher_query)
+        res = db.engine.execute(query).fetchall()
+        result = []
+        for row in res:
+            result.append({f'{x}': row[x] for x in count_result.keys()})
 
-        flask.current_app.logger.info('got results')
-
-        # result_columns = results.columns
-        results = results.elements
-
-        if results:
-            results = [{'name': x[0], 'count': x[1]} for x in results]
-        else:
-            results = []
-
-        # print(results)
-
-        return results
-
+        return result
 
 # TODO check code repetition
 @api.route('/download')
@@ -219,19 +186,16 @@ class QueryDownload(Resource):
 
         json = api.payload
 
-        filter_in = json.get('gcm')
+        filter_in = json#.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        cypher_query = query_generator(filter_in, 'download-links')
-        flask.current_app.logger.info(cypher_query)
-
-        results = run_query(cypher_query)
+        query = sql_query_generator(filter_in, type, pairs, 'download-links')
+        flask.current_app.logger.info(query)
 
         flask.current_app.logger.info('got results')
 
-        # result_columns = results.columns
-        results = results.elements
+        results = db.engine.execute(query).fetchall()
 
         results = [x[0] for x in results]
 
@@ -239,12 +203,6 @@ class QueryDownload(Resource):
         results = [x + "?authToken=DOWNLOAD-TOKEN" for x in results]
 
         results = '\n'.join(results)
-        # if results:
-        #     results = [{'name': x[0], 'count': x[1]} for x in results]
-        # else:
-        #     results = []
-
-        # print(results)
 
         return Response(results, mimetype='text/plain')
 
@@ -259,20 +217,19 @@ class QueryGmql(Resource):
 
         json = api.payload
 
-        filter_in = json.get('gcm')
+        filter_in = json#.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        cypher_query = query_generator(filter_in, 'gmql')
-        flask.current_app.logger.info(cypher_query)
+        query = sql_query_generator(filter_in, type, pairs, 'gmql')
+        flask.current_app.logger.info(query)
 
-        results = run_query(cypher_query)
 
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
-        results = results.elements
-
+        results = db.engine.execute(query).fetchall()
+        #TODO CHECK RETURN TYPE
         length = len(results)
 
         if length:
@@ -312,7 +269,7 @@ def query_generator(filter_in, voc, return_type='table', include_views=[], limit
     for (column, values) in filter_in.items():
         table_name = columns_dict[column].table_name
         filter_tables.add(table_name)
-        print(column,values)
+        print(column, values)
 
     filter_all_view_tables = {}
     for (view_name, view_tables) in views.items():
@@ -452,33 +409,40 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type):
                 " join case2item c2i on it.item_id = c2i.item_id" \
                 " join case_study cs on c2i.case_study_id = cs.case_study_id" \
                 " join project pr on cs.project_id = pr.project_id"
-
-    where_part = " WHERE ("
+    where_part = ""
+    if(gcm_query):
+        where_part = " WHERE ("
     download_where_part = ""
     group_by_part = ""
 
     if return_type == 'table':
-        select_part = "SELECT DISTINCT item_source_id, size, date, pipeline, platform, source_url," \
+        select_part = "SELECT DISTINCT item_source_id as source_id, size, date, pipeline, platform, source_url," \
                       "local_url, content_type, dataset_name, data_type, file_format, assembly," \
                       "is_annotation, technique, feature, target, antibody "
     elif return_type == 'count-dataset':
-        select_part = "SELECT DISTINCT da.dataset_name, count(*)"
+        select_part = "SELECT DISTINCT da.dataset_name as name, count(*) as count "
         group_by_part = "GROUP BY da.dataset_name"
 
     elif return_type == 'count-source':
-        select_part = "SELECT DISTINCT pr.source, count(*)"
+        select_part = "SELECT DISTINCT pr.source as name, count(*) as count "
         group_by_part = "GROUP BY pr.source"
 
     elif return_type == 'download-links':
-        select_part = "SELECT distinct it.local_url"
+        select_part = "SELECT distinct it.local_url "
         download_where_part = "AND local_url IS NOT NULL"
+
+    elif return_type == 'gmql':
+        select_part = "SELECT dataset_name, string_agg(item_source_id, ',') "
+        download_where_part = "AND local_url IS NOT NULL "
+        group_by_part = "GROUP BY dataset_name"
+
 
     sub_where = []
     for (column, values) in gcm_query.items():
         sub_sub_where = [f"{column} ILIKE '{value}'" for value in values]
         sub_where.append(" OR ".join(sub_sub_where))
 
-    where_part += ") AND (".join(sub_where)+")"
+    if gcm_query: where_part += ") AND (".join(sub_where) + ")"
 
     return select_part + from_part + where_part + download_where_part + group_by_part
 
