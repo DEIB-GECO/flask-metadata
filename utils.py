@@ -114,7 +114,21 @@ columns = [
     Column('ExperimentType', 'antibody', str, False, "Antibody protein against specific target"),
 
 ]
+columns_item = list(columns)
+
+columns_item.extend((
+    Column('Item', 'item_source_id', str, True, ""),
+    Column('Item', 'size', str, True, ""),
+    Column('Item', 'date', str, True, ""),
+    Column('Item', 'source_url', str, True, ""),
+    Column('Item', 'local_url', str, True, "")
+))
+
 columns_dict = {x.column_name: x for x in columns}
+
+columns_dict_item = {x.column_name: x for x in columns_item}
+
+agg_tables = views['biological'][1:]+views['management'][1:]
 
 del columns
 

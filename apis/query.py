@@ -3,11 +3,10 @@ from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
 import json
-from utils import columns_dict, \
-    run_query, views, calc_distance, var_table
+from utils import columns_dict_item, \
+    run_query, views, calc_distance, var_table, agg_tables
 
 api = Namespace('query', description='Operations to perform queries using metadata')
-
 
 query = api.model('Query', {
     # 'values': fields.Nested(value, required=True, description='Values'),
@@ -15,11 +14,11 @@ query = api.model('Query', {
 })
 
 parser = api.parser()
-parser.add_argument('agg', type=inputs.boolean,
-                    help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
-                    default=False)
 parser.add_argument('body', type="json", help='json ', location='json')
 
+table_parser = api.parser()
+table_parser.add_argument('body', type="json", help='json ', location='json')
+table_parser.add_argument('agg', type=inputs.boolean, default=False)
 # parser_graph = api.parser()
 # parser_graph.add_argument('limit', type=int, default=5)
 # parser_graph.add_argument('biological_view', type=inputs.boolean)
@@ -88,7 +87,32 @@ query_result = api.model('QueryResult', {
     'technique': fields.String,
     'feature': fields.String,
     'target': fields.String,
-    'antibody': fields.String
+    'antibody': fields.String,
+
+    # REPLICATE
+    'biological_replicate_number': fields.String,
+    'technical_replicate_number': fields.String,
+
+    # BIOSAMPLE
+    'biosample_type': fields.String,
+    'tissue': fields.String,
+    'disease': fields.String,
+    'cell': fields.String,
+    'is_healthy': fields.String,
+
+    # DONOR
+    'species': fields.String,
+    'age': fields.String,
+    'gender': fields.String,
+    'ethnicity': fields.String,
+
+    # CASE
+    'source_site': fields.String,
+    'external_reference': fields.String,
+
+    # PROJECT
+    'project_name': fields.String,
+    'source': fields.String
 })
 
 
@@ -97,19 +121,19 @@ query_result = api.model('QueryResult', {
 class Query(Resource):
     @api.doc('return_query_result')
     @api.marshal_with(query_result)
-    @api.expect(parser)
+    @api.expect(table_parser)
     def post(self):
         '''For the posted query, it retrieves a list of items with selected characteristics'''
 
         payload = api.payload
-        print(payload)
-        # agg = parser.parse_args()['agg']
+        args = table_parser.parse_args()
+        agg = args['agg']
         filter_in = payload.get("gcm")
         type = payload.get("type")
         pairs = payload.get("kv")
-        # print(agg)
 
-        query = sql_query_generator(filter_in, type, pairs, 'table')
+        query = sql_query_generator(filter_in, type, pairs, 'table', agg)
+        print(query)
         res = db.engine.execute(query).fetchall()
         result = []
         for row in res:
@@ -126,12 +150,15 @@ count_result = api.model('QueryResult', {
     'name': fields.String,
     'count': fields.Integer,
 })
+
+
 # TODO check code repetition
 @api.route('/count/dataset')
 @api.response(404, 'Field not found')  # TODO correct
 class QueryCountDataset(Resource):
     @api.doc('return_query_result2')
     @api.marshal_with(count_result)
+    @api.expect(parser)
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by dataset'''
 
@@ -149,7 +176,7 @@ class QueryCountDataset(Resource):
         res = db.engine.execute(query).fetchall()
         result = []
         for row in res:
-            result.append({f'{x}':row[x] for x in count_result.keys()})
+            result.append({f'{x}': row[x] for x in count_result.keys()})
 
         return result
 
@@ -160,6 +187,7 @@ class QueryCountDataset(Resource):
 class QueryCountSource(Resource):
     @api.doc('return_query_result3')
     @api.marshal_with(count_result)
+    @api.expect(parser)
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by source'''
 
@@ -179,11 +207,13 @@ class QueryCountSource(Resource):
 
         return result
 
+
 # TODO check code repetition
 @api.route('/download')
 @api.response(404, 'Field not found')  # TODO correct
 class QueryDownload(Resource):
     @api.doc('return_query_result4')
+    @api.expect(parser)
     def post(self):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
@@ -214,6 +244,7 @@ class QueryDownload(Resource):
 @api.response(404, 'Field not found')  # TODO correct
 class QueryGmql(Resource):
     @api.doc('return_query_result5')
+    @api.expect(parser)
     def post(self):
         '''Creates gmql query from repository viewer query'''
 
@@ -226,12 +257,11 @@ class QueryGmql(Resource):
         query = sql_query_generator(filter_in, type, pairs, 'gmql')
         flask.current_app.logger.info(query)
 
-
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
         results = db.engine.execute(query).fetchall()
-        #TODO CHECK RETURN TYPE
+        # TODO CHECK RETURN TYPE
         length = len(results)
 
         if length:
@@ -265,7 +295,7 @@ class QueryGmql(Resource):
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False):
     select_part = ""
-    from_part = "FROM item it " \
+    from_part = " FROM item it " \
                 "join dataset da on it.dataset_id = da.dataset_id " \
                 " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id" \
                 " join replicate2item r2i on it.item_id = r2i.item_id" \
@@ -275,20 +305,25 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                 " join case2item c2i on it.item_id = c2i.item_id" \
                 " join case_study cs on c2i.case_study_id = cs.case_study_id" \
                 " join project pr on cs.project_id = pr.project_id"
-
     where_part = ""
-    if(gcm_query):
+
+    if gcm_query:
         where_part = " WHERE ("
+
     download_where_part = ""
     group_by_part = ""
 
     if return_type == 'table':
-        # if agg:
-        select_part = "SELECT item_source_id, size, date, pipeline, platform, source_url," \
-                      "local_url, content_type, dataset_name, data_type, file_format, assembly," \
-                      "is_annotation, technique, feature, target, antibody "
-        # else:
-        #     select_part = "SELECT * "
+        if agg:
+            select_part = "SELECT "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)+" "
+
+            select_part += "," + ','.join(
+                "STRING_AGG(COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ORDER BY item_source_id) as "
+                + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
+            group_by_part = " GROUP BY "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
+            
+        else:
+            select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
 
     elif return_type == 'count-dataset':
         select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
@@ -300,23 +335,32 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     elif return_type == 'download-links':
         select_part = "SELECT distinct it.local_url "
-        download_where_part = "AND local_url IS NOT NULL"
+        if where_part:
+            download_where_part = " AND local_url IS NOT NULL "
+        else:
+            download_where_part = " WHERE local_url IS NOT NULL "
 
     elif return_type == 'gmql':
-        select_part = "SELECT dataset_name, array_agg(file_name)"
-        download_where_part = "AND local_url IS NOT NULL "
+        select_part = "SELECT dataset_name, array_agg(file_name) "
+        if where_part:
+            download_where_part = " AND local_url IS NOT NULL "
+        else:
+            download_where_part = " WHERE local_url IS NOT NULL "
         group_by_part = "GROUP BY dataset_name"
 
     sub_where = []
     for (column, values) in gcm_query.items():
-        sub_sub_where = [f"{column} ILIKE '{value}'" for value in values]
+        col = columns_dict_item[column]
+        column_type = col.column_type
+        lower_pre = 'LOWER(' if column_type == str else ''
+        lower_post = ')' if column_type == str else ''
+        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values]
         sub_where.append(" OR ".join(sub_sub_where))
 
-    if gcm_query: where_part += ") AND (".join(sub_where) + ")"
+    if gcm_query:
+        where_part += ") AND (".join(sub_where) + ")"
 
     return select_part + from_part + where_part + download_where_part + group_by_part + " limit 1000"
-
-
 
 
 def merge_dicts(dict_args):
@@ -328,135 +372,139 @@ def merge_dicts(dict_args):
     for dictionary in dict_args:
         result.update(dictionary['data'])
     return result
-def create_where_part(column, values, is_syn):
-    col = columns_dict[column]
-    column_type = col.column_type
-    var_name = col.var_table()
-    var_col_name = col.var_column()
-    if is_syn:
-        var_name = "s_" + var_col_name
-        column = 'label'
-        sub_or = ''
-    else:
-        sub_or = f' OR {var_name}.{column} IS NULL' if None in values else ''
-    values_wo_none = [x for x in values if x is not None]
 
-    to_lower_pre = 'TOLOWER(' if column_type == str else ''
-    to_lower_post = ')' if column_type == str else ''
-    return f' ({to_lower_pre}{var_name}.{column}{to_lower_post} IN {values_wo_none}{sub_or})'
-def query_generator(filter_in, voc, return_type='table', include_views=[], limit=1000):
-    # set of distinct tables in the query, the result must have always ...
-    filter_tables = set()
-    filter_tables.add('Dataset')
-    filter_tables.add('ExperimentType')
-    for (column, values) in filter_in.items():
-        table_name = columns_dict[column].table_name
-        filter_tables.add(table_name)
-        print(column, values)
 
-    filter_all_view_tables = {}
-    for (view_name, view_tables) in views.items():
-        # exclude Item
-        tables = [x for x in view_tables[1:] if x in filter_tables]
-        if len(tables):
-            filter_all_view_tables[view_name] = tables
+# def create_where_part(column, values, is_syn):
+#     col = columns_dict_item[column]
+#     column_type = col.column_type
+#     var_name = col.var_table()
+#     var_col_name = col.var_column()
+#     if is_syn:
+#         var_name = "s_" + var_col_name
+#         column = 'label'
+#         sub_or = ''
+#     else:
+#         sub_or = f' OR {var_name}.{column} IS NULL' if None in values else ''
+#     values_wo_none = [x for x in values if x is not None]
+#
+#     to_lower_pre = 'TOLOWER(' if column_type == str else ''
+#     to_lower_post = ')' if column_type == str else ''
+#     return f' ({to_lower_pre}{var_name}.{column}{to_lower_post} IN {values_wo_none}{sub_or})'
 
-    # list of sub_queries
-    sub_matches = []
-    for (i, (view_name, tables)) in enumerate(filter_all_view_tables.items()):
-        sub_query = ''
-        # sub_query += f'p{i} = '
-        sub_query += '(it)'
-        pre_table = 'Item'
-        for table_name in tables:
-            distance = calc_distance(view_name, pre_table, table_name)
-            if distance > 1:
-                dist = f'[*..{distance}]'
-            else:
-                dist = ''
-            var_table_par = var_table(table_name)
-            sub_query += f'-{dist}->({var_table_par}:{table_name})'
-            pre_table = table_name
 
-        sub_matches.append(sub_query)
-
-    # list of sub_where, if the column is
-    sub_where = []
-    sub_optional_match = []
-    for (column, values) in filter_in.items():
-        col = columns_dict[column]
-
-        if voc and col.has_tid:
-            var_table_par = col.var_table()
-            var_column_par = col.var_column()
-
-            where_part1 = create_where_part(column, values, False)
-            where_part2 = create_where_part(column, values, True)
-
-            optional = f"OPTIONAL MATCH ({var_table_par})-->(:Vocabulary)-->(s_{var_column_par}:Synonym) " \
-                "WITH * " \
-                f"WHERE ({where_part1} OR {where_part2}) "
-
-            # TODO
-            # OPTIONAL MATCH (do)-->(:Vocabulary)-->(s_sp:Synonym)
-            # ******* WHERE (TOLOWER(s_sp.label) IN ['homo sapiens', 'man', 'human']) ***********
-            # WITH *
-            # WHERE ( (TOLOWER(do.species) IN ['homo sapiens', 'man', 'human']) OR  (TOLOWER(s_sp.label) IN ['homo sapiens', 'man', 'human']))
-
-            sub_optional_match.append(optional)
-        else:
-            where_part = create_where_part(column, values, False)
-            sub_where.append(where_part)
-
-    cypher_query = 'MATCH (it:Item), '
-    cypher_query += ', '.join(sub_matches)
-    if sub_where:
-        cypher_query += 'WHERE ' + ' AND '.join(sub_where)
-    if sub_optional_match:
-        cypher_query += ' ' + ''.join(sub_optional_match)
-
-    if return_type == 'table':
-        cypher_query += ' WITH DISTINCT it, ex, da'
-        cypher_query += ' RETURN *'
-        cypher_query += f' LIMIT {limit} '
-    elif return_type == 'count-dataset':
-        cypher_query += ' WITH DISTINCT it, da'
-        cypher_query += ' RETURN da.dataset_name, count(*) '
-        cypher_query += ' ORDER BY da.dataset_name '
-    elif return_type == 'count-source':
-        cypher_query += ' WITH DISTINCT it, da'
-        cypher_query += ' RETURN da.source, count(*) '
-        cypher_query += ' ORDER BY da.source '
-    elif return_type == 'download-links':
-        cypher_query += ' WITH DISTINCT it'
-        cypher_query += ' WHERE it.local_url is not null '
-        cypher_query += ' RETURN it.local_url '
-    elif return_type == 'graph':
-        # TODO Andrea, do you need to add limit to this?
-        cypher_query += ' WITH DISTINCT it'
-        cypher_query += f' LIMIT {limit}'
-        pre_table = 'Item'
-        cypher_query += ' MATCH (it: Item)'
-        match_view_pre = ' (it)'
-        return_part = ' return it'
-        if len(include_views):
-            for view in include_views:
-                p_name = f'p_{view}'
-                cypher_query += f', {p_name} ='
-                last = views.get(view)[-1]
-                cypher_query += match_view_pre
-                distance = calc_distance(view, pre_table, last)
-                if distance > 1:
-                    dist = f'[*..{distance}]'
-                else:
-                    dist = ''
-                cypher_query += f'-{dist}->({last[:2].lower()}:{last})'
-                return_part += f', {p_name}'
-        cypher_query += return_part
-    elif return_type == 'gmql':
-        cypher_query += "WITH DISTINCT da,it "
-        cypher_query += ' WHERE it.local_url is not null '
-        # TODO correct attribute name
-        cypher_query += "RETURN da.dataset_name, collect(it.source_id) "
-
-    return cypher_query
+# def query_generator(filter_in, voc, return_type='table', include_views=[], limit=1000):
+#     # set of distinct tables in the query, the result must have always ...
+#     filter_tables = set()
+#     filter_tables.add('Dataset')
+#     filter_tables.add('ExperimentType')
+#     for (column, values) in filter_in.items():
+#         table_name = columns_dict[column].table_name
+#         filter_tables.add(table_name)
+#         print(column, values)
+#
+#     filter_all_view_tables = {}
+#     for (view_name, view_tables) in views.items():
+#         # exclude Item
+#         tables = [x for x in view_tables[1:] if x in filter_tables]
+#         if len(tables):
+#             filter_all_view_tables[view_name] = tables
+#
+#     # list of sub_queries
+#     sub_matches = []
+#     for (i, (view_name, tables)) in enumerate(filter_all_view_tables.items()):
+#         sub_query = ''
+#         # sub_query += f'p{i} = '
+#         sub_query += '(it)'
+#         pre_table = 'Item'
+#         for table_name in tables:
+#             distance = calc_distance(view_name, pre_table, table_name)
+#             if distance > 1:
+#                 dist = f'[*..{distance}]'
+#             else:
+#                 dist = ''
+#             var_table_par = var_table(table_name)
+#             sub_query += f'-{dist}->({var_table_par}:{table_name})'
+#             pre_table = table_name
+#
+#         sub_matches.append(sub_query)
+#
+#     # list of sub_where, if the column is
+#     sub_where = []
+#     sub_optional_match = []
+#     for (column, values) in filter_in.items():
+#         col = columns_dict[column]
+#
+#         if voc and col.has_tid:
+#             var_table_par = col.var_table()
+#             var_column_par = col.var_column()
+#
+#             where_part1 = create_where_part(column, values, False)
+#             where_part2 = create_where_part(column, values, True)
+#
+#             optional = f"OPTIONAL MATCH ({var_table_par})-->(:Vocabulary)-->(s_{var_column_par}:Synonym) " \
+#                 "WITH * " \
+#                 f"WHERE ({where_part1} OR {where_part2}) "
+#
+#             # TODO
+#             # OPTIONAL MATCH (do)-->(:Vocabulary)-->(s_sp:Synonym)
+#             # ******* WHERE (TOLOWER(s_sp.label) IN ['homo sapiens', 'man', 'human']) ***********
+#             # WITH *
+#             # WHERE ( (TOLOWER(do.species) IN ['homo sapiens', 'man', 'human']) OR  (TOLOWER(s_sp.label) IN ['homo sapiens', 'man', 'human']))
+#
+#             sub_optional_match.append(optional)
+#         else:
+#             where_part = create_where_part(column, values, False)
+#             sub_where.append(where_part)
+#
+#     cypher_query = 'MATCH (it:Item), '
+#     cypher_query += ', '.join(sub_matches)
+#     if sub_where:
+#         cypher_query += 'WHERE ' + ' AND '.join(sub_where)
+#     if sub_optional_match:
+#         cypher_query += ' ' + ''.join(sub_optional_match)
+#
+#     if return_type == 'table':
+#         cypher_query += ' WITH DISTINCT it, ex, da'
+#         cypher_query += ' RETURN *'
+#         cypher_query += f' LIMIT {limit} '
+#     elif return_type == 'count-dataset':
+#         cypher_query += ' WITH DISTINCT it, da'
+#         cypher_query += ' RETURN da.dataset_name, count(*) '
+#         cypher_query += ' ORDER BY da.dataset_name '
+#     elif return_type == 'count-source':
+#         cypher_query += ' WITH DISTINCT it, da'
+#         cypher_query += ' RETURN da.source, count(*) '
+#         cypher_query += ' ORDER BY da.source '
+#     elif return_type == 'download-links':
+#         cypher_query += ' WITH DISTINCT it'
+#         cypher_query += ' WHERE it.local_url is not null '
+#         cypher_query += ' RETURN it.local_url '
+#     elif return_type == 'graph':
+#         # TODO Andrea, do you need to add limit to this?
+#         cypher_query += ' WITH DISTINCT it'
+#         cypher_query += f' LIMIT {limit}'
+#         pre_table = 'Item'
+#         cypher_query += ' MATCH (it: Item)'
+#         match_view_pre = ' (it)'
+#         return_part = ' return it'
+#         if len(include_views):
+#             for view in include_views:
+#                 p_name = f'p_{view}'
+#                 cypher_query += f', {p_name} ='
+#                 last = views.get(view)[-1]
+#                 cypher_query += match_view_pre
+#                 distance = calc_distance(view, pre_table, last)
+#                 if distance > 1:
+#                     dist = f'[*..{distance}]'
+#                 else:
+#                     dist = ''
+#                 cypher_query += f'-{dist}->({last[:2].lower()}:{last})'
+#                 return_part += f', {p_name}'
+#         cypher_query += return_part
+#     elif return_type == 'gmql':
+#         cypher_query += "WITH DISTINCT da,it "
+#         cypher_query += ' WHERE it.local_url is not null '
+#         # TODO correct attribute name
+#         cypher_query += "RETURN da.dataset_name, collect(it.source_id) "
+#
+#     return cypher_query
