@@ -2,9 +2,9 @@ import flask
 from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
-import json
 from utils import columns_dict_item, \
     run_query, views, calc_distance, var_table, agg_tables
+import json
 
 api = Namespace('query', description='Operations to perform queries using metadata')
 
@@ -63,7 +63,6 @@ table_parser.add_argument('agg', type=inputs.boolean, default=False)
 #         else:
 #             return api.abort(404, f'Not found')
 
-# TODO CHECK WITH ANNA AND ARIF WHICH ATTRIBUTES TO SHOW
 
 query_result = api.model('QueryResult', {
     # ITEM
@@ -129,16 +128,17 @@ class Query(Resource):
         args = table_parser.parse_args()
         agg = args['agg']
         filter_in = payload.get("gcm")
+
         type = payload.get("type")
         pairs = payload.get("kv")
 
         query = sql_query_generator(filter_in, type, pairs, 'table', agg)
-        print(query)
         res = db.engine.execute(query).fetchall()
         result = []
         for row in res:
             result.append({f'{x}': row[x] for x in query_result.keys()})
 
+        flask.current_app.logger.info("QUI QUERY")
         flask.current_app.logger.info(query)
 
         flask.current_app.logger.info('got results')
@@ -307,9 +307,6 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                 " join project pr on cs.project_id = pr.project_id"
     where_part = ""
 
-    if gcm_query:
-        where_part = " WHERE ("
-
     download_where_part = ""
     group_by_part = ""
 
@@ -321,7 +318,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                 "STRING_AGG(COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ORDER BY item_source_id) as "
                 + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
             group_by_part = " GROUP BY "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
-            
+
         else:
             select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
 
@@ -349,16 +346,29 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         group_by_part = "GROUP BY dataset_name"
 
     sub_where = []
+    if gcm_query:
+        where_part = " WHERE ("
+
     for (column, values) in gcm_query.items():
         col = columns_dict_item[column]
         column_type = col.column_type
         lower_pre = 'LOWER(' if column_type == str else ''
         lower_post = ')' if column_type == str else ''
-        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values]
+        syn_sub_where = []
+        if search_type == 'synonym' and col.has_tid:
+            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = '{value}')" for value in values
+                             if value is not None]
+        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
+        sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
+        sub_sub_where.extend(sub_sub_where_none)
+        sub_sub_where.extend(syn_sub_where)
         sub_where.append(" OR ".join(sub_sub_where))
 
     if gcm_query:
         where_part += ") AND (".join(sub_where) + ")"
+
+    # elif search_type == 'synonym':
+    #     where_part = ""
 
     return select_part + from_part + where_part + download_where_part + group_by_part + " limit 1000"
 

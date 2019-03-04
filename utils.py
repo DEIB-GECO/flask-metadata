@@ -117,11 +117,11 @@ columns = [
 columns_item = list(columns)
 
 columns_item.extend((
-    Column('Item', 'item_source_id', str, True, ""),
-    Column('Item', 'size', str, True, ""),
-    Column('Item', 'date', str, True, ""),
-    Column('Item', 'source_url', str, True, ""),
-    Column('Item', 'local_url', str, True, "")
+    Column('Item', 'item_source_id', str, False, ""),
+    Column('Item', 'size', str, False, ""),
+    Column('Item', 'date', str, False, ""),
+    Column('Item', 'source_url', str, False, ""),
+    Column('Item', 'local_url', str, False, "")
 ))
 
 columns_dict = {x.column_name: x for x in columns}
