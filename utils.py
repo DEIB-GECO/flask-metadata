@@ -128,7 +128,9 @@ columns_dict = {x.column_name: x for x in columns}
 
 columns_dict_item = {x.column_name: x for x in columns_item}
 
-agg_tables = views['biological'][1:]+views['management'][1:]
+# TODO uncomment if there are replications on the management view,
+#  and create a query that takes care for different views
+agg_tables = views['biological'][1:] # +views['management'][1:]
 
 del columns
 
