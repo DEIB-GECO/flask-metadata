@@ -69,8 +69,8 @@ columns = [
     Column('Project', 'source', str, False, "Program or consortia responsible for the production of items"),
     Column('Project', 'project_name', str, False, "Project context in which items are created"),
 
-    Column('CaseStudy', 'external_reference', str, False, "Identifiers from alternative data sources",
-           "Alternative ID"),
+    # Column('CaseStudy', 'external_reference', str, False, "Identifiers from alternative data sources",
+    #        "Alternative ID"),
     Column('CaseStudy', 'source_site', str, False, "Physical site where material was analysed"),
 
     # extraction

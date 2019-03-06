@@ -107,7 +107,7 @@ query_result = api.model('QueryResult', {
 
     # CASE
     'source_site': fields.String,
-    'external_reference': fields.String,
+    # 'external_reference': fields.String,
 
     # PROJECT
     'project_name': fields.String,
