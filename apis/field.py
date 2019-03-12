@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from sqlalchemy.sql import select
 
 from model.models import t_flatten, db
-from utils import columns_dict, run_query, unfold_list
+from utils import columns_dict, run_query, unfold_list, sql_query_generator
 from .flask_models import Info, info_field
 
 api = Namespace('field',
@@ -140,17 +140,46 @@ class FieldValue(Resource):
         filter_in = api.payload
 
         if field_name in columns_dict:
+            column = columns_dict[field_name]
+
+            column_name = column.column_name
+            table_name = column.table_name
+            column_type = column.column_type
+            has_tid = column.has_tid
             if voc:
                 # TODO remove when the synonym view is ready
-                return self.from_cypher(field_name, voc)
+                filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}
+                sub_query1 = sql_query_generator(filter_in_new, search_type='synonym',
+                                                return_type='field_value', field_selected=field_name, pairs_query={})
+                sub_query2 = ""
+                if has_tid:
+                    sub_query2 = sql_query_generator(filter_in_new, search_type='synonym',
+                                                    return_type='field_value_syn', field_selected=field_name, pairs_query={})
+                lower_pre = ' LOWER(' if column_type == str else ''
+                lower_post = ') ' if column_type == str else ''
+                select_part = f"SELECT {lower_pre}label{lower_post} as label, count(distinct item) as item_count "
+                if has_tid:
+                    from_part = "FROM (" + sub_query1 + " union " + sub_query2 + ") as view"
+                else:
+                    from_part = "FROM (" + sub_query1 + ") as view"
+
+                group_by = " group by label "
+                order_by = " order by item_count desc "
+                query = select_part + from_part + group_by + order_by
+                print(query)
+                res = db.engine.execute(query).fetchall()
+                # print("RESULTS SYN")
+                item_count = sum(map(lambda row: row['item_count'], res))
+                res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+
+                length = len(res)
+                info = Info(length, length, item_count)
+
+                res = {'values': res,
+                       'info': info
+                       }
+                return res
             else:
-                column = columns_dict[field_name]
-
-                column_name = column.column_name
-                table_name = column.table_name
-                column_type = column.column_type
-                has_tid = column.has_tid
-
                 sql_column = t_flatten.c[column_name]
 
                 filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}

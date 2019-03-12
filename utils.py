@@ -135,3 +135,91 @@ agg_tables = views['biological'][1:] # +views['management'][1:]
 del columns
 
 # print([x.var_column() for x in columns_dict.values() if x.has_tid])
+
+def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected=""):
+    select_part = ""
+    from_part = " FROM item it " \
+                "join dataset da on it.dataset_id = da.dataset_id " \
+                " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id" \
+                " join replicate2item r2i on it.item_id = r2i.item_id" \
+                " join replicate rep on r2i.replicate_id = rep.replicate_id" \
+                " join biosample bi on rep.biosample_id = bi.biosample_id" \
+                " join donor don on bi.donor_id = don.donor_id" \
+                " join case2item c2i on it.item_id = c2i.item_id" \
+                " join case_study cs on c2i.case_study_id = cs.case_study_id" \
+                " join project pr on cs.project_id = pr.project_id"
+    where_part = generate_where_sql(gcm_query, search_type)
+
+    download_where_part = ""
+    group_by_part = ""
+    limit = ""
+    if return_type == 'table':
+        if agg:
+            select_part = "SELECT "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)+" "
+
+            select_part += "," + ','.join(
+                "STRING_AGG(COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ORDER BY item_source_id) as "
+                + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
+            group_by_part = " GROUP BY "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
+
+        else:
+            select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
+        limit = " LIMIT 1000 "
+    elif return_type == 'count-dataset':
+        select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
+        group_by_part = " GROUP BY da.dataset_name"
+
+    elif return_type == 'count-source':
+        select_part = "SELECT pr.source as name, count(distinct it.item_id) as count "
+        group_by_part = " GROUP BY pr.source"
+
+    elif return_type == 'download-links':
+        select_part = "SELECT distinct it.local_url "
+        if where_part:
+            download_where_part = " AND local_url IS NOT NULL "
+        else:
+            download_where_part = " WHERE local_url IS NOT NULL "
+
+    elif return_type == 'gmql':
+        select_part = "SELECT dataset_name, array_agg(file_name) "
+        if where_part:
+            download_where_part = " AND local_url IS NOT NULL "
+        else:
+            download_where_part = " WHERE local_url IS NOT NULL "
+        group_by_part = "GROUP BY dataset_name"
+
+    elif return_type == 'field_value':
+        select_part = f"SELECT {field_selected} as label, it.item_id as item "
+
+    elif return_type == 'field_value_syn':
+        select_part = f"SELECT label, it.item_id as item "
+        from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
+
+    return select_part + from_part + where_part + download_where_part + group_by_part + limit
+
+
+def generate_where_sql(gcm_query, search_type):
+    sub_where = []
+    where_part = ""
+    if gcm_query:
+        where_part = " WHERE ("
+
+    for (column, values) in gcm_query.items():
+        col = columns_dict_item[column]
+        column_type = col.column_type
+        lower_pre = 'LOWER(' if column_type == str else ''
+        lower_post = ')' if column_type == str else ''
+        syn_sub_where = []
+        if search_type == 'synonym' and col.has_tid:
+            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = '{value}')" for
+                             value in values
+                             if value is not None]
+        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
+        sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
+        sub_sub_where.extend(sub_sub_where_none)
+        sub_sub_where.extend(syn_sub_where)
+        sub_where.append(" OR ".join(sub_sub_where))
+
+    if gcm_query:
+        where_part += ") AND (".join(sub_where) + ")"
+    return where_part
