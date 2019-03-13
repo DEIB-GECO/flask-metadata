@@ -190,10 +190,6 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     elif return_type == 'field_value':
         select_part = f"SELECT {field_selected} as label, it.item_id as item "
-        # if where_part:
-        #     sub_where_part = " AND type <> 'RELATED' "
-        # else:
-        #     sub_where_part = " WHERE type <> 'RELATED' "
 
     elif return_type == 'field_value_syn':
         select_part = f"SELECT label, it.item_id as item "
