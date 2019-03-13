@@ -147,7 +147,6 @@ class FieldValue(Resource):
             column_type = column.column_type
             has_tid = column.has_tid
             if voc:
-                # TODO remove when the synonym view is ready
                 filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}
                 sub_query1 = sql_query_generator(filter_in_new, search_type='synonym',
                                                 return_type='field_value', field_selected=field_name, pairs_query={})

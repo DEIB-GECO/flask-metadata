@@ -150,7 +150,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                 " join project pr on cs.project_id = pr.project_id"
     where_part = generate_where_sql(gcm_query, search_type)
 
-    download_where_part = ""
+    sub_where_part = ""
     group_by_part = ""
     limit = ""
     if return_type == 'table':
@@ -176,26 +176,34 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     elif return_type == 'download-links':
         select_part = "SELECT distinct it.local_url "
         if where_part:
-            download_where_part = " AND local_url IS NOT NULL "
+            sub_where_part = " AND local_url IS NOT NULL "
         else:
-            download_where_part = " WHERE local_url IS NOT NULL "
+            sub_where_part = " WHERE local_url IS NOT NULL "
 
     elif return_type == 'gmql':
         select_part = "SELECT dataset_name, array_agg(file_name) "
         if where_part:
-            download_where_part = " AND local_url IS NOT NULL "
+            sub_where_part = " AND local_url IS NOT NULL "
         else:
-            download_where_part = " WHERE local_url IS NOT NULL "
+            sub_where_part = " WHERE local_url IS NOT NULL "
         group_by_part = "GROUP BY dataset_name"
 
     elif return_type == 'field_value':
         select_part = f"SELECT {field_selected} as label, it.item_id as item "
+        # if where_part:
+        #     sub_where_part = " AND type <> 'RELATED' "
+        # else:
+        #     sub_where_part = " WHERE type <> 'RELATED' "
 
     elif return_type == 'field_value_syn':
         select_part = f"SELECT label, it.item_id as item "
         from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
+        if where_part:
+            sub_where_part = " AND type <> 'RELATED' "
+        else:
+            sub_where_part = " WHERE type <> 'RELATED' "
 
-    return select_part + from_part + where_part + download_where_part + group_by_part + limit
+    return select_part + from_part + where_part + sub_where_part + group_by_part + limit
 
 
 def generate_where_sql(gcm_query, search_type):
