@@ -24,7 +24,7 @@ def get_db_uri():
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = 'geco78'
-    postgres_db = "gmql_meta_new2"
+    postgres_db = "gmql_meta_new5"
     return 'postgresql://{user}:{pw}@{url}/{db}'.format(user=postgres_user,
                                                         pw=postgres_pw,
                                                         url=postgres_url,

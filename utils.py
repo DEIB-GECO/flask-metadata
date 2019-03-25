@@ -11,7 +11,6 @@ views = {
 }
 
 
-
 def get_view(table):
     if table == "Item":
         return "extraction"
@@ -130,9 +129,10 @@ columns_dict_item = {x.column_name: x for x in columns_item}
 
 # TODO uncomment if there are replications on the management view,
 #  and create a query that takes care for different views
-agg_tables = views['biological'][1:] # +views['management'][1:]
+agg_tables = views['biological'][1:]  # +views['management'][1:]
 
 del columns
+
 
 # print([x.var_column() for x in columns_dict.values() if x.has_tid])
 
@@ -155,12 +155,14 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     limit = ""
     if return_type == 'table':
         if agg:
-            select_part = "SELECT "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)+" "
+            select_part = "SELECT " + ",".join(
+                x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables) + " "
 
             select_part += "," + ','.join(
                 "STRING_AGG(COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ORDER BY item_source_id) as "
                 + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
-            group_by_part = " GROUP BY "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
+            group_by_part = " GROUP BY " + ",".join(
+                x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
 
         else:
             select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
@@ -218,6 +220,13 @@ def generate_where_sql(gcm_query, search_type):
             syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = '{value}')" for
                              value in values
                              if value is not None]
+        elif search_type == 'expanded' and col.has_tid:
+            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid_descendant "
+                             f"FROM relationship_unfolded WHERE tid_ancestor in "
+                             f"(SELECT tid FROM synonym WHERE LOWER(label) = '{value}'))" for
+                             value in values
+                             if value is not None]
+
         sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
         sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
         sub_sub_where.extend(sub_sub_where_none)
