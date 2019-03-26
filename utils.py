@@ -202,11 +202,13 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             from_part += f" join relationship_unfolded rel on {field_selected}_tid = rel.tid_descendant "
             from_part += f" join synonym syn on rel.tid_ancestor = syn.tid "
         if where_part:
-            sub_where_part = " AND type <> 'RELATED' " \
-                             " AND rel.distance < 4 "
+            sub_where_part = " AND type <> 'RELATED' "
+            if search_type == 'expanded':
+                sub_where_part += " AND rel.distance < 4 "
         else:
-            sub_where_part = " WHERE type <> 'RELATED' " \
-                             " and rel.distance < 4 "
+            sub_where_part = " WHERE type <> 'RELATED' " 
+            if search_type == 'expanded':
+                sub_where_part += " AND rel.distance < 4 "
 
     return select_part + from_part + where_part + sub_where_part + group_by_part + limit
 
