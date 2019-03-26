@@ -193,13 +193,20 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     elif return_type == 'field_value':
         select_part = f"SELECT {field_selected} as label, it.item_id as item "
 
-    elif return_type == 'field_value_syn':
+    elif return_type == 'field_value_tid':
         select_part = f"SELECT label, it.item_id as item "
-        from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
+
+        if search_type == 'synonym':
+            from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
+        elif search_type == 'expanded':
+            from_part += f" join relationship_unfolded rel on {field_selected}_tid = rel.tid_descendant "
+            from_part += f" join synonym syn on rel.tid_ancestor = syn.tid "
         if where_part:
-            sub_where_part = " AND type <> 'RELATED' "
+            sub_where_part = " AND type <> 'RELATED' " \
+                             " AND rel.distance < 4 "
         else:
-            sub_where_part = " WHERE type <> 'RELATED' "
+            sub_where_part = " WHERE type <> 'RELATED' " \
+                             " and rel.distance < 4 "
 
     return select_part + from_part + where_part + sub_where_part + group_by_part + limit
 
@@ -217,13 +224,14 @@ def generate_where_sql(gcm_query, search_type):
         lower_post = ')' if column_type == str else ''
         syn_sub_where = []
         if search_type == 'synonym' and col.has_tid:
-            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = '{value}')" for
+            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}'))"
+                             for
                              value in values
                              if value is not None]
         elif search_type == 'expanded' and col.has_tid:
             syn_sub_where = [f"{col.column_name}_tid in (SELECT tid_descendant "
                              f"FROM relationship_unfolded WHERE tid_ancestor in "
-                             f"(SELECT tid FROM synonym WHERE LOWER(label) = '{value}'))" for
+                             f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
                              value in values
                              if value is not None]
 
