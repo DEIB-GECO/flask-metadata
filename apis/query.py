@@ -19,6 +19,10 @@ parser.add_argument('body', type="json", help='json ', location='json')
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
 table_parser.add_argument('agg', type=inputs.boolean, default=False)
+table_parser.add_argument('page',type=inputs.int_range,default=1)
+table_parser.add_argument('num_elems', type=inputs.int_range, default=10)
+table_parser.add_argument('order_col', type=str, default='item_source_id')
+table_parser.add_argument('order_dir', type=str, default='asc')
 # parser_graph = api.parser()
 # parser_graph.add_argument('limit', type=int, default=5)
 # parser_graph.add_argument('biological_view', type=inputs.boolean)
@@ -127,12 +131,23 @@ class Query(Resource):
         payload = api.payload
         args = table_parser.parse_args()
         agg = args['agg']
+        orderCol = args['order_col']
+        orderDir = args['order_dir']
+        numPage = args['page']
+        numElems = args['num_elems']
+
+        print(numPage, numElems)
+        offset = numPage*numElems
+        limit = numElems
+
         filter_in = payload.get("gcm")
 
         type = payload.get("type")
         pairs = payload.get("kv")
 
-        query = sql_query_generator(filter_in, type, pairs, 'table', agg)
+        query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit= limit, offset=offset,
+                                    orderCol=orderCol, orderDir=orderDir)
+
         res = db.engine.execute(query).fetchall()
         result = []
         for row in res:
