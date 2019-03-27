@@ -195,10 +195,14 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         group_by_part = "GROUP BY dataset_name"
 
     elif return_type == 'field_value':
-        select_part = f"SELECT {field_selected} as label, it.item_id as item "
+        col = columns_dict_item[field_selected]
+        column_type = col.column_type
+        lower_pre = 'LOWER(' if column_type == str else ''
+        lower_post = ')' if column_type == str else ''
+        select_part = f"SELECT {lower_pre}{field_selected}{lower_post} as label, it.item_id as item "
 
     elif return_type == 'field_value_tid':
-        select_part = f"SELECT label, it.item_id as item "
+        select_part = f"SELECT LOWER(label), it.item_id as item "
 
         if search_type == 'synonym':
             from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
