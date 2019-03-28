@@ -1,7 +1,7 @@
 from neo4jrestclient.client import GraphDatabase
 # noinspection PyUnresolvedReferences
 from neo4jrestclient.constants import DATA_GRAPH, DATA_ROWS, RAW
-
+from collections import OrderedDict
 # the view order definitions
 views = {
     'biological': ['Item', 'Replicate', 'Biosample', 'Donor'],
@@ -136,18 +136,50 @@ del columns
 
 # print([x.var_column() for x in columns_dict.values() if x.has_tid])
 
-def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000, offset=0, orderCol = "item_source_id", orderDir="ASC"):
+def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
+                        offset=0, orderCol="item_source_id", orderDir="ASC"):
     select_part = ""
-    from_part = " FROM item it " \
-                "join dataset da on it.dataset_id = da.dataset_id " \
-                " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id" \
-                " join replicate2item r2i on it.item_id = r2i.item_id" \
-                " join replicate rep on r2i.replicate_id = rep.replicate_id" \
-                " join biosample bi on rep.biosample_id = bi.biosample_id" \
-                " join donor don on bi.donor_id = don.donor_id" \
-                " join case2item c2i on it.item_id = c2i.item_id" \
-                " join case_study cs on c2i.case_study_id = cs.case_study_id" \
-                " join project pr on cs.project_id = pr.project_id"
+    from_part = ""
+    item = " FROM item it "
+    dataset_join = " join dataset da on it.dataset_id = da.dataset_id "
+
+    experiment_type_join = " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id"
+
+    replicate_join = " join replicate2item r2i on it.item_id = r2i.item_id" \
+                     " join replicate rep on r2i.replicate_id = rep.replicate_id"
+
+    biosample_join = " join biosample bi on rep.biosample_id = bi.biosample_id"
+
+    donor_join = " join donor don on bi.donor_id = don.donor_id"
+
+    case_join = " join case2item c2i on it.item_id = c2i.item_id" \
+                " join case_study cs on c2i.case_study_id = cs.case_study_id"
+
+    project_join = " join project pr on cs.project_id = pr.project_id"
+
+    # joins = [dataset_join, experiment_type_join, replicate_join, biosample_join, donor_join, case_join, project_join]
+
+    view_join = {
+        'biological': [replicate_join, biosample_join, donor_join],
+        'management': [case_join, project_join],
+        'technological': [experiment_type_join],
+        'extraction': [dataset_join],
+    }
+    if field_selected != "":
+        columns = [x for x in gcm_query.keys()]
+        columns.append(field_selected)
+        tables = [columns_dict_item[x].table_name for x in columns]
+        joins = []
+        for table in tables:
+            # table = columns_dict_item[field_selected].table_name
+            view = get_view(table)
+            index = calc_distance(view, 'Item', table)
+            joins += view_join[view][:index]
+        joins = list(OrderedDict.fromkeys(joins))
+        from_part = item + " ".join(joins)
+    else:
+        from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join
+
     where_part = generate_where_sql(gcm_query, search_type)
 
     sub_where_part = ""
@@ -214,12 +246,11 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             if search_type == 'expanded':
                 sub_where_part += " AND rel.distance < 4 "
         else:
-            sub_where_part = " WHERE type <> 'RELATED' " 
+            sub_where_part = " WHERE type <> 'RELATED' "
             if search_type == 'expanded':
                 sub_where_part += " AND rel.distance < 4 "
 
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
-
 
 def generate_where_sql(gcm_query, search_type):
     sub_where = []

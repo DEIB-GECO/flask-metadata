@@ -198,8 +198,6 @@ class FieldValue(Resource):
                     sub_query2 = sql_query_generator(filter_in_new, search_type=type,
                                                      return_type='field_value_tid', field_selected=field_name,
                                                      pairs_query={})
-                lower_pre = ' LOWER(' if column_type == str else ''
-                lower_post = ') ' if column_type == str else ''
                 select_part = f"SELECT label, count(*) as item_count "
                 if has_tid:
                     from_part = "FROM (" + sub_query1 + " union " + sub_query2 + ") as view"
