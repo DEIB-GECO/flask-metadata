@@ -134,11 +134,13 @@ class Query(Resource):
         agg = args['agg']
         orderCol = args['order_col']
         orderDir = args['order_dir']
+        if orderCol == "null":
+            orderCol = "item_source_id"
         numPage = args['page']
         numElems = args['num_elems']
 
         print(numPage, numElems)
-        offset = numPage*numElems
+        offset = (numPage-1)*numElems
         limit = numElems
 
         filter_in = payload.get("gcm")
@@ -167,6 +169,26 @@ count_result = api.model('QueryResult', {
     'count': fields.Integer,
 })
 
+@api.route('/count')
+@api.response(404, 'Field not found')  # TODO correct
+class QueryCountDataset(Resource):
+    @api.doc('return_query_result2')
+    @api.expect(parser)
+    def post(self):
+        '''For the posted query, it retrieves the total number of items'''
+        payload = api.payload
+        filter_in = payload.get('gcm')
+        type = payload.get('type')
+        pairs = payload.get('kv')
+
+        query = sql_query_generator(filter_in, type, pairs, 'count-dataset')
+        flask.current_app.logger.info(query)
+
+        flask.current_app.logger.info('got results')
+
+        res = db.engine.execute(query).fetchall()
+        item_count = sum(map(lambda row: row['count'], res))
+        return item_count
 
 # TODO check code repetition
 @api.route('/count/dataset')
