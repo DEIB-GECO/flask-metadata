@@ -48,7 +48,7 @@ def var_table(table_name):
 
 
 def run_query(cypher_query, returns=None, data_contents=None):
-    gdb = GraphDatabase("http://localhost:7474", username='neo4j', password='yellow')
+    gdb = GraphDatabase("http://localhost:27474", username='neo4j', password='yellow')
 
     result = gdb.query(cypher_query, returns=returns, data_contents=data_contents)
     return result
