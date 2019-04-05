@@ -173,22 +173,25 @@ count_result = api.model('QueryResult', {
 @api.response(404, 'Field not found')  # TODO correct
 class QueryCountDataset(Resource):
     @api.doc('return_query_result2')
-    @api.expect(parser)
+    @api.expect(table_parser)
     def post(self):
         '''For the posted query, it retrieves the total number of items'''
         payload = api.payload
         filter_in = payload.get('gcm')
         type = payload.get('type')
         pairs = payload.get('kv')
-
-        query = sql_query_generator(filter_in, type, pairs, 'count-dataset')
+        args = table_parser.parse_args()
+        agg = args['agg']
+        query = "select count(*) "
+        query += "from ("
+        sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None)
+        query += sub_query + ") as a "
         flask.current_app.logger.info(query)
 
-        flask.current_app.logger.info('got results')
-
         res = db.engine.execute(query).fetchall()
-        item_count = sum(map(lambda row: row['count'], res))
-        return item_count
+        print(res[0][0])
+        flask.current_app.logger.info('got results')
+        return res[0][0]
 
 # TODO check code repetition
 @api.route('/count/dataset')
