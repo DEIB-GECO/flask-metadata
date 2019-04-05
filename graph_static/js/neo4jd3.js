@@ -169,8 +169,7 @@
                 }
 
                 function appendInfoPanel(container) {
-                    return container.append('div')
-                        .attr('class', 'neo4jd3-info');
+                    return container.append('div').attr('class', 'neo4jd3-info');
                 }
 
                 function appendInfoElement(cls, isNode, property, value) {
@@ -235,7 +234,6 @@
                             return classes;
                         })
                         .on('click', function (d) {
-                            d.fx = d.fy = null;
 
                             if (typeof options.onNodeClick === 'function') {
                                 options.onNodeClick(d);
@@ -243,7 +241,6 @@
                         })
                         .on('dblclick', function (d) {
                             stickNode(d);
-
                             if (typeof options.onNodeDoubleClick === 'function') {
                                 options.onNodeDoubleClick(d);
                             }
@@ -258,9 +255,10 @@
                             }
                         })
                         .on('mouseleave', function (d) {
-                            if (info) {
-                                clearInfo(d);
-                            }
+                            // if (info) {
+                            //     clearInfo(d);
+                            // }
+                            console.log(info)
 
                             if (typeof options.onNodeMouseLeave === 'function') {
                                 options.onNodeMouseLeave(d);
@@ -1228,7 +1226,6 @@
                     }
 
                     appendGraph(container);
-
                     simulation = initSimulation();
 
                     if (options.neo4jData) {
@@ -1269,22 +1266,58 @@
                     }
                 }
 
+                function labelToInt(node) {
+                    var label = node.labels[0];
+                    console.log(label)
+                    if (label === 'Item') {
+                        return 0;
+                    } else if (label === 'ExperimentType') {
+                        console.log(1)
+                        return 1;
+                    } else if (label === 'Replicate') {
+                        return 2;
+                    } else if (label === 'Biosample') {
+                        return 3;
+                    } else if (label === 'Donor') {
+                        return 4;
+                    }
+                }
+
                 function initSimulation() {
-                    var simulation = d3.forceSimulation()
-                                              // .velocityDecay(0.8)
-                                              // .force('x', d3.force().strength(0.002))
-                                              // .force('y', d3.force().strength(0.002))
-                        .force('collide', d3.forceCollide().radius(function (d) {
-                            return options.minCollision;
-                        }).iterations(2))
-                        .force('charge', d3.forceManyBody())
-                        .force('link', d3.forceLink().id(function (d) {
+                    // var nodes = graph.nodes,
+                    //     relationships = graph.relationships;
+                    var simulation = d3.forceSimulation(nodes)
+
+                    // .force('collide', d3.forceCollide().radius(function (d) {
+                    //     return options.minCollision
+                    // }).iterations(2))
+                    // .force('charge', d3.forceManyBody().strength(10))
+                    // .force('link', d3.forceLink().id(function (d) {
+                    //     return d.id;
+                    // }))
+                    // .force('center', d3.forceCenter(svg.node().parentElement.parentElement.clientWidth / 2, svg.node().parentElement.parentElement.clientHeight / 2))
+                    //     .force('x', d3.forceX().x(function (d) {
+                    //         return labelToInt(d)
+                    //     }))
+                    //     .force('y', d3.forceY().y(function (d) {
+                    //         return -labelToInt(d)
+                    //     }))
+                        // pul3l nodes together based on the links between them
+                        .force("link", d3.forceLink().id(function (d) {
                             return d.id;
-                        }))
-                        .force('center', d3.forceCenter(svg.node().parentElement.parentElement.clientWidth / 2, svg.node().parentElement.parentElement.clientHeight / 2))
+                        }).strength(0.025))
+                        // push nodes apart to space them out
+                        .force("charge", d3.forceManyBody().strength(-200))
+                        // add some collision detection so they don't overlap
+                        .force("collide", d3.forceCollide().radius(12))
+                        // and draw them around the centre of the space
+                        .force("center", d3.forceCenter(svg.node().parentElement.parentElement.clientWidth / 2, svg.node().parentElement.parentElement.clientHeight / 2))
                         .on('tick', function () {
                             tick();
                         })
+                        // .nodes(nodes)
+                        // .force("link")
+                        // .links(relationships)
                         .on('end', function () {
                             if (options.zoomFit && !justLoaded) {
                                 justLoaded = true;
@@ -1489,6 +1522,8 @@
                     }
                 }
 
+                var foci = [{x: 150, y: 150}, {x: 350, y: 250}, {x: 700, y: 400}];
+
                 function tickRelationships() {
                     if (relationship) {
                         relationship.attr('transform', function (d) {
@@ -1662,7 +1697,6 @@
 
                 function updateInfo(d) {
                     clearInfo();
-
                     if (d.labels) {
                         appendInfoElementClass('class', d.labels[0]);
                     } else {
@@ -1698,7 +1732,6 @@
                 function updateRelationships(r) {
                     var a = Array.prototype.push.apply(relationships, r);
 
-                    // console.log(a)
 
                     relationship = svgRelationships.selectAll('.relationship').data(relationships, function (d) {
                         return d.id;
@@ -1743,7 +1776,7 @@
 //        smoothTransform(svgTranslate, svgScale);
                 }
 
-                init(_selector, _options);
+                init(_selector, _options, nodes, relationships);
 
                 return {
                     appendRandomDataToNode: appendRandomDataToNode,

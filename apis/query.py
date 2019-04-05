@@ -3,7 +3,7 @@ from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
 from utils import columns_dict_item, \
-    run_query, views, calc_distance, var_table, agg_tables
+    run_query, views, calc_distance, var_table, agg_tables, generate_where_sql, sql_query_generator
 import json
 
 api = Namespace('query', description='Operations to perform queries using metadata')
@@ -19,6 +19,11 @@ parser.add_argument('body', type="json", help='json ', location='json')
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
 table_parser.add_argument('agg', type=inputs.boolean, default=False)
+table_parser.add_argument('page', type=int, default=1)
+table_parser.add_argument('num_elems', type=int, default=10)
+table_parser.add_argument('order_col', type=str, default='item_source_id')
+table_parser.add_argument('order_dir', type=str, default='asc')
+
 # parser_graph = api.parser()
 # parser_graph.add_argument('limit', type=int, default=5)
 # parser_graph.add_argument('biological_view', type=inputs.boolean)
@@ -107,7 +112,7 @@ query_result = api.model('QueryResult', {
 
     # CASE
     'source_site': fields.String,
-    'external_reference': fields.String,
+    # 'external_reference': fields.String,
 
     # PROJECT
     'project_name': fields.String,
@@ -127,12 +132,25 @@ class Query(Resource):
         payload = api.payload
         args = table_parser.parse_args()
         agg = args['agg']
+        orderCol = args['order_col']
+        orderDir = args['order_dir']
+        if orderCol == "null":
+            orderCol = "item_source_id"
+        numPage = args['page']
+        numElems = args['num_elems']
+
+        print(numPage, numElems)
+        offset = (numPage-1)*numElems
+        limit = numElems
+
         filter_in = payload.get("gcm")
 
         type = payload.get("type")
         pairs = payload.get("kv")
 
-        query = sql_query_generator(filter_in, type, pairs, 'table', agg)
+        query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit= limit, offset=offset,
+                                    orderCol=orderCol, orderDir=orderDir)
+
         res = db.engine.execute(query).fetchall()
         result = []
         for row in res:
@@ -151,6 +169,29 @@ count_result = api.model('QueryResult', {
     'count': fields.Integer,
 })
 
+@api.route('/count')
+@api.response(404, 'Field not found')  # TODO correct
+class QueryCountDataset(Resource):
+    @api.doc('return_query_result2')
+    @api.expect(table_parser)
+    def post(self):
+        '''For the posted query, it retrieves the total number of items'''
+        payload = api.payload
+        filter_in = payload.get('gcm')
+        type = payload.get('type')
+        pairs = payload.get('kv')
+        args = table_parser.parse_args()
+        agg = args['agg']
+        query = "select count(*) "
+        query += "from ("
+        sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None)
+        query += sub_query + ") as a "
+        flask.current_app.logger.info(query)
+
+        res = db.engine.execute(query).fetchall()
+        print(res[0][0])
+        flask.current_app.logger.info('got results')
+        return res[0][0]
 
 # TODO check code repetition
 @api.route('/count/dataset')
@@ -291,87 +332,6 @@ class QueryGmql(Resource):
             gmql_query = "No result!!"
 
         return Response(gmql_query, mimetype='text/plain')
-
-
-def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False):
-    select_part = ""
-    from_part = " FROM item it " \
-                "join dataset da on it.dataset_id = da.dataset_id " \
-                " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id" \
-                " join replicate2item r2i on it.item_id = r2i.item_id" \
-                " join replicate rep on r2i.replicate_id = rep.replicate_id" \
-                " join biosample bi on rep.biosample_id = bi.biosample_id" \
-                " join donor don on bi.donor_id = don.donor_id" \
-                " join case2item c2i on it.item_id = c2i.item_id" \
-                " join case_study cs on c2i.case_study_id = cs.case_study_id" \
-                " join project pr on cs.project_id = pr.project_id"
-    where_part = ""
-
-    download_where_part = ""
-    group_by_part = ""
-
-    if return_type == 'table':
-        if agg:
-            select_part = "SELECT "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)+" "
-
-            select_part += "," + ','.join(
-                "STRING_AGG(COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ORDER BY item_source_id) as "
-                + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
-            group_by_part = " GROUP BY "+",".join(x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
-
-        else:
-            select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
-
-    elif return_type == 'count-dataset':
-        select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
-        group_by_part = " GROUP BY da.dataset_name"
-
-    elif return_type == 'count-source':
-        select_part = "SELECT pr.source as name, count(distinct it.item_id) as count "
-        group_by_part = " GROUP BY pr.source"
-
-    elif return_type == 'download-links':
-        select_part = "SELECT distinct it.local_url "
-        if where_part:
-            download_where_part = " AND local_url IS NOT NULL "
-        else:
-            download_where_part = " WHERE local_url IS NOT NULL "
-
-    elif return_type == 'gmql':
-        select_part = "SELECT dataset_name, array_agg(file_name) "
-        if where_part:
-            download_where_part = " AND local_url IS NOT NULL "
-        else:
-            download_where_part = " WHERE local_url IS NOT NULL "
-        group_by_part = "GROUP BY dataset_name"
-
-    sub_where = []
-    if gcm_query:
-        where_part = " WHERE ("
-
-    for (column, values) in gcm_query.items():
-        col = columns_dict_item[column]
-        column_type = col.column_type
-        lower_pre = 'LOWER(' if column_type == str else ''
-        lower_post = ')' if column_type == str else ''
-        syn_sub_where = []
-        if search_type == 'synonym' and col.has_tid:
-            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = '{value}')" for value in values
-                             if value is not None]
-        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
-        sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
-        sub_sub_where.extend(sub_sub_where_none)
-        sub_sub_where.extend(syn_sub_where)
-        sub_where.append(" OR ".join(sub_sub_where))
-
-    if gcm_query:
-        where_part += ") AND (".join(sub_where) + ")"
-
-    # elif search_type == 'synonym':
-    #     where_part = ""
-
-    return select_part + from_part + where_part + download_where_part + group_by_part + " limit 1000"
-
 
 def merge_dicts(dict_args):
     """

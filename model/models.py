@@ -1,5 +1,6 @@
 # coding: utf-8
 from sqlalchemy import BigInteger, Boolean, Column, Integer, Table, Text, UniqueConstraint
+
 from flask_sqlalchemy import SQLAlchemy
 
 

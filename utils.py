@@ -1,7 +1,7 @@
 from neo4jrestclient.client import GraphDatabase
 # noinspection PyUnresolvedReferences
 from neo4jrestclient.constants import DATA_GRAPH, DATA_ROWS, RAW
-
+from collections import OrderedDict
 # the view order definitions
 views = {
     'biological': ['Item', 'Replicate', 'Biosample', 'Donor'],
@@ -9,7 +9,6 @@ views = {
     'technological': ['Item', 'ExperimentType'],
     'extraction': ['Item', 'Dataset'],
 }
-
 
 
 def get_view(table):
@@ -69,8 +68,8 @@ columns = [
     Column('Project', 'source', str, False, "Program or consortia responsible for the production of items"),
     Column('Project', 'project_name', str, False, "Project context in which items are created"),
 
-    Column('CaseStudy', 'external_reference', str, False, "Identifiers from alternative data sources",
-           "Alternative ID"),
+    # Column('CaseStudy', 'external_reference', str, False, "Identifiers from alternative data sources",
+    #        "Alternative ID"),
     Column('CaseStudy', 'source_site', str, False, "Physical site where material was analysed"),
 
     # extraction
@@ -130,8 +129,161 @@ columns_dict_item = {x.column_name: x for x in columns_item}
 
 # TODO uncomment if there are replications on the management view,
 #  and create a query that takes care for different views
-agg_tables = views['biological'][1:] # +views['management'][1:]
+agg_tables = views['biological'][1:]  # +views['management'][1:]
 
 del columns
 
+
 # print([x.var_column() for x in columns_dict.values() if x.has_tid])
+
+def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
+                        offset=0, orderCol="item_source_id", orderDir="ASC"):
+    select_part = ""
+    from_part = ""
+    item = " FROM item it "
+    dataset_join = " join dataset da on it.dataset_id = da.dataset_id "
+
+    experiment_type_join = " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id"
+
+    replicate_join = " join replicate2item r2i on it.item_id = r2i.item_id" \
+                     " join replicate rep on r2i.replicate_id = rep.replicate_id"
+
+    biosample_join = " join biosample bi on rep.biosample_id = bi.biosample_id"
+
+    donor_join = " join donor don on bi.donor_id = don.donor_id"
+
+    case_join = " join case2item c2i on it.item_id = c2i.item_id" \
+                " join case_study cs on c2i.case_study_id = cs.case_study_id"
+
+    project_join = " join project pr on cs.project_id = pr.project_id"
+
+    # joins = [dataset_join, experiment_type_join, replicate_join, biosample_join, donor_join, case_join, project_join]
+
+    view_join = {
+        'biological': [replicate_join, biosample_join, donor_join],
+        'management': [case_join, project_join],
+        'technological': [experiment_type_join],
+        'extraction': [dataset_join],
+    }
+    if field_selected != "":
+        columns = [x for x in gcm_query.keys()]
+        columns.append(field_selected)
+        tables = [columns_dict_item[x].table_name for x in columns]
+        joins = []
+        for table in tables:
+            # table = columns_dict_item[field_selected].table_name
+            view = get_view(table)
+            index = calc_distance(view, 'Item', table)
+            joins += view_join[view][:index]
+        joins = list(OrderedDict.fromkeys(joins))
+        from_part = item + " ".join(joins)
+    else:
+        from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join
+
+    where_part = generate_where_sql(gcm_query, search_type)
+
+    sub_where_part = ""
+    group_by_part = ""
+    limit_part = ""
+    offset_part = ""
+    order_by = ""
+    if return_type == 'table':
+        if agg:
+            select_part = "SELECT " + ",".join(
+                x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables) + " "
+
+            select_part += "," + ','.join(
+                "STRING_AGG(COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ORDER BY item_source_id) as "
+                + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
+            group_by_part = " GROUP BY " + ",".join(
+                x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
+
+        else:
+            select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
+        if limit:
+            limit_part = f" LIMIT {limit} "
+        if offset:
+            offset_part = f"OFFSET {offset} "
+        order_by = f" ORDER BY {orderCol} {orderDir} "
+    elif return_type == 'count-dataset':
+        select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
+        group_by_part = " GROUP BY da.dataset_name"
+
+    elif return_type == 'count-source':
+        select_part = "SELECT pr.source as name, count(distinct it.item_id) as count "
+        group_by_part = " GROUP BY pr.source"
+
+    elif return_type == 'download-links':
+        select_part = "SELECT distinct it.local_url "
+        if where_part:
+            sub_where_part = " AND local_url IS NOT NULL "
+        else:
+            sub_where_part = " WHERE local_url IS NOT NULL "
+
+    elif return_type == 'gmql':
+        select_part = "SELECT dataset_name, array_agg(file_name) "
+        if where_part:
+            sub_where_part = " AND local_url IS NOT NULL "
+        else:
+            sub_where_part = " WHERE local_url IS NOT NULL "
+        group_by_part = "GROUP BY dataset_name"
+
+    elif return_type == 'field_value':
+        col = columns_dict_item[field_selected]
+        column_type = col.column_type
+        lower_pre = 'LOWER(' if column_type == str else ''
+        lower_post = ')' if column_type == str else ''
+        select_part = f"SELECT {lower_pre}{field_selected}{lower_post} as label, it.item_id as item "
+
+    elif return_type == 'field_value_tid':
+        select_part = f"SELECT LOWER(label), it.item_id as item "
+
+        if search_type == 'synonym':
+            from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
+        elif search_type == 'expanded':
+            from_part += f" join relationship_unfolded rel on {field_selected}_tid = rel.tid_descendant "
+            from_part += f" join synonym syn on rel.tid_ancestor = syn.tid "
+        if where_part:
+            sub_where_part = " AND type <> 'RELATED' "
+            if search_type == 'expanded':
+                sub_where_part += " AND rel.distance < 4 "
+        else:
+            sub_where_part = " WHERE type <> 'RELATED' "
+            if search_type == 'expanded':
+                sub_where_part += " AND rel.distance < 4 "
+
+    return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
+
+def generate_where_sql(gcm_query, search_type):
+    sub_where = []
+    where_part = ""
+    if gcm_query:
+        where_part = " WHERE ("
+
+    for (column, values) in gcm_query.items():
+        col = columns_dict_item[column]
+        column_type = col.column_type
+        lower_pre = 'LOWER(' if column_type == str else ''
+        lower_post = ')' if column_type == str else ''
+        syn_sub_where = []
+        if search_type == 'synonym' and col.has_tid:
+            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}'))"
+                             for
+                             value in values
+                             if value is not None]
+        elif search_type == 'expanded' and col.has_tid:
+            syn_sub_where = [f"{col.column_name}_tid in (SELECT tid_descendant "
+                             f"FROM relationship_unfolded WHERE tid_ancestor in "
+                             f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
+                             value in values
+                             if value is not None]
+
+        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
+        sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
+        sub_sub_where.extend(sub_sub_where_none)
+        sub_sub_where.extend(syn_sub_where)
+        sub_where.append(" OR ".join(sub_sub_where))
+
+    if gcm_query:
+        where_part += ") AND (".join(sub_where) + ")"
+    return where_part
