@@ -204,7 +204,7 @@ class FieldValue(Resource):
                 else:
                     from_part = "FROM (" + sub_query1 + ") as view"
                 group_by = " group by label "
-                order_by = " order by item_count desc "
+                order_by = " order by item_count desc, label asc "
                 query = select_part + from_part + group_by + order_by
                 print(query)
                 res = db.engine.execute(query).fetchall()

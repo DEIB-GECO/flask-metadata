@@ -200,8 +200,10 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
         else:
             select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
-        limit_part = f" LIMIT {limit} "
-        offset_part = f"OFFSET {offset} "
+        if limit:
+            limit_part = f" LIMIT {limit} "
+        if offset:
+            offset_part = f"OFFSET {offset} "
         order_by = f" ORDER BY {orderCol} {orderDir} "
     elif return_type == 'count-dataset':
         select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
