@@ -1,11 +1,13 @@
-import os
 from logging.config import dictConfig
 
 import flask
 from flask import Flask, render_template, redirect, Blueprint, url_for
 
 from apis import api_blueprint
+
 from model.models import db
+
+import os
 
 
 def get_env_variable(name):
@@ -15,20 +17,19 @@ def get_env_variable(name):
         message = "Expected environment variable '{}' not set.".format(name)
         raise Exception(message)
 
-
 def get_db_uri():
-    # postgres_url = get_env_variable("POSTGRES_URL")
-    # postgres_user = get_env_variable("POSTGRES_USER")
-    # postgres_pw = get_env_variable("POSTGRES_PW")
-    # postgres_db = get_env_variable("POSTGRES_DB")
+    #postgres_url = get_env_variable("POSTGRES_URL")
+    #postgres_user = get_env_variable("POSTGRES_USER")
+    #postgres_pw = get_env_variable("POSTGRES_PW")
+    #postgres_db = get_env_variable("POSTGRES_DB")
     postgres_url = "localhost"
     postgres_user = "geco"
-    postgres_pw = 'geco78'
-    postgres_db = "gmql_meta_new5"
-    return 'postgresql://{user}:{pw}@{url}/{db}'.format(user=postgres_user,
-                                                        pw=postgres_pw,
-                                                        url=postgres_url,
-                                                        db=postgres_db)
+    postgres_pw = "geco78"
+    postgres_db = "gmql_meta_new2"
+    return 'postgresql+psycopg2://{user}:{pw}@{url}/{db}'.format(user=postgres_user,
+                                                                 pw=postgres_pw,
+                                                                 url=postgres_url,
+                                                                 db=postgres_db)
 
 
 dictConfig({
@@ -53,9 +54,9 @@ graph_static_url = base_url + 'graph_static'
 
 my_app = Flask(__name__)
 
+
 my_app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 my_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-my_app.config['SQLALCHEMY_POOL_SIZE'] = 30
 
 db.init_app(my_app)
 
