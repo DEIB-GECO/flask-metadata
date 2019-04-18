@@ -2,7 +2,7 @@ from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
 import sqlalchemy
-
+from utils import sql_query_generator
 from model.models import db
 
 api = Namespace('pair', description='TODO')
@@ -13,6 +13,7 @@ query = api.model('Pair', {
 })
 
 parser = api.parser()
+parser.add_argument('body', type="json", help='json ', location='json')
 parser.add_argument('key', type=str)
 
 
@@ -25,35 +26,36 @@ class Key(Resource):
         args = parser.parse_args()
         key = args['key']
 
-        query_gcm = f"select distinct key " \
-            f"from unified_pair " \
-            f"where key ilike '%{key}%' " \
-            f"and is_gcm = true"
+        payload = api.payload
 
-        query_pairs = f"select distinct key " \
+        filter_in = payload.get("gcm")
+        type = payload.get("type")
+        pairs = payload.get("kv")
+
+        sub_query = sql_query_generator(filter_in,type,pairs,'item_id', limit=None, offset=None)
+
+        query = f"select key, is_gcm, count(distinct value) as count " \
             f"from unified_pair " \
-            f"where key ilike '%{key}%' " \
-            f"and is_gcm = false"
+            f"where lower(key) like '%{key}%' " \
+            f"AND item_id in ({sub_query})"\
+            f" group by key, is_gcm"
 
         print("Query start")
-        res_gcm = db.engine.execute(sqlalchemy.text(query_gcm)).fetchall()
-        res_pairs = db.engine.execute(sqlalchemy.text(query_pairs)).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
+        print(query)
         results_gcm = []
         results_pairs = []
-        for r in res_gcm:
-            results_gcm.append({'key': r[0]})
-            # results_gcm.append(r[0])
-
-        for r in res_pairs:
-            results_pairs.append({'key': r[0]})
-            # results_pairs.append(r[0])
-
+        for r in res:
+            if r['is_gcm']:
+                results_gcm.append({'key': r['key'], 'count_values': r['count']})
+            else:
+                results_pairs.append({'key': r['key'], 'count_values': r['count']})
         results = {'gcm': results_gcm, 'pairs': results_pairs}
-        print(results)
         return results
 
 
 value_parser = api.parser()
+value_parser.add_argument('body', type="json", help='json ', location='json')
 value_parser.add_argument('is_gcm', type=inputs.boolean, default=True)
 
 
@@ -62,11 +64,18 @@ value_parser.add_argument('is_gcm', type=inputs.boolean, default=True)
 class Key(Resource):
     @api.doc('get_values_for_key')
     @api.expect(value_parser)
-    def get(self, key):
+    def post(self, key):
         args = value_parser.parse_args()
         is_gcm = args['is_gcm']
 
-        query = f"select value, count(item_id) as count from unified_pair where key ilike '{key}' and is_gcm = {is_gcm} group by value"
+        payload = api.payload
+        filter_in = payload.get("gcm")
+        type = payload.get("type")
+        pairs = payload.get("kv")
+
+        sub_query = sql_query_generator(filter_in, type, pairs, 'item_id', limit=None, offset=None)
+
+        query = f"select value, count(item_id) as count from unified_pair where key = '{key}' and is_gcm = {is_gcm} and item_id in ({sub_query}) group by value"
 
         print(query)
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()

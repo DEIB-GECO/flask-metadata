@@ -137,7 +137,7 @@ del columns
 # print([x.var_column() for x in columns_dict.values() if x.has_tid])
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
-                        offset=0, orderCol="item_source_id", orderDir="ASC"):
+                        offset=0, order_col="item_source_id", order_dir="ASC"):
     select_part = ""
     from_part = ""
     item = " FROM item it "
@@ -204,7 +204,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             limit_part = f" LIMIT {limit} "
         if offset:
             offset_part = f"OFFSET {offset} "
-        order_by = f" ORDER BY {orderCol} {orderDir} "
+        order_by = f" ORDER BY {order_col} {order_dir} "
     elif return_type == 'count-dataset':
         select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
         group_by_part = " GROUP BY da.dataset_name"
@@ -251,8 +251,11 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             sub_where_part = " WHERE type <> 'RELATED' "
             if search_type == 'expanded':
                 sub_where_part += " AND rel.distance < 4 "
+    elif return_type == 'item_id':
+        select_part = f"SELECT it.item_id "
 
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
+
 
 def generate_where_sql(gcm_query, search_type):
     sub_where = []

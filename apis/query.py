@@ -149,7 +149,7 @@ class Query(Resource):
         pairs = payload.get("kv")
 
         query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit= limit, offset=offset,
-                                    orderCol=orderCol, orderDir=orderDir)
+                                    order_col=orderCol, order_dir=orderDir)
 
         res = db.engine.execute(query).fetchall()
         result = []
