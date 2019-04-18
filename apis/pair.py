@@ -32,13 +32,16 @@ class Key(Resource):
         type = payload.get("type")
         pairs = payload.get("kv")
 
-        sub_query = sql_query_generator(filter_in,type,pairs,'item_id', limit=None, offset=None)
+        if filter_in:
+            sub_query = "AND item_id in (" + sql_query_generator(filter_in, type, pairs, 'item_id', limit=None,
+                                                                 offset=None) + ")"
+        else:
+            sub_query = ""
 
         query = f"select key, is_gcm, count(distinct value) as count " \
-            f"from unified_pair " \
-            f"where lower(key) like '%{key}%' " \
-            f"AND item_id in ({sub_query})"\
-            f" group by key, is_gcm"
+                    f"from unified_pair " \
+                    f"where lower(key) like '%{key}%' " + sub_query + \
+                f" group by key, is_gcm"
 
         print("Query start")
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
@@ -73,9 +76,15 @@ class Key(Resource):
         type = payload.get("type")
         pairs = payload.get("kv")
 
-        sub_query = sql_query_generator(filter_in, type, pairs, 'item_id', limit=None, offset=None)
+        if filter_in:
+            sub_query = "AND item_id in (" + sql_query_generator(filter_in, type, pairs, 'item_id', limit=None,
+                                                                 offset=None) + ")"
+        else:
+            sub_query = ""
 
-        query = f"select value, count(item_id) as count from unified_pair where key = '{key}' and is_gcm = {is_gcm} and item_id in ({sub_query}) group by value"
+        query = f"select value, count(item_id) as count from unified_pair where key = '{key}' and is_gcm = {is_gcm} "\
+                + sub_query + \
+                " group by value"
 
         print(query)
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
