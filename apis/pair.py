@@ -14,7 +14,7 @@ query = api.model('Pair', {
 
 parser = api.parser()
 parser.add_argument('body', type="json", help='json ', location='json')
-parser.add_argument('key', type=str)
+parser.add_argument('q', type=str)
 
 
 @api.route('/keys')
@@ -24,7 +24,7 @@ class Key(Resource):
     @api.expect(parser)
     def post(self):
         args = parser.parse_args()
-        key = args['key']
+        key = args['q']
 
         payload = api.payload
 
@@ -40,7 +40,7 @@ class Key(Resource):
 
         query = f"select key, is_gcm, count(distinct value) as count " \
                     f"from unified_pair " \
-                    f"where lower(key) like '%{key}%' " + sub_query + \
+                    f"where lower(key) like '%{key.lower()}%' " + sub_query + \
                 f" group by key, is_gcm"
 
         print("Query start")
@@ -82,7 +82,7 @@ class Key(Resource):
         else:
             sub_query = ""
 
-        query = f"select value, count(item_id) as count from unified_pair where key = '{key}' and is_gcm = {is_gcm} "\
+        query = f"select value, count(item_id) as count from unified_pair where key = '{key}' and is_gcm = {is_gcm} " \
                 + sub_query + \
                 " group by value"
 
@@ -95,3 +95,43 @@ class Key(Resource):
             result.append({'value': r['value'], 'count': r['count']})
 
         return result
+
+
+@api.route('/values')
+@api.response(404, 'Item not found')  # TODO correct
+class Key(Resource):
+    @api.doc('get_keys')
+    @api.expect(parser)
+    def post(self):
+        args = parser.parse_args()
+        value = args['q']
+
+        payload = api.payload
+
+        filter_in = payload.get("gcm")
+        type = payload.get("type")
+        pairs = payload.get("kv")
+
+        if filter_in:
+            sub_query = "AND item_id in (" + sql_query_generator(filter_in, type, pairs, 'item_id', limit=None,
+                                                                 offset=None) + ")"
+        else:
+            sub_query = ""
+
+        query = f"select key, value, is_gcm, count(item_id) as count " \
+                    f"from unified_pair " \
+                    f"where lower(value) like '%{value.lower()}%' " + sub_query + \
+                " group by key, value, is_gcm"
+
+        print("Query start")
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
+        print(query)
+        results_gcm = []
+        results_pairs = []
+        for r in res:
+            if r['is_gcm']:
+                results_gcm.append({'key': r['key'], 'value': r['value'], 'count': r['count']})
+            else:
+                results_pairs.append({'key': r['key'], 'value': r['value'], 'count': r['count']})
+        results = {'gcm': results_gcm, 'pairs': results_pairs}
+        return results
