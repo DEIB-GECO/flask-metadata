@@ -38,22 +38,49 @@ class Key(Resource):
         else:
             sub_query = ""
 
-        query = f"select key, is_gcm, count(distinct value) as count " \
+        query = f"select key, is_gcm, value " \
                     f"from unified_pair " \
-                    f"where lower(key) like '%{key.lower()}%' " + sub_query + \
-                f" group by key, is_gcm"
+                    f"where lower(key) like '%{key.lower()}%' " + sub_query
 
         print("Query start")
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         print(query)
         results_gcm = []
         results_pairs = []
+
+        keys_gcm = []
+        keys_pairs = []
         for r in res:
             if r['is_gcm']:
-                results_gcm.append({'key': r['key'], 'count_values': r['count']})
+                keys_gcm.append(r['key'])
             else:
-                results_pairs.append({'key': r['key'], 'count_values': r['count']})
+                keys_pairs.append(r['key'])
+
+        for k in keys_gcm:
+            values = []
+            for r in res:
+                if r['key'] == k and r['is_gcm']:
+                    values.append(r['value'])
+            values = list(set(values))
+            results_gcm.append({'key': k, 'count_values': len(values), 'values': values})
+
+        for k in keys_pairs:
+            values = []
+            for r in res:
+                if r['key'] == k and not r['is_gcm']:
+                    values.append(r['value'])
+            values = list(set(values))
+            results_pairs.append({'key': k, 'count_values': len(values), 'values': values})
+
         results = {'gcm': results_gcm, 'pairs': results_pairs}
+
+        # for r in res:
+        #     if r['is_gcm']:
+        #         results_gcm.append({'key': r['key'], 'count_values': r['count']})
+        #     else:
+        #         results_pairs.append({'key': r['key'], 'count_values': r['count']})
+        # results = {'gcm': results_gcm, 'pairs': results_pairs}
+
         return results
 
 
@@ -82,9 +109,14 @@ class Key(Resource):
         else:
             sub_query = ""
 
+        limit = ""
+        if is_gcm:
+            limit = "limit 10"
+
         query = f"select value, count(item_id) as count from unified_pair where key = '{key}' and is_gcm = {is_gcm} " \
                 + sub_query + \
-                " group by value"
+                " group by value " \
+                + limit
 
         print(query)
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
