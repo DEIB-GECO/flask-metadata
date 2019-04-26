@@ -79,6 +79,7 @@ query_result = api.model('QueryResult', {
     'source_url': fields.String,
     'local_url': fields.String,
     'content_type': fields.String,
+    'source_page': fields.String,
 
     # DATASET
     'dataset_name': fields.String,
@@ -96,6 +97,8 @@ query_result = api.model('QueryResult', {
     # REPLICATE
     'biological_replicate_number': fields.String,
     'technical_replicate_number': fields.String,
+    'biological_replicate_count': fields.String,
+    'technical_replicate_count': fields.String,
 
     # BIOSAMPLE
     'biosample_type': fields.String,

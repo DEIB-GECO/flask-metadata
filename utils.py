@@ -101,9 +101,9 @@ columns = [
     Column('Donor', 'species', str, True,
            "Specific organism from which the biological sample was derived (or cell line established)"),
 
-    Column('Replicate', 'biological_replicate_number', int, False,
+    Column('Replicate', 'biological_replicate_count', int, False,
            "Progressive number of biosample on which the experimental protocol was performed"),
-    Column('Replicate', 'technical_replicate_number', int, False,
+    Column('Replicate', 'technical_replicate_count', int, False,
            "Progressive number of distinct replicates from the same biosample (each treated identically)"),
 
     # technological
@@ -120,7 +120,12 @@ columns_item.extend((
     Column('Item', 'size', str, False, ""),
     Column('Item', 'date', str, False, ""),
     Column('Item', 'source_url', str, False, ""),
-    Column('Item', 'local_url', str, False, "")
+    Column('Item', 'local_url', str, False, ""),
+    Column('Item', 'source_page', str, False, ""),
+    Column('Replicate', 'biological_replicate_number', int, False,
+           "Progressive number of biosample on which the experimental protocol was performed"),
+    Column('Replicate', 'technical_replicate_number', int, False,
+           "Progressive number of distinct replicates from the same biosample (each treated identically)"),
 ))
 
 columns_dict = {x.column_name: x for x in columns}
@@ -140,7 +145,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                         offset=0, order_col="item_source_id", order_dir="ASC"):
     select_part = ""
     from_part = ""
-    item = " FROM item it "
+    item = " FROM dw.item it "
     dataset_join = " join dataset da on it.dataset_id = da.dataset_id "
 
     experiment_type_join = " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id"
