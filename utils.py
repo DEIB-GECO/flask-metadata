@@ -259,6 +259,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     elif return_type == 'item_id':
         select_part = f"SELECT it.item_id "
 
+    generate_where_pairs(pairs_query)
+
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
 
 
@@ -295,3 +297,7 @@ def generate_where_sql(gcm_query, search_type):
     if gcm_query:
         where_part += ") AND (".join(sub_where) + ")"
     return where_part
+
+
+def generate_where_pairs(pair_query):
+    print(pair_query)
