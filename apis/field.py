@@ -137,6 +137,7 @@ class FieldValue(Resource):
         payload = api.payload
         filter_in = payload.get("gcm")
         type = payload.get("type")
+        pair_query = payload.get("kv")
 
         if field_name in columns_dict:
             column = columns_dict[field_name]
@@ -146,40 +147,50 @@ class FieldValue(Resource):
             column_type = column.column_type
             has_tid = column.has_tid
             if type == 'original':
-                sql_column = t_flatten.c[column_name]
-
+                #     sql_column = t_flatten.c[column_name]
+                #
+                #     filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}
+                #
+                #     s = select([sql_column, func.count(t_flatten.c.item_id.distinct()).label('item_count')])
+                #
+                #     for (filter_column, filter_list) in filter_in_new.items():
+                #         sql_filter_column = t_flatten.c[filter_column]
+                #
+                #         conditions = []
+                #
+                #         if None in filter_list:
+                #             conditions.append(sql_filter_column.is_(None))
+                #             filter_list = [x for x in filter_list if x is not None]
+                #
+                #             s = s.where(or_(sql_filter_column.in_(filter_list), sql_filter_column.is_(None)))
+                # else:
+                #
+                # if len(filter_list):
+                #     conditions.append(sql_filter_column.in_(filter_list))
+                #
+                # s = s.where(or_(*conditions))
+                #
+                # s = s.group_by(sql_column)
+                # s = s.order_by(desc('item_count'), sql_column)
+                #
+                # select([t_flatten.c.item_id, t_flatten.c.biosample_type])
+                # print(s)
+                #
                 filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}
+                sub_query1 = sql_query_generator(filter_in_new, pairs_query=pair_query, search_type=type,
+                                                 return_type='field_value', field_selected=field_name)
+                group_by = " group by label "
+                order_by = " order by item_count desc, label asc "
+                select_part = f"SELECT label, count(*) as item_count "
+                from_part = "FROM (" + sub_query1 + ") as view"
 
-                s = select([sql_column, func.count(t_flatten.c.item_id.distinct()).label('item_count')])
-
-                for (filter_column, filter_list) in filter_in_new.items():
-                    sql_filter_column = t_flatten.c[filter_column]
-
-                    conditions = []
-
-                    if None in filter_list:
-                        conditions.append(sql_filter_column.is_(None))
-                        filter_list = [x for x in filter_list if x is not None]
-
-                        # s = s.where(or_(sql_filter_column.in_(filter_list), sql_filter_column.is_(None)))
-                    # else:
-
-                    if len(filter_list):
-                        conditions.append(sql_filter_column.in_(filter_list))
-
-                    s = s.where(or_(*conditions))
-
-                s = s.group_by(sql_column)
-                s = s.order_by(desc('item_count'), sql_column)
-
-                select([t_flatten.c.item_id, t_flatten.c.biosample_type])
-                print(s)
-
-                res = db.engine.execute(s).fetchall()
+                query = select_part + from_part + group_by + order_by
+                print(query)
+                res = db.engine.execute(query).fetchall()
 
                 item_count = sum(map(lambda row: row['item_count'], res))
 
-                res = [{'value': row[sql_column], 'count': row['item_count']} for row in res]
+                res = [{'value': row['label'], 'count': row['item_count']} for row in res]
 
                 length = len(res)
 
@@ -191,13 +202,12 @@ class FieldValue(Resource):
                 return res
             else:
                 filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}
-                sub_query1 = sql_query_generator(filter_in_new, search_type=type,
-                                                 return_type='field_value', field_selected=field_name, pairs_query={})
+                sub_query1 = sql_query_generator(filter_in_new, pairs_query=pair_query, search_type=type,
+                                                 return_type='field_value', field_selected=field_name)
                 sub_query2 = ""
                 if has_tid:
-                    sub_query2 = sql_query_generator(filter_in_new, search_type=type,
-                                                     return_type='field_value_tid', field_selected=field_name,
-                                                     pairs_query={})
+                    sub_query2 = sql_query_generator(filter_in_new, search_type=type, pairs_query=pair_query,
+                                                     return_type='field_value_tid', field_selected=field_name)
                 select_part = f"SELECT label, count(*) as item_count "
                 if has_tid:
                     from_part = "FROM (" + sub_query1 + " union " + sub_query2 + ") as view"
@@ -208,7 +218,6 @@ class FieldValue(Resource):
                 query = select_part + from_part + group_by + order_by
                 print(query)
                 res = db.engine.execute(query).fetchall()
-                # print("RESULTS SYN")
                 item_count = sum(map(lambda row: row['item_count'], res))
                 res = [{'value': row['label'], 'count': row['item_count']} for row in res]
 

@@ -148,6 +148,11 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     item = " FROM dw.item it "
     dataset_join = " join dataset da on it.dataset_id = da.dataset_id "
 
+    pairs = generate_where_pairs(pairs_query)
+
+    pair_join = pairs['join']
+    pair_where = pairs['where']
+
     experiment_type_join = " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id"
 
     replicate_join = " join replicate2item r2i on it.item_id = r2i.item_id" \
@@ -181,11 +186,20 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             index = calc_distance(view, 'Item', table)
             joins += view_join[view][:index]
         joins = list(OrderedDict.fromkeys(joins))
-        from_part = item + " ".join(joins)
+        from_part = item + " ".join(joins) + pair_join
     else:
-        from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join
+        from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join + pair_join
 
-    where_part = generate_where_sql(gcm_query, search_type)
+    gcm_where = generate_where_sql(gcm_query, search_type)
+
+    where_part = ""
+
+    if gcm_query and pair_where:
+        where_part = gcm_where + " AND " + pair_where
+    elif pair_where and not gcm_where:
+        where_part = 'where '+pair_where
+    elif gcm_where and not pair_where:
+        where_part = gcm_where
 
     sub_where_part = ""
     group_by_part = ""
@@ -238,7 +252,10 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         column_type = col.column_type
         lower_pre = 'LOWER(' if column_type == str else ''
         lower_post = ')' if column_type == str else ''
-        select_part = f"SELECT {lower_pre}{field_selected}{lower_post} as label, it.item_id as item "
+        distinct = ""
+        if search_type == 'original':
+            distinct = "distinct"
+        select_part = f"SELECT {distinct} {lower_pre}{field_selected}{lower_post} as label, it.item_id as item "
 
     elif return_type == 'field_value_tid':
         select_part = f"SELECT LOWER(label), it.item_id as item "
@@ -258,8 +275,6 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                 sub_where_part += " AND rel.distance < 4 "
     elif return_type == 'item_id':
         select_part = f"SELECT it.item_id "
-
-    generate_where_pairs(pairs_query)
 
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
 
@@ -300,4 +315,49 @@ def generate_where_sql(gcm_query, search_type):
 
 
 def generate_where_pairs(pair_query):
-    print(pair_query)
+    searched = pair_query.keys()
+
+    pair_join = []
+
+    where = []
+
+    for q in searched:
+        kv = "kv_"+q
+        join = f" join unified_pair {kv} on it.item_id = {kv}.item_id "
+        pair_join.append(join)
+        items = pair_query[q]['query']
+        gcm = items['gcm']
+        pair = items['pairs']
+
+        sub_where = []
+
+        for k in gcm.keys():
+            a = ""
+            a += f" lower({kv}.key) = lower('{k}') and "
+            values = gcm[k]
+            sub_sub_where = [f"lower({kv}.value) = lower('{value}')" for value in values]
+            a += ("("+" OR ".join(sub_sub_where)+")")
+
+            # print(a)
+            sub_where.append(a)
+
+        for k in pair.keys():
+            a = ""
+            a += f" lower({kv}.key) = lower('{k}') and "
+            values = pair[k]
+            sub_sub_where = [f"lower({kv}.value) = lower('{value}')" for value in values]
+            a += ("("+" OR ".join(sub_sub_where)+")")
+
+            # print(a)
+            sub_where.append(a)
+
+        where.append("("+") OR (".join(sub_where)+")")
+
+    where_part = ""
+    if pair_query:
+        where_part = "("+") AND (".join(where)+")"
+
+    return {'where': where_part, 'join': " ".join(pair_join)}
+
+# (kv1.key = lower('dataset_name') and (kv1.value = 'hg19_tads_aiden' or kv1.value = 'hg19_tads_dixon'))
+# "a_value": { "type_query": "value", "query": { "gcm": { "cell": [ "imr90 fetal lung fibroblast cell line" ], "species": [ "human" ] }, "pairs": { "file_id": [ "hg_19_hMEC_rao" ] } } } } }
