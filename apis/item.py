@@ -4,6 +4,11 @@ from flask_restplus import fields
 from flask_restplus import inputs
 from neo4jrestclient import constants
 
+import flask
+from flask import Response
+from flask_restplus import Namespace, Resource, fields, inputs
+from model.models import db
+
 import requests
 
 from utils import \
@@ -13,7 +18,9 @@ from .flask_models import info_field, Info
 api = Namespace('item', description='Operations applicable on single items')
 
 parser = api.parser()
-parser.add_argument('voc', type=inputs.boolean, help='Enable inclusion of controlled vocabulary terms, synonyms and external references (true/false)', default=False)
+parser.add_argument('voc', type=inputs.boolean,
+                    help='Enable inclusion of controlled vocabulary terms, synonyms and external references (true/false)',
+                    default=False)
 
 
 # parser.add_argument('onto', type=bool, help='Ontological ', default=False)
@@ -77,8 +84,6 @@ class NodeRel(Resource):
         flask.current_app.logger.info('got results')
 
         flask.current_app.logger.info(results)
-
-
 
         if len(results):
             return results.graph
@@ -160,23 +165,29 @@ class ItemExtra(Resource):
         '''For the specified item identifier, it retrieves a list of key-value metadata pairs'''
         # TODO correct with pairs
 
-        cypher_query = "MATCH (it:Item)--(pa:Pair) " \
-            f"WHERE it.source_id='{source_id}' " \
-                       "RETURN pa "
+        # cypher_query = "MATCH (it:Item)--(pa:Pair) " \
+        #     f"WHERE it.source_id='{source_id}' " \
+        #                "RETURN pa "
 
-        flask.current_app.logger.info(cypher_query)
+        # flask.current_app.logger.info(cypher_query)
 
-        results = run_query(cypher_query)
+        # results = run_query(cypher_query)
 
-        flask.current_app.logger.info('got results')
+        # flask.current_app.logger.info('got results')
 
-        res = results.elements
+        query = f"""select key, value 
+                    from item it join unified_pair kv on it.item_id = kv.item_id
+                    where it.item_source_id = '{source_id}'"""
+
+        print(query)
+        res = db.engine.execute(query).fetchall()
 
         # res has only one element in inner list, however I prefer to use general one
-        res = unfold_list(res)
+        print(res)
+
 
         if len(res) > 0:
-            res = [{'key': pa['data']['key'], 'value': pa['data']['value']} for pa in res]
+            res = [{'key': pa[0], 'value': pa[1]} for pa in res]
 
             info = Info(len(res), None)
 
