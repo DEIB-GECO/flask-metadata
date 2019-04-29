@@ -291,6 +291,7 @@ def generate_where_sql(gcm_query, search_type):
         lower_pre = 'LOWER(' if column_type == str else ''
         lower_post = ')' if column_type == str else ''
         syn_sub_where = []
+
         if search_type == 'synonym' and col.has_tid:
             syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}'))"
                              for
@@ -302,12 +303,20 @@ def generate_where_sql(gcm_query, search_type):
                              f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
                              value in values
                              if value is not None]
-
-        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
-        sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
-        sub_sub_where.extend(sub_sub_where_none)
-        sub_sub_where.extend(syn_sub_where)
-        sub_where.append(" OR ".join(sub_sub_where))
+        if col.column_name == 'age':
+            min = values['min_age']
+            max = values['max_age']
+            isNull = values['null']
+            a = f" age > {min} and age < {max} "
+            if isNull:
+                a += "or age is null "
+            sub_where.append(a)
+        else:
+            sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
+            sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
+            sub_sub_where.extend(sub_sub_where_none)
+            sub_sub_where.extend(syn_sub_where)
+            sub_where.append(" OR ".join(sub_sub_where))
 
     if gcm_query:
         where_part += ") AND (".join(sub_where) + ")"
