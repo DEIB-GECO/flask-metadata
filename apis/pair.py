@@ -5,7 +5,7 @@ import sqlalchemy
 from utils import sql_query_generator
 from model.models import db
 
-api = Namespace('pair', description='TODO')
+api = Namespace('pair', description='Operations to perform queries on key value pairs')
 
 query = api.model('Pair', {
     'key': fields.String(attribute='column_name', required=True, description='Field name '),
@@ -23,6 +23,7 @@ class Key(Resource):
     @api.doc('get_keys')
     @api.expect(parser)
     def post(self):
+        '''Retrieves all keys based on a input keyword'''
         args = parser.parse_args()
         key = args['q']
 
@@ -95,6 +96,7 @@ class Key(Resource):
     @api.doc('get_values_for_key')
     @api.expect(value_parser)
     def post(self, key):
+        '''For a specific key, it lists all possible values'''
         args = value_parser.parse_args()
         is_gcm = args['is_gcm']
 
@@ -135,6 +137,7 @@ class Key(Resource):
     @api.doc('get_keys')
     @api.expect(parser)
     def post(self):
+        '''Retrieves all values based on a input keyword'''
         args = parser.parse_args()
         value = args['q']
 

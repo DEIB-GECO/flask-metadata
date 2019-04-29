@@ -183,8 +183,6 @@ class ItemExtra(Resource):
         res = db.engine.execute(query).fetchall()
 
         # res has only one element in inner list, however I prefer to use general one
-        print(res)
-
 
         if len(res) > 0:
             res = [{'key': pa[0], 'value': pa[1]} for pa in res]
