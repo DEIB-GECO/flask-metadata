@@ -5,7 +5,7 @@ import sqlalchemy
 from utils import sql_query_generator
 from model.models import db
 
-api = Namespace('pair', description='Operations to perform queries on key value pairs')
+api = Namespace('pair', description='Operations to perform queries on key-value metadata pairs')
 
 query = api.model('Pair', {
     'key': fields.String(attribute='column_name', required=True, description='Field name '),
