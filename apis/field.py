@@ -2,10 +2,7 @@ import flask
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
-from sqlalchemy import desc
-from sqlalchemy import func
-from sqlalchemy import or_
-from sqlalchemy.sql import select
+import sqlalchemy
 
 from model.models import t_flatten, db
 from utils import columns_dict, run_query, unfold_list, sql_query_generator
@@ -249,7 +246,7 @@ def gen_query_field(field_name, type, filter_in, pair_query):
         from_part = "FROM (" + sub_query1 + ") as view"
 
         query = select_part + from_part + group_by + order_by
-        return query
+        return sqlalchemy.text(query)
     else:
         filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}
         sub_query1 = sql_query_generator(filter_in_new, pairs_query=pair_query, search_type=type,
@@ -266,4 +263,4 @@ def gen_query_field(field_name, type, filter_in, pair_query):
         group_by = " group by label "
         order_by = " order by item_count desc, label asc "
         query = select_part + from_part + group_by + order_by
-        return query
+        return sqlalchemy.text(query)

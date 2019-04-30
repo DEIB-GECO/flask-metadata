@@ -330,11 +330,12 @@ def generate_where_pairs(pair_query):
 
     where = []
 
-    for q in searched:
+    for x in searched:
+        q = x.replace("%", "_")
         kv = "kv_"+q
         join = f" join unified_pair {kv} on it.item_id = {kv}.item_id "
         pair_join.append(join)
-        items = pair_query[q]['query']
+        items = pair_query[x]['query']
         gcm = items['gcm']
         pair = items['pairs']
 
