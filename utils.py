@@ -345,7 +345,11 @@ def generate_where_pairs(pair_query):
             a = ""
             a += f" lower({kv}.key) = lower('{k}') and "
             values = gcm[k]
-            sub_sub_where = [f"lower({kv}.value) = lower('{value}')" for value in values]
+            a = "didn't"
+            sub_sub_where = []
+            for value in values:
+                v = value.replace("'","''")
+                sub_sub_where.append(f"lower({kv}.value) = lower('{v}')")
             a += ("("+" OR ".join(sub_sub_where)+")")
 
             # print(a)
@@ -355,7 +359,10 @@ def generate_where_pairs(pair_query):
             a = ""
             a += f" lower({kv}.key) = lower('{k}') and "
             values = pair[k]
-            sub_sub_where = [f"lower({kv}.value) = lower('{value}')" for value in values]
+            sub_sub_where = []
+            for value in values:
+                v = value.replace("'", "''")
+                sub_sub_where.append(f"lower({kv}.value) = lower('{v}')")
             a += ("("+" OR ".join(sub_sub_where)+")")
 
             # print(a)

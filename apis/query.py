@@ -1,4 +1,5 @@
 import flask
+import sqlalchemy
 from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
@@ -154,7 +155,7 @@ class Query(Resource):
         query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit= limit, offset=offset,
                                     order_col=orderCol, order_dir=orderDir)
 
-        res = db.engine.execute(query).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
         for row in res:
             result.append({f'{x}': row[x] for x in query_result.keys()})
@@ -191,7 +192,7 @@ class QueryCountDataset(Resource):
         query += sub_query + ") as a "
         flask.current_app.logger.info(query)
 
-        res = db.engine.execute(query).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         print(res[0][0])
         flask.current_app.logger.info('got results')
         return res[0][0]
@@ -217,7 +218,7 @@ class QueryCountDataset(Resource):
 
         flask.current_app.logger.info('got results')
 
-        res = db.engine.execute(query).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
         for row in res:
             result.append({f'{x}': row[x] for x in count_result.keys()})
@@ -244,7 +245,7 @@ class QueryCountSource(Resource):
         query = sql_query_generator(filter_in, type, pairs, 'count-source')
         flask.current_app.logger.info(query)
 
-        res = db.engine.execute(query).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
         for row in res:
             result.append({f'{x}': row[x] for x in count_result.keys()})
@@ -272,7 +273,7 @@ class QueryDownload(Resource):
 
         flask.current_app.logger.info('got results')
 
-        results = db.engine.execute(query).fetchall()
+        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
 
         results = [x[0] for x in results]
 
@@ -304,7 +305,7 @@ class QueryGmql(Resource):
         flask.current_app.logger.info('got results')
 
         # result_columns = results.columns
-        results = db.engine.execute(query).fetchall()
+        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
         # TODO CHECK RETURN TYPE
         length = len(results)
 
