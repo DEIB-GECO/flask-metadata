@@ -197,7 +197,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     if gcm_query and pair_where:
         where_part = gcm_where + " AND " + pair_where
     elif pair_where and not gcm_where:
-        where_part = 'where '+pair_where
+        where_part = 'WHERE '+pair_where
     elif gcm_where and not pair_where:
         where_part = gcm_where
 
@@ -345,7 +345,6 @@ def generate_where_pairs(pair_query):
             a = ""
             a += f" lower({kv}.key) = lower('{k}') and "
             values = gcm[k]
-            a = "didn't"
             sub_sub_where = []
             for value in values:
                 v = value.replace("'","''")

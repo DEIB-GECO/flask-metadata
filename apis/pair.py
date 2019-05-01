@@ -32,55 +32,41 @@ class Key(Resource):
         filter_in = payload.get("gcm")
         type = payload.get("type")
         pairs = payload.get("kv")
+        sub_query = sql_query_generator(filter_in, type, pairs, field_selected='platform', return_type='item_id',
+                                        limit=None, offset=None)
+        where_start = sub_query.find("WHERE")
+        from_start = sub_query.find("FROM")
 
-        if filter_in:
-            sub_query = "AND item_id in (" + sql_query_generator(filter_in, type, pairs, 'item_id', limit=None,
-                                                                 offset=None) + ")"
-        else:
-            sub_query = ""
+        from_sub = sub_query[from_start:where_start]
+        where_sub = sub_query[where_start:]
 
-        query = f"select key, is_gcm, value " \
-                    f"from unified_pair " \
-                    f"where lower(key) like '%{key.lower()}%' " + sub_query
+        # print(from_sub)
+        # print(where_sub)
+        query = f"select up.key as key, up.is_gcm as is_gcm, count(distinct up.value) as count " + from_sub + \
+                " join unified_pair up on it.item_id = up.item_id" \
+                    f" " + where_sub + f" and lower(up.key) like '%{key.lower()}%' " \
+                    f" group by up.key, up.is_gcm"
 
         print("Query start")
-        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         print(query)
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         results_gcm = []
         results_pairs = []
 
-        keys_gcm = []
-        keys_pairs = []
         for r in res:
-            if r['is_gcm']:
-                keys_gcm.append(r['key'])
+            print(r.is_gcm)
+            if r.is_gcm:
+                q = f"select up.value as value " + from_sub + \
+                    " join unified_pair up on it.item_id = up.item_id " + where_sub + \
+                    f" and lower(up.key) like lower('%{key}%')"
+                print(q)
+                res2 = db.engine.execute(sqlalchemy.text(q)).fetchall()
+                values = [r2.value for r2 in res2]
+                results_gcm.append({'key': r.key, 'count_values': r.count, 'values': list(set(values[:10]))})
             else:
-                keys_pairs.append(r['key'])
-
-        for k in keys_gcm:
-            values = []
-            for r in res:
-                if r['key'] == k and r['is_gcm']:
-                    values.append(r['value'])
-            values = list(set(values))
-            results_gcm.append({'key': k, 'count_values': len(values), 'values': values})
-
-        for k in keys_pairs:
-            values = []
-            for r in res:
-                if r['key'] == k and not r['is_gcm']:
-                    values.append(r['value'])
-            values = list(set(values))
-            results_pairs.append({'key': k, 'count_values': len(values), 'values': values})
+                results_pairs.append({'key': r.key, 'count_values': r.count})
 
         results = {'gcm': results_gcm, 'pairs': results_pairs}
-
-        # for r in res:
-        #     if r['is_gcm']:
-        #         results_gcm.append({'key': r['key'], 'count_values': r['count']})
-        #     else:
-        #         results_pairs.append({'key': r['key'], 'count_values': r['count']})
-        # results = {'gcm': results_gcm, 'pairs': results_pairs}
 
         return results
 
@@ -105,20 +91,21 @@ class Key(Resource):
         type = payload.get("type")
         pairs = payload.get("kv")
 
-        if filter_in:
-            sub_query = "AND item_id in (" + sql_query_generator(filter_in, type, pairs, 'item_id', limit=None,
-                                                                 offset=None) + ")"
-        else:
-            sub_query = ""
+        sub_query = sql_query_generator(filter_in, type, pairs, field_selected='platform', return_type='item_id',
+                                        limit=None, offset=None)
 
-        limit = ""
-        if is_gcm:
-            limit = "limit 10"
+        where_start = sub_query.find("WHERE")
+        from_start = sub_query.find("FROM")
 
-        query = f"select value, count(item_id) as count from unified_pair where key = '{key}' and is_gcm = {is_gcm} " \
-                + sub_query + \
-                " group by value " \
-                + limit
+        from_sub = sub_query[from_start:where_start]
+        where_sub = sub_query[where_start:]
+
+        # print(from_sub)
+        # print(where_sub)
+        query = f"select up.value as value, count(up.item_id) as count " + from_sub + \
+                " join unified_pair up on it.item_id = up.item_id " + where_sub + \
+                f" and lower(up.key) like '%{key.lower()}%' and up.is_gcm = {is_gcm}" \
+                f" group by up.value"
 
         print(query)
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
@@ -126,7 +113,7 @@ class Key(Resource):
         result = []
 
         for r in res:
-            result.append({'value': r['value'], 'count': r['count']})
+            result.append({'value': r.value, 'count': r.count})
 
         return result
 
@@ -134,7 +121,7 @@ class Key(Resource):
 @api.route('/values')
 @api.response(404, 'Item not found')  # TODO correct
 class Key(Resource):
-    @api.doc('get_keys')
+    @api.doc('get_values')
     @api.expect(parser)
     def post(self):
         '''Retrieves all values based on a input keyword'''
@@ -147,16 +134,19 @@ class Key(Resource):
         type = payload.get("type")
         pairs = payload.get("kv")
 
-        if filter_in:
-            sub_query = "AND item_id in (" + sql_query_generator(filter_in, type, pairs, 'item_id', limit=None,
-                                                                 offset=None) + ")"
-        else:
-            sub_query = ""
+        sub_query = sql_query_generator(filter_in, type, pairs, field_selected='platform', return_type='item_id',
+                                        limit=None, offset=None)
 
-        query = f"select key, value, is_gcm, count(item_id) as count " \
-                    f"from unified_pair " \
-                    f"where lower(value) like '%{value.lower()}%' " + sub_query + \
-                " group by key, value, is_gcm"
+        where_start = sub_query.find("WHERE")
+        from_start = sub_query.find("FROM")
+
+        from_sub = sub_query[from_start:where_start]
+        where_sub = sub_query[where_start:]
+
+        query = f"select up.key, up.value, up.is_gcm, count(up.item_id) as count " + from_sub + \
+                f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
+                f" and lower(up.value) like lower('%{value}%') " \
+                f" group by up.key, up.value, up.is_gcm"
 
         print("Query start")
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
@@ -165,8 +155,8 @@ class Key(Resource):
         results_pairs = []
         for r in res:
             if r['is_gcm']:
-                results_gcm.append({'key': r['key'], 'value': r['value'], 'count': r['count']})
+                results_gcm.append({'key': r.key, 'value': r.value, 'count': r.count})
             else:
-                results_pairs.append({'key': r['key'], 'value': r['value'], 'count': r['count']})
+                results_pairs.append({'key': r.key, 'value': r.value, 'count': r.count})
         results = {'gcm': results_gcm, 'pairs': results_pairs}
         return results
