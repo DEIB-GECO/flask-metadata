@@ -307,7 +307,7 @@ def generate_where_sql(gcm_query, search_type):
             min = values['min_age']
             max = values['max_age']
             isNull = values['null']
-            a = f" age > {min} and age < {max} "
+            a = f" age >= {min} and age <= {max} "
             if isNull:
                 a += "or age is null "
             sub_where.append(a)
@@ -343,11 +343,11 @@ def generate_where_pairs(pair_query):
 
         for k in gcm.keys():
             a = ""
-            a += f" lower({kv}.key) = lower('{k}') and "
+            a += f" lower({kv}.key) = lower('{k}') and {kv}.is_gcm = true and "
             values = gcm[k]
             sub_sub_where = []
             for value in values:
-                v = value.replace("'","''")
+                v = value.replace("'", "''")
                 sub_sub_where.append(f"lower({kv}.value) = lower('{v}')")
             a += ("("+" OR ".join(sub_sub_where)+")")
 
@@ -356,7 +356,7 @@ def generate_where_pairs(pair_query):
 
         for k in pair.keys():
             a = ""
-            a += f" lower({kv}.key) = lower('{k}') and "
+            a += f" lower({kv}.key) = lower('{k}') and {kv}.is_gcm = false and "
             values = pair[k]
             sub_sub_where = []
             for value in values:

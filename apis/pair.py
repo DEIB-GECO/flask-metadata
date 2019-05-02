@@ -42,29 +42,31 @@ class Key(Resource):
 
         # print(from_sub)
         # print(where_sub)
-        query = f"select up.key as key, up.is_gcm as is_gcm, count(distinct up.value) as count " + from_sub + \
-                " join unified_pair up on it.item_id = up.item_id" \
-                    f" " + where_sub + f" and lower(up.key) like '%{key.lower()}%' " \
-                    f" group by up.key, up.is_gcm"
+        query_gcm = f"select up.key as key, " \
+                    f" count(distinct up.value) as count, " \
+                    f" array(select unnest(array_agg(distinct up.value)) limit 10) as ex_values " + from_sub + \
+                    f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
+                    f" and lower(up.key) like '%{key.lower()}%' and up.is_gcm = true " \
+                    f" group by up.key"
+
+        query_pair = f"select up.key as key, count(distinct up.value) as count " + from_sub + \
+                     f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
+                     f" and lower(up.key) like '%{key.lower()}%' and up.is_gcm = false " \
+                     f" group by up.key"
 
         print("Query start")
-        print(query)
-        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
+        print(query_gcm)
+        print(query_pair)
+        res_gcm = db.engine.execute(sqlalchemy.text(query_gcm)).fetchall()
+        res_pair = db.engine.execute(sqlalchemy.text(query_pair)).fetchall()
         results_gcm = []
         results_pairs = []
 
-        for r in res:
-            print(r.is_gcm)
-            if r.is_gcm:
-                q = f"select up.value as value " + from_sub + \
-                    " join unified_pair up on it.item_id = up.item_id " + where_sub + \
-                    f" and lower(up.key) like lower('%{key}%')"
-                print(q)
-                res2 = db.engine.execute(sqlalchemy.text(q)).fetchall()
-                values = [r2.value for r2 in res2]
-                results_gcm.append({'key': r.key, 'count_values': r.count, 'values': list(set(values[:10]))})
-            else:
-                results_pairs.append({'key': r.key, 'count_values': r.count})
+        for r in res_gcm:
+            results_gcm.append({'key': r.key, 'count_values': r.count, 'values': r.ex_values})
+
+        for r in res_pair:
+            results_pairs.append({'key': r.key, 'count_values': r.count})
 
         results = {'gcm': results_gcm, 'pairs': results_pairs}
 
@@ -102,10 +104,10 @@ class Key(Resource):
 
         # print(from_sub)
         # print(where_sub)
-        query = f"select up.value as value, count(up.item_id) as count " + from_sub + \
+        query = f"select distinct up.value as value, count(up.item_id) as count " + from_sub + \
                 " join unified_pair up on it.item_id = up.item_id " + where_sub + \
-                f" and lower(up.key) like '%{key.lower()}%' and up.is_gcm = {is_gcm}" \
-                f" group by up.value"
+                f" and lower(up.key) = lower('{key}') and up.is_gcm = {is_gcm}" \
+                    f" group by up.value"
 
         print(query)
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
@@ -146,17 +148,21 @@ class Key(Resource):
         query = f"select up.key, up.value, up.is_gcm, count(up.item_id) as count " + from_sub + \
                 f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
                 f" and lower(up.value) like lower('%{value}%') " \
-                f" group by up.key, up.value, up.is_gcm"
+                    f" group by up.key, up.value, up.is_gcm"
 
         print("Query start")
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         print(query)
         results_gcm = []
         results_pairs = []
+        i=0
+        j=0
         for r in res:
             if r['is_gcm']:
-                results_gcm.append({'key': r.key, 'value': r.value, 'count': r.count})
+                results_gcm.append({'key': r.key, 'value': r.value, 'count': r.count, 'id':i})
+                i+=1
             else:
-                results_pairs.append({'key': r.key, 'value': r.value, 'count': r.count})
+                results_pairs.append({'key': r.key, 'value': r.value, 'count': r.count, 'id':j})
+                j+=1
         results = {'gcm': results_gcm, 'pairs': results_pairs}
         return results

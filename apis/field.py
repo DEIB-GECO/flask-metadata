@@ -201,7 +201,7 @@ class FieldValue(Resource):
                 #
                 query = gen_query_field(field_name, type, filter_in, pair_query)
                 res = db.engine.execute(query).fetchall()
-
+                print(query)
                 item_count = sum(map(lambda row: row['item_count'], res))
 
                 res = [{'value': row['label'], 'count': row['item_count']} for row in res]
