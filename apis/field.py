@@ -201,7 +201,7 @@ class FieldValue(Resource):
                 #
                 query = gen_query_field(field_name, type, filter_in, pair_query)
                 res = db.engine.execute(query).fetchall()
-                print(query)
+                flask.current_app.logger.debug(query)
                 item_count = sum(map(lambda row: row['item_count'], res))
 
                 res = [{'value': row['label'], 'count': row['item_count']} for row in res]
@@ -216,7 +216,7 @@ class FieldValue(Resource):
                 return res
             else:
                 query = gen_query_field(field_name, type, filter_in, pair_query)
-                print(query)
+                flask.current_app.logger.debug(query)
                 res = db.engine.execute(query).fetchall()
                 item_count = sum(map(lambda row: row['item_count'], res))
                 res = [{'value': row['label'], 'count': row['item_count']} for row in res]

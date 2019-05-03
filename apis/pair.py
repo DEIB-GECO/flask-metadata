@@ -2,6 +2,7 @@ from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
 import sqlalchemy
+import flask
 from utils import sql_query_generator
 from model.models import db
 
@@ -54,9 +55,8 @@ class Key(Resource):
                      f" and lower(up.key) like '%{key.lower()}%' and up.is_gcm = false " \
                      f" group by up.key"
 
-        print("Query start")
-        print(query_gcm)
-        print(query_pair)
+        flask.current_app.logger.debug(query_gcm)
+        flask.current_app.logger.debug(query_pair)
         res_gcm = db.engine.execute(sqlalchemy.text(query_gcm)).fetchall()
         res_pair = db.engine.execute(sqlalchemy.text(query_pair)).fetchall()
         results_gcm = []
@@ -109,7 +109,7 @@ class Key(Resource):
                 f" and lower(up.key) = lower('{key}') and up.is_gcm = {is_gcm}" \
                     f" group by up.value"
 
-        print(query)
+        flask.current_app.logger.debug(query)
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
 
         result = []
@@ -150,9 +150,8 @@ class Key(Resource):
                 f" and lower(up.value) like lower('%{value}%') " \
                     f" group by up.key, up.value, up.is_gcm"
 
-        print("Query start")
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
-        print(query)
+        flask.current_app.logger.debug(query)
         results_gcm = []
         results_pairs = []
         i=0

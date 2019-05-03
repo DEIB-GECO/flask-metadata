@@ -143,7 +143,6 @@ class Query(Resource):
         numPage = args['page']
         numElems = args['num_elems']
 
-        print(numPage, numElems)
         offset = (numPage-1)*numElems
         limit = numElems
 
@@ -160,10 +159,10 @@ class Query(Resource):
         for row in res:
             result.append({f'{x}': row[x] for x in query_result.keys()})
 
-        flask.current_app.logger.info("QUI QUERY")
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug("QUI QUERY")
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
         return result
 
@@ -190,11 +189,10 @@ class QueryCountDataset(Resource):
         query += "from ("
         sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None)
         query += sub_query + ") as a "
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug(query)
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
-        print(res[0][0])
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
         return res[0][0]
 
 # TODO check code repetition
@@ -214,9 +212,9 @@ class QueryCountDataset(Resource):
         pairs = payload.get('kv')
 
         query = sql_query_generator(filter_in, type, pairs, 'count-dataset')
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
@@ -243,7 +241,7 @@ class QueryCountSource(Resource):
         pairs = json.get('kv')
 
         query = sql_query_generator(filter_in, type, pairs, 'count-source')
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug(query)
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
@@ -269,9 +267,9 @@ class QueryDownload(Resource):
         pairs = json.get('kv')
 
         query = sql_query_generator(filter_in, type, pairs, 'download-links')
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
         results = db.engine.execute(sqlalchemy.text(query)).fetchall()
 
@@ -300,9 +298,9 @@ class QueryGmql(Resource):
         pairs = json.get('kv')
 
         query = sql_query_generator(filter_in, type, pairs, 'gmql')
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
         # result_columns = results.columns
         results = db.engine.execute(sqlalchemy.text(query)).fetchall()

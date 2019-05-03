@@ -71,19 +71,19 @@ class NodeRel(Resource):
 
         threshold = 30
 
-        flask.current_app.logger.info(count(id))
+        flask.current_app.logger.debug(count(id))
 
         if count(id) > threshold:
             cypher_query_limit = f' limit {threshold}'
 
         cypher_query = cypher_query_header + cypher_query_where + cypher_query_return + cypher_query_limit
-        flask.current_app.logger.info(cypher_query)
+        flask.current_app.logger.debug(cypher_query)
 
         results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
-        flask.current_app.logger.info(results)
+        flask.current_app.logger.debug(results)
 
         if len(results):
             return results.graph
@@ -128,13 +128,13 @@ class ItemGraph(Resource):
         # AND i.source_id='08fbbee6-0780-4d19-bbab-346dda361e08-msm'
         # RETURN p, size([n in nodes(p1) WHERE 'Vocabulary' in labels(n) | n])
 
-        flask.current_app.logger.info(cypher_query)
+        flask.current_app.logger.debug(cypher_query)
 
         results = run_query(cypher_query, data_contents=constants.DATA_GRAPH)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
-        flask.current_app.logger.info(results)
+        flask.current_app.logger.debug(results)
 
         # resp = Response('hello', mimetype='text/html')
         # return resp
@@ -179,7 +179,7 @@ class ItemExtra(Resource):
                     from item it join unified_pair kv on it.item_id = kv.item_id
                     where it.item_source_id = '{source_id}'"""
 
-        print(query)
+        flask.current_app.logger.debug(query)
         res = db.engine.execute(query).fetchall()
 
         # res has only one element in inner list, however I prefer to use general one
