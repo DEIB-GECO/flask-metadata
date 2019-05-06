@@ -329,10 +329,10 @@ def generate_where_pairs(pair_query):
     pair_join = []
 
     where = []
-
+    i=0
     for x in searched:
-        q = x.replace("%", "_")
-        kv = "kv_"+q
+        kv = "kv_"+str(i)
+        i += 1
         join = f" join unified_pair {kv} on it.item_id = {kv}.item_id "
         pair_join.append(join)
         items = pair_query[x]['query']
@@ -374,6 +374,3 @@ def generate_where_pairs(pair_query):
         where_part = "("+") AND (".join(where)+")"
 
     return {'where': where_part, 'join': " ".join(pair_join)}
-
-# (kv1.key = lower('dataset_name') and (kv1.value = 'hg19_tads_aiden' or kv1.value = 'hg19_tads_dixon'))
-# "a_value": { "type_query": "value", "query": { "gcm": { "cell": [ "imr90 fetal lung fibroblast cell line" ], "species": [ "human" ] }, "pairs": { "file_id": [ "hg_19_hMEC_rao" ] } } } } }
