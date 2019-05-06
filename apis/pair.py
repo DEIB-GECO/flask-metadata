@@ -145,7 +145,7 @@ class Key(Resource):
         from_sub = sub_query[from_start:where_start]
         where_sub = sub_query[where_start:]
 
-        query = f"select up.key, up.value, up.is_gcm, count(up.item_id) as count " + from_sub + \
+        query = f"select up.key, up.value, up.is_gcm, count(distinct up.item_id) as count " + from_sub + \
                 f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
                 f" and lower(up.value) like lower('%{value}%') " \
                     f" group by up.key, up.value, up.is_gcm"
