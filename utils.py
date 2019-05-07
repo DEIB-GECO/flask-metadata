@@ -109,7 +109,7 @@ columns = [
     # technological
     Column('ExperimentType', 'technique', str, True, "Investigative procedure conducted to produce the items"),
     Column('ExperimentType', 'feature', str, True, "Specific genomic aspect described by the experiment"),
-    Column('ExperimentType', 'target', str, True, "Gene or protein which is targeted by the experiment"),
+    Column('ExperimentType', 'target', str, True, "Gene or protein targeted by the experiment"),
     Column('ExperimentType', 'antibody', str, False, "Antibody protein against specific target"),
 
 ]
