@@ -16,6 +16,7 @@ query = api.model('Pair', {
 parser = api.parser()
 parser.add_argument('body', type="json", help='json ', location='json')
 parser.add_argument('q', type=str)
+parser.add_argument('exact', type=inputs.boolean, default=False)
 
 
 @api.route('/keys')
@@ -27,6 +28,15 @@ class Key(Resource):
         '''Retrieves all keys based on a input keyword'''
         args = parser.parse_args()
         key = args['q']
+        exact = args['exact']
+        print(exact)
+
+        if not exact:
+            q = f"%{key}%"
+            equals = ' like '
+        else:
+            q = key
+            equals = ' = '
 
         payload = api.payload
 
@@ -47,12 +57,12 @@ class Key(Resource):
                     f" count(distinct up.value) as count, " \
                     f" array(select unnest(array_agg(distinct up.value)) limit 10) as ex_values " + from_sub + \
                     f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
-                    f" and lower(up.key) like '%{key.lower()}%' and up.is_gcm = true " \
+                    f" and lower(up.key) {equals} lower('{q}') and up.is_gcm = true " \
                     f" group by up.key"
 
         query_pair = f"select up.key as key, count(distinct up.value) as count " + from_sub + \
                      f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
-                     f" and lower(up.key) like '%{key.lower()}%' and up.is_gcm = false " \
+                     f" and lower(up.key) {equals} lower('{q}') and up.is_gcm = false " \
                      f" group by up.key"
 
         flask.current_app.logger.debug(query_gcm)
@@ -130,6 +140,15 @@ class Key(Resource):
         args = parser.parse_args()
         value = args['q']
 
+        exact = args['exact']
+
+        if not exact:
+            q = f"%{value}%"
+            equals = ' like '
+        else:
+            q = value
+            equals = ' = '
+
         payload = api.payload
 
         filter_in = payload.get("gcm")
@@ -147,8 +166,8 @@ class Key(Resource):
 
         query = f"select up.key, up.value, up.is_gcm, count(distinct up.item_id) as count " + from_sub + \
                 f" join unified_pair up on it.item_id = up.item_id " + where_sub + \
-                f" and lower(up.value) like lower('%{value}%') " \
-                    f" group by up.key, up.value, up.is_gcm"
+                f" and lower(up.value) {equals} lower('{q}') " \
+                f" group by up.key, up.value, up.is_gcm"
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         flask.current_app.logger.debug(query)
