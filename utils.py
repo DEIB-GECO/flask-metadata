@@ -95,7 +95,7 @@ columns = [
            "True for healthy/normal/control samples, False for non-healthy/tumoral samples", "Healthy/Control/Normal"),
 
     Column('Donor', 'age', int, False,
-           "Age of individual from which the biological sample was derived (or cell line established)", "Donor age"),
+           "Interval of ages including the individual from which the biological sample was derived (or cell line established). Specify a minimum age value, a maximum age value, and a temporal unit. Check N/D flag to include items where the age is not defined. Press APPLY to make the selection effective. As a default, Min.age and Max.age contain the minimum and maximum ages available in the selected result items. If non-valid boundaries are inserted (e.g., Min.age lower than default or Max.age higher than default), the query automatically selects the default boundaries. CLEAR resets the filter on age and deletes it from the current query.", "Donor age"),
     Column('Donor', 'gender', str, False, "Gender/sex of the individual"),
     Column('Donor', 'ethnicity', str, True, "Ethnicity/race information of the individual"),
     Column('Donor', 'species', str, True,
