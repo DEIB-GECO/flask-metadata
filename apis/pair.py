@@ -29,7 +29,6 @@ class Key(Resource):
         args = parser.parse_args()
         key = args['q']
         exact = args['exact']
-        print(exact)
 
         if not exact:
             q = f"%{key}%"
