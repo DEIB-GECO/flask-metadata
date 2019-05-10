@@ -21,8 +21,8 @@ parser.add_argument('rel_distance', type=int, default=4)
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
 table_parser.add_argument('agg', type=inputs.boolean, default=False)
-table_parser.add_argument('page', type=int, default=1)
-table_parser.add_argument('num_elems', type=int, default=10)
+table_parser.add_argument('page', type=int)
+table_parser.add_argument('num_elems', type=int)
 table_parser.add_argument('order_col', type=str, default='item_source_id')
 table_parser.add_argument('order_dir', type=str, default='asc')
 table_parser.add_argument('rel_distance', type=int, default=4)
@@ -146,8 +146,13 @@ class Query(Resource):
         numPage = args['page']
         numElems = args['num_elems']
 
-        offset = (numPage-1)*numElems
-        limit = numElems
+        if numPage and numElems:
+            offset = (numPage-1)*numElems
+            limit = numElems
+        else:
+            offset = None
+            limit = None
+
 
         filter_in = payload.get("gcm")
 

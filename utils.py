@@ -190,7 +190,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     else:
         from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join + pair_join
 
-    gcm_where = generate_where_sql(gcm_query, search_type)
+    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
 
     where_part = ""
 
@@ -279,7 +279,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
 
 
-def generate_where_sql(gcm_query, search_type):
+def generate_where_sql(gcm_query, search_type, rel_distance = 4):
     sub_where = []
     where_part = ""
     if gcm_query:
@@ -299,7 +299,7 @@ def generate_where_sql(gcm_query, search_type):
                              if value is not None]
         elif search_type == 'expanded' and col.has_tid:
             syn_sub_where = [f"{col.column_name}_tid in (SELECT tid_descendant "
-                             f"FROM relationship_unfolded WHERE tid_ancestor in "
+                             f"FROM relationship_unfolded WHERE distance < {rel_distance} and tid_ancestor in "
                              f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
                              value in values
                              if value is not None]
