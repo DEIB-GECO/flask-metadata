@@ -62,6 +62,7 @@ parser_body = api.parser()
 #                          help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
 #                          default=False)
 parser_body.add_argument('body', type="json", help='json ', location='json')
+parser_body.add_argument('rel_distance', type=int, default=4)
 
 
 @api.route("/age")
@@ -159,11 +160,12 @@ class FieldValue(Resource):
     @api.expect(parser_body)
     def post(self, field_name):
         """For a specified field, it lists all possible values"""
-
+        args = parser_body.parse_args()
         payload = api.payload
         filter_in = payload.get("gcm")
         type = payload.get("type")
         pair_query = payload.get("kv")
+        rel_distance = args['rel_distance']
 
         if field_name in columns_dict:
             column = columns_dict[field_name]
@@ -215,7 +217,7 @@ class FieldValue(Resource):
                        }
                 return res
             else:
-                query = gen_query_field(field_name, type, filter_in, pair_query)
+                query = gen_query_field(field_name, type, filter_in, pair_query, rel_distance)
                 flask.current_app.logger.debug(query)
                 res = db.engine.execute(query).fetchall()
                 item_count = sum(map(lambda row: row['item_count'], res))
@@ -232,7 +234,7 @@ class FieldValue(Resource):
             api.abort(404)
 
 
-def gen_query_field(field_name, type, filter_in, pair_query):
+def gen_query_field(field_name, type, filter_in, pair_query, rel_distance=4):
     column = columns_dict[field_name]
     column_name = column.column_name
     has_tid = column.has_tid
@@ -254,7 +256,7 @@ def gen_query_field(field_name, type, filter_in, pair_query):
         sub_query2 = ""
         if has_tid:
             sub_query2 = sql_query_generator(filter_in_new, search_type=type, pairs_query=pair_query,
-                                             return_type='field_value_tid', field_selected=field_name)
+                                             return_type='field_value_tid', field_selected=field_name, rel_distance=rel_distance)
         select_part = f"SELECT label, count(*) as item_count "
         if has_tid:
             from_part = "FROM (" + sub_query1 + " union " + sub_query2 + ") as view"

@@ -16,6 +16,7 @@ query = api.model('Query', {
 
 parser = api.parser()
 parser.add_argument('body', type="json", help='json ', location='json')
+parser.add_argument('rel_distance', type=int, default=4)
 
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
@@ -24,7 +25,7 @@ table_parser.add_argument('page', type=int, default=1)
 table_parser.add_argument('num_elems', type=int, default=10)
 table_parser.add_argument('order_col', type=str, default='item_source_id')
 table_parser.add_argument('order_dir', type=str, default='asc')
-
+table_parser.add_argument('rel_distance', type=int, default=4)
 # parser_graph = api.parser()
 # parser_graph.add_argument('limit', type=int, default=5)
 # parser_graph.add_argument('biological_view', type=inputs.boolean)
@@ -135,11 +136,13 @@ class Query(Resource):
 
         payload = api.payload
         args = table_parser.parse_args()
+        rel_distance = args['rel_distance']
         agg = args['agg']
         orderCol = args['order_col']
         orderDir = args['order_dir']
         if orderCol == "null":
             orderCol = "item_source_id"
+
         numPage = args['page']
         numElems = args['num_elems']
 
@@ -152,7 +155,7 @@ class Query(Resource):
         pairs = payload.get("kv")
 
         query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit= limit, offset=offset,
-                                    order_col=orderCol, order_dir=orderDir)
+                                    order_col=orderCol, order_dir=orderDir,rel_distance=rel_distance)
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
@@ -185,9 +188,10 @@ class QueryCountDataset(Resource):
         pairs = payload.get('kv')
         args = table_parser.parse_args()
         agg = args['agg']
+        rel_distance = args['rel_distance']
         query = "select count(*) "
         query += "from ("
-        sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None)
+        sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None, rel_distance=rel_distance)
         query += sub_query + ") as a "
         flask.current_app.logger.debug(query)
 
@@ -210,8 +214,10 @@ class QueryCountDataset(Resource):
         filter_in = payload.get('gcm')
         type = payload.get('type')
         pairs = payload.get('kv')
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
 
-        query = sql_query_generator(filter_in, type, pairs, 'count-dataset')
+        query = sql_query_generator(filter_in, type, pairs, 'count-dataset',rel_distance=rel_distance)
         flask.current_app.logger.debug(query)
 
         flask.current_app.logger.debug('got results')
@@ -235,12 +241,13 @@ class QueryCountSource(Resource):
         '''For the posted query, it retrieves number of items aggregated by source'''
 
         json = api.payload
-
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
         filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        query = sql_query_generator(filter_in, type, pairs, 'count-source')
+        query = sql_query_generator(filter_in, type, pairs, 'count-source',rel_distance=rel_distance)
         flask.current_app.logger.debug(query)
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
@@ -261,12 +268,13 @@ class QueryDownload(Resource):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
         json = api.payload
-
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
         filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        query = sql_query_generator(filter_in, type, pairs, 'download-links')
+        query = sql_query_generator(filter_in, type, pairs, 'download-links', rel_distance=rel_distance)
         flask.current_app.logger.debug(query)
 
         flask.current_app.logger.debug('got results')
@@ -292,12 +300,14 @@ class QueryGmql(Resource):
         '''Creates gmql query from repository viewer query'''
 
         json = api.payload
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
 
         filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        query = sql_query_generator(filter_in, type, pairs, 'gmql')
+        query = sql_query_generator(filter_in, type, pairs, 'gmql', rel_distance=rel_distance)
         flask.current_app.logger.debug(query)
 
         flask.current_app.logger.debug('got results')
