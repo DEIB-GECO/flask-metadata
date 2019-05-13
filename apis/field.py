@@ -30,7 +30,7 @@ class FieldList(Resource):
     @api.doc('get_field_list')
     @api.marshal_with(field_list, skip_none=True)
     def get(self):
-        """List all available fields with description and belonging group"""
+        """List all available fields with description and the group they belong to"""
         res = columns_dict.values()
         res = list(res)
         age_item = [x for x in res if x.column_name == 'age'][0]
@@ -64,9 +64,19 @@ parser_body = api.parser()
 parser_body.add_argument('body', type="json", help='json ', location='json')
 parser_body.add_argument('rel_distance', type=int, default=4)
 
+body_desc = 'Must be in the format {\"gcm\":{},\"type\":\"\",\"kv\":{}}.\n ' \
+            'Example values for the three parameters: \n ' \
+            '- gcm may contain \"disease\":[\"prostate adenocarcinoma\",\"prostate cancer\"],\"assembly\":[\"grch38\"]\n ' \
+            '- type may be original, synonym or expanded\n ' \
+            '- kv may contain \"tissue_keyfalse\":{\"type_query\":\"key\",\"query\":{\"gcm\":{},\"pairs\":{\"biospecimen_sample__tissue_type\":[\"tumor\"]}}}'
+
+rel_distance_desc = 'When type is \'expanded\', it indicates the depth of hyponyms in the ontological hierarchy to consider.'
+
 
 @api.route("/age")
 class Age(Resource):
+    @api.doc('return_age_interval', params={'body': body_desc,
+                                            'rel_distance': rel_distance_desc})
     @api.expect(parser_body)
     def post(self):
         """For the posted query, returns minimum and maximum ages"""
@@ -82,7 +92,8 @@ class Age(Resource):
                 'max_age': max(res),
                 'min_age': min(res)
             }
-        else: result = {
+        else:
+            result = {
                 'max_age': "",
                 'min_age': ""
             }
@@ -90,9 +101,7 @@ class Age(Resource):
         return result
 
 
-
 @api.route('/<field_name>')
-@api.param('field_name', 'The requested field')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
 
@@ -155,7 +164,9 @@ class FieldValue(Resource):
     #     else:
     #         api.abort(404)
 
-    @api.doc('post_value_list')
+    @api.doc('post_value_list', params={'body': body_desc,
+                                        'rel_distance': rel_distance_desc,
+                                        'field_name': 'The requested GCM metadata field.'})
     @api.marshal_with(values)
     @api.expect(parser_body)
     def post(self, field_name):
@@ -256,7 +267,8 @@ def gen_query_field(field_name, type, filter_in, pair_query, rel_distance=4):
         sub_query2 = ""
         if has_tid:
             sub_query2 = sql_query_generator(filter_in_new, search_type=type, pairs_query=pair_query,
-                                             return_type='field_value_tid', field_selected=field_name, rel_distance=rel_distance)
+                                             return_type='field_value_tid', field_selected=field_name,
+                                             rel_distance=rel_distance)
         select_part = f"SELECT label, count(*) as item_count "
         if has_tid:
             from_part = "FROM (" + sub_query1 + " union " + sub_query2 + ") as view"

@@ -156,10 +156,9 @@ extras = api.model('Fields', {
 
 
 @api.route('/<source_id>/extra')
-@api.param('source_id', 'The requested object identifier (as appearing in the source)')
-@api.response(404, 'Item not found')  # TODO correct
+@api.response(404, 'Extra information not found for input id')  # TODO correct
 class ItemExtra(Resource):
-    @api.doc('get_item_extra')
+    @api.doc('get_item_extra', params={'source_id': 'The requested object identifier (as appearing in the source)'})
     @api.marshal_with(extras)
     def get(self, source_id):
         '''For the specified item identifier, it retrieves a list of key-value metadata pairs'''

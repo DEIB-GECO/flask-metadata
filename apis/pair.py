@@ -25,7 +25,7 @@ class Key(Resource):
     @api.doc('get_keys')
     @api.expect(parser)
     def post(self):
-        '''Retrieves all keys based on a input keyword'''
+        '''Retrieves all keys based on a user input string'''
         args = parser.parse_args()
         key = args['q']
         exact = args['exact']
@@ -134,7 +134,7 @@ class Key(Resource):
     @api.doc('get_values')
     @api.expect(parser)
     def post(self):
-        '''Retrieves all values based on a input keyword'''
+        '''Retrieves all values based on a user input string'''
         args = parser.parse_args()
         value = args['q']
 
