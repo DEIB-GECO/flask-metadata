@@ -62,7 +62,7 @@ parser_body = api.parser()
 #                          help='Enable enriched search over controlled vocabulary terms and synonyms (true/false)',
 #                          default=False)
 parser_body.add_argument('body', type="json", help='json ', location='json')
-parser_body.add_argument('rel_distance', type=int, default=4)
+parser_body.add_argument('rel_distance', type=int, default=3)
 
 body_desc = 'Must be in the format {\"gcm\":{},\"type\":\"\",\"kv\":{}}.\n ' \
             'Example values for the three parameters: \n ' \
@@ -245,7 +245,7 @@ class FieldValue(Resource):
             api.abort(404)
 
 
-def gen_query_field(field_name, type, filter_in, pair_query, rel_distance=4):
+def gen_query_field(field_name, type, filter_in, pair_query, rel_distance=3):
     column = columns_dict[field_name]
     column_name = column.column_name
     has_tid = column.has_tid

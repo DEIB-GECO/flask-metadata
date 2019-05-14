@@ -142,7 +142,7 @@ del columns
 # print([x.var_column() for x in columns_dict.values() if x.has_tid])
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
-                        offset=0, order_col="item_source_id", order_dir="ASC", rel_distance=4):
+                        offset=0, order_col="item_source_id", order_dir="ASC", rel_distance=3):
     select_part = ""
     from_part = ""
     item = " FROM dw.item it "
@@ -268,18 +268,18 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         if where_part:
             sub_where_part = " AND type <> 'RELATED' "
             if search_type == 'expanded':
-                sub_where_part += f" AND rel.distance < {rel_distance} "
+                sub_where_part += f" AND rel.distance <= {rel_distance} "
         else:
             sub_where_part = " WHERE type <> 'RELATED' "
             if search_type == 'expanded':
-                sub_where_part += f" AND rel.distance < {rel_distance} "
+                sub_where_part += f" AND rel.distance <= {rel_distance} "
     elif return_type == 'item_id':
         select_part = f"SELECT it.item_id "
 
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
 
 
-def generate_where_sql(gcm_query, search_type, rel_distance = 4):
+def generate_where_sql(gcm_query, search_type, rel_distance = 3):
     sub_where = []
     where_part = ""
     if gcm_query:
@@ -299,7 +299,7 @@ def generate_where_sql(gcm_query, search_type, rel_distance = 4):
                              if value is not None]
         elif search_type == 'expanded' and col.has_tid:
             syn_sub_where = [f"{col.column_name}_tid in (SELECT tid_descendant "
-                             f"FROM relationship_unfolded WHERE distance < {rel_distance} and tid_ancestor in "
+                             f"FROM relationship_unfolded WHERE distance <= {rel_distance} and tid_ancestor in "
                              f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
                              value in values
                              if value is not None]
