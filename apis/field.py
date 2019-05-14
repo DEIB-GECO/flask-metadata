@@ -64,19 +64,19 @@ parser_body = api.parser()
 parser_body.add_argument('body', type="json", help='json ', location='json')
 parser_body.add_argument('rel_distance', type=int, default=3)
 
-body_desc = 'Must be in the format {\"gcm\":{},\"type\":\"\",\"kv\":{}}.\n ' \
+body_desc = 'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{}}.\n ' \
             'Example values for the three parameters: \n ' \
             '- gcm may contain \"disease\":[\"prostate adenocarcinoma\",\"prostate cancer\"],\"assembly\":[\"grch38\"]\n ' \
             '- type may be original, synonym or expanded\n ' \
-            '- kv may contain \"tissue_keyfalse\":{\"type_query\":\"key\",\"query\":{\"gcm\":{},\"pairs\":{\"biospecimen_sample__tissue_type\":[\"tumor\"]}}}'
+            '- kv may contain \"tumor_0\":{\"type_query\":\"key\",\"exact\":false,\"query\":{\"gcm\":{},\"pairs\":{\"biospecimen__bio__tumor_descriptor\":[\"metastatic\"]}}}'
 
-rel_distance_desc = 'When type is \'expanded\', it indicates the depth of hyponyms in the ontological hierarchy to consider.'
+rel_distance_hyper_desc = 'When type is \'expanded\', it indicates the depth of hypernyms in the ontological hierarchy to consider.'
 
 
 @api.route("/age")
 class Age(Resource):
     @api.doc('return_age_interval', params={'body': body_desc,
-                                            'rel_distance': rel_distance_desc})
+                                            'rel_distance': rel_distance_hyper_desc})
     @api.expect(parser_body)
     def post(self):
         """For the posted query, returns minimum and maximum ages"""
@@ -165,7 +165,7 @@ class FieldValue(Resource):
     #         api.abort(404)
 
     @api.doc('post_value_list', params={'body': body_desc,
-                                        'rel_distance': rel_distance_desc,
+                                        'rel_distance': rel_distance_hyper_desc,
                                         'field_name': 'The requested GCM metadata field.'})
     @api.marshal_with(values)
     @api.expect(parser_body)
