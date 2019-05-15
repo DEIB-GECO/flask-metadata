@@ -22,6 +22,7 @@ parser.add_argument('rel_distance', type=int, default=3)
 value_parser = api.parser()
 value_parser.add_argument('body', type="json", help='json ', location='json')
 value_parser.add_argument('is_gcm', type=inputs.boolean, default=True)
+value_parser.add_argument('rel_distance', type=int, default=3)
 
 ################################API DOCUMENTATION STRINGS###################################
 body_desc = 'It represents the context of the key-value query, based on the previous selection on gcm part.' \
