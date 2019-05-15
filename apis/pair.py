@@ -17,7 +17,7 @@ parser = api.parser()
 parser.add_argument('body', type="json", help='json ', location='json')
 parser.add_argument('q', type=str)
 parser.add_argument('exact', type=inputs.boolean, default=False)
-
+parser.add_argument('rel_distance', type=int, default=3)
 
 @api.route('/keys')
 @api.response(404, 'Item not found')  # TODO correct
@@ -29,7 +29,9 @@ class Key(Resource):
         args = parser.parse_args()
         key = args['q']
         exact = args['exact']
-        key = key.replace("_","\_")
+        rel_distance = args['rel_distance']
+
+        key = key.replace("_", "\_")
 
         if not exact:
             q = f"%{key}%"
@@ -42,7 +44,7 @@ class Key(Resource):
         type = payload.get("type")
         pairs = payload.get("kv")
         sub_query = sql_query_generator(filter_in, type, pairs, field_selected='platform', return_type='item_id',
-                                        limit=None, offset=None)
+                                        limit=None, offset=None, rel_distance=rel_distance)
         where_start = sub_query.find("WHERE")
         from_start = sub_query.find("FROM")
 
@@ -100,9 +102,10 @@ class Key(Resource):
         filter_in = payload.get("gcm")
         type = payload.get("type")
         pairs = payload.get("kv")
+        rel_distance = args['rel_distance']
 
         sub_query = sql_query_generator(filter_in, type, pairs, field_selected='platform', return_type='item_id',
-                                        limit=None, offset=None)
+                                        limit=None, offset=None, rel_distance=rel_distance)
 
         where_start = sub_query.find("WHERE")
         from_start = sub_query.find("FROM")
@@ -139,6 +142,8 @@ class Key(Resource):
         value = args['q']
 
         exact = args['exact']
+        rel_distance = args['rel_distance']
+
         value = value.replace("_","\_")
         if not exact:
             q = f"%{value}%"
@@ -152,7 +157,7 @@ class Key(Resource):
         pairs = payload.get("kv")
 
         sub_query = sql_query_generator(filter_in, type, pairs, field_selected='platform', return_type='item_id',
-                                        limit=None, offset=None)
+                                        limit=None, offset=None, rel_distance=rel_distance)
 
         where_start = sub_query.find("WHERE")
         from_start = sub_query.find("FROM")
