@@ -16,7 +16,12 @@ query = api.model('Query', {
 
 parser = api.parser()
 parser.add_argument('body', type="json", help='json ', location='json')
-parser.add_argument('rel_distance', type=int, default=4)
+parser.add_argument('rel_distance', type=int, default=3)
+
+count_parser = api.parser()
+count_parser.add_argument('body', type="json", help='json ', location='json')
+count_parser.add_argument('agg', type=inputs.boolean, default=False)
+count_parser.add_argument('rel_distance', type=int, default=3)
 
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
@@ -128,13 +133,14 @@ query_result = api.model('QueryResult', {
 })
 
 ################################API DOCUMENTATION STRINGS###################################
-body_desc = 'Must be in the format {\"gcm\":{},\"type\":\"\",\"kv\":{}}.\n ' \
+body_desc = 'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{}}.\n ' \
             'Example values for the three parameters: \n ' \
             '- gcm may contain \"disease\":[\"prostate adenocarcinoma\",\"prostate cancer\"],\"assembly\":[\"grch38\"]\n ' \
             '- type may be original, synonym or expanded\n ' \
-            '- kv may contain \"tissue_keyfalse\":{\"type_query\":\"key\",\"query\":{\"gcm\":{},\"pairs\":{\"biospecimen_sample__tissue_type\":[\"tumor\"]}}}'
+            '- kv may contain \"tumor_0\":{\"type_query\":\"key\",\"exact\":false,\"query\":{\"gcm\":{},\"pairs\":{\"biospecimen__bio__tumor_descriptor\":[\"metastatic\"]}}}'
 
-agg_desc = 'Agg is true for aggregated view, false for replicated view.'
+agg_desc = 'Agg is true for aggregated view (one row per each item, potentially multiple values for an attribute are separated with \\|).\n' \
+           'Agg is false for replicated view (one row for each Replicate/Biosample/Donor generating the item).'
 
 page_desc = 'Progressive number of page of results to retrieve.'
 
@@ -147,8 +153,9 @@ order_dir_desc = 'Order of column specified in order_col parameter: asc (ascenda
 rel_distance_desc = 'When type is \'expanded\', it indicates the depth of hyponyms in the ontological hierarchy to consider.'
 
 
+#############################SERVICES IMPLEMENTATION#############################################
 @api.route('/table')
-@api.response(404, 'Request is not valid')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class Query(Resource):
     @api.doc('return_query_result', params={'body': body_desc,
                                             'agg': agg_desc,
@@ -209,23 +216,19 @@ count_result = api.model('QueryResult', {
 
 
 @api.route('/count')
-@api.response(404, 'Request is not valid')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryCountDataset(Resource):
-    @api.doc('return_query_result2', params={'body': body_desc,
+    @api.doc('return_query_result1', params={'body': body_desc,
                                              'agg': agg_desc,
-                                             'page': page_desc,
-                                             'num_elems': num_elems_desc,
-                                             'order_col': order_col_desc,
-                                             'order_dir': order_dir_desc,
                                              'rel_distance': rel_distance_desc})
-    @api.expect(table_parser)
+    @api.expect(count_parser)
     def post(self):
-        '''For the posted query, it retrieves the total number of items'''
+        '''For the posted query, it retrieves the total number of item rows'''
         payload = api.payload
         filter_in = payload.get('gcm')
         type = payload.get('type')
         pairs = payload.get('kv')
-        args = table_parser.parse_args()
+        args = count_parser.parse_args()
         agg = args['agg']
         rel_distance = args['rel_distance']
         query = "select count(*) "
@@ -242,14 +245,9 @@ class QueryCountDataset(Resource):
 
 # TODO check code repetition
 @api.route('/count/dataset')
-@api.response(404, 'Request is not valid')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryCountDataset(Resource):
     @api.doc('return_query_result2', params={'body': body_desc,
-                                             'agg': agg_desc,
-                                             'page': page_desc,
-                                             'num_elems': num_elems_desc,
-                                             'order_col': order_col_desc,
-                                             'order_dir': order_dir_desc,
                                              'rel_distance': rel_distance_desc})
     @api.marshal_with(count_result)
     @api.expect(parser)
@@ -279,16 +277,10 @@ class QueryCountDataset(Resource):
 
 # TODO check code repetition
 @api.route('/count/source')
-@api.response(404, 'Request is not valid')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryCountSource(Resource):
     @api.doc('return_query_result3', params={'body': body_desc,
-                                             'agg': agg_desc,
-                                             'page': page_desc,
-                                             'num_elems': num_elems_desc,
-                                             'order_col': order_col_desc,
-                                             'order_dir': order_dir_desc,
                                              'rel_distance': rel_distance_desc})
-
     @api.marshal_with(count_result)
     @api.expect(parser)
     def post(self):
@@ -314,10 +306,10 @@ class QueryCountSource(Resource):
 
 # TODO check code repetition
 @api.route('/download')
-@api.response(404, 'Request is not valid')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryDownload(Resource):
     @api.doc('return_query_result4', params={'body': body_desc,
-                                            'rel_distance': rel_distance_desc})
+                                             'rel_distance': rel_distance_desc})
     @api.expect(parser)
     def post(self):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
@@ -347,10 +339,10 @@ class QueryDownload(Resource):
 
 
 @api.route('/gmql')
-@api.response(404, 'Request is not valid')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryGmql(Resource):
     @api.doc('return_query_result5', params={'body': body_desc,
-                                            'rel_distance': rel_distance_desc})
+                                             'rel_distance': rel_distance_desc})
     @api.expect(parser)
     def post(self):
         '''Creates gmql query from repository viewer query'''

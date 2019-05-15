@@ -19,10 +19,45 @@ parser.add_argument('q', type=str)
 parser.add_argument('exact', type=inputs.boolean, default=False)
 parser.add_argument('rel_distance', type=int, default=3)
 
+value_parser = api.parser()
+value_parser.add_argument('body', type="json", help='json ', location='json')
+value_parser.add_argument('is_gcm', type=inputs.boolean, default=True)
+
+################################API DOCUMENTATION STRINGS###################################
+body_desc = 'It represents the context of the key-value query, based on the previous selection on gcm part.' \
+            'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{}}.\n ' \
+            'Example values for the three parameters: \n ' \
+            '- gcm may contain \"disease\":[\"prostate adenocarcinoma\",\"prostate cancer\"],\"assembly\":[\"grch38\"]\n ' \
+            '- type may be original, synonym or expanded\n ' \
+            '- kv may contain \"tumor_0\":{\"type_query\":\"key\",\"exact\":false,\"query\":{\"gcm\":{},\"pairs\":{\"biospecimen__bio__tumor_descriptor\":[\"metastatic\"]}}}'
+
+qk_desc = 'The user input string to be searched in the keys.'
+qv_desc = 'The user input string to be searched in the values.'
+
+exactk_desc = 'Exact is false to retrieve keys which contain the input string.\n' \
+              'Exact is true to retrieve keys which are equal to the input string.\n' \
+              'The modulo \% can be used to express \"a string of any length and any character\".'
+
+exactv_desc = 'Exact is false to retrieve values which contain the input string.\n' \
+              'Exact is true to retrieve values which are equal to the input string.\n' \
+              'The modulo \% can be used to express \"a string of any length and any character\".'
+
+key_desc = 'Specific original key for which all available values are to be retrieved.'
+
+is_gcm_desc = 'Is_gcm is false when the searched key is not in the Genomic Conceptual Model.\n' \
+              'Is_gcm is true when the searched key is in the Genomic Conceptual Model.'
+
+rel_distance_desc = 'When type is \'expanded\', it indicates the depth of hyponyms in the ontological hierarchy to consider.'
+
+
+#############################SERVICES IMPLEMENTATION#############################################
+
 @api.route('/keys')
-@api.response(404, 'Item not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class Key(Resource):
-    @api.doc('get_keys')
+    @api.doc('get_keys', params={'body': body_desc,
+                                 'q': qk_desc,
+                                 'exact': exactk_desc})
     @api.expect(parser)
     def post(self):
         '''Retrieves all keys based on a user input string'''
@@ -83,18 +118,15 @@ class Key(Resource):
         return results
 
 
-value_parser = api.parser()
-value_parser.add_argument('body', type="json", help='json ', location='json')
-value_parser.add_argument('is_gcm', type=inputs.boolean, default=True)
-
-
 @api.route('/<key>/values')
-@api.response(404, 'Item not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class Key(Resource):
-    @api.doc('get_values_for_key')
+    @api.doc('get_values_for_key', params={'body': body_desc,
+                                           'key': key_desc,
+                                           'is_gcm': is_gcm_desc, })
     @api.expect(value_parser)
     def post(self, key):
-        '''For a specific key, it lists all possible values'''
+        '''For a specific key, it lists all available values'''
         args = value_parser.parse_args()
         is_gcm = args['is_gcm']
 
@@ -132,9 +164,11 @@ class Key(Resource):
 
 
 @api.route('/values')
-@api.response(404, 'Item not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class Key(Resource):
-    @api.doc('get_values')
+    @api.doc('get_values', params={'body': body_desc,
+                                   'q': qv_desc,
+                                   'exact': exactv_desc})
     @api.expect(parser)
     def post(self):
         '''Retrieves all values based on a user input string'''
@@ -144,7 +178,7 @@ class Key(Resource):
         exact = args['exact']
         rel_distance = args['rel_distance']
 
-        value = value.replace("_","\_")
+        value = value.replace("_", "\_")
         if not exact:
             q = f"%{value}%"
         else:
