@@ -2,6 +2,7 @@ from neo4jrestclient.client import GraphDatabase
 # noinspection PyUnresolvedReferences
 from neo4jrestclient.constants import DATA_GRAPH, DATA_ROWS, RAW
 from collections import OrderedDict
+
 # the view order definitions
 views = {
     'biological': ['Item', 'Replicate', 'Biosample', 'Donor'],
@@ -95,16 +96,17 @@ columns = [
            "True for healthy/normal/control samples, False for non-healthy/tumoral samples", "Healthy/Control/Normal"),
 
     Column('Donor', 'age', int, False,
-           "Interval of ages including the individual from which the biological sample was derived (or cell line established).", "Donor age"),
+           "Interval of ages including the individual from which the biological sample was derived (or cell line established).",
+           "Donor age"),
     Column('Donor', 'gender', str, False, "Gender/sex of the individual"),
     Column('Donor', 'ethnicity', str, True, "Ethnicity/race information of the individual"),
     Column('Donor', 'species', str, True,
            "Specific organism from which the biological sample was derived (or cell line established)"),
 
     Column('Replicate', 'biological_replicate_count', int, False,
-           "Progressive number of biosample on which the experimental protocol was performed"),
+           "Number of biosamples on which the experimental protocol was performed"),
     Column('Replicate', 'technical_replicate_count', int, False,
-           "Progressive number of distinct replicates from the same biosample (each treated identically)"),
+           "Number of distinct replicates from the same biosample (each treated identically)"),
 
     # technological
     Column('ExperimentType', 'technique', str, True, "Investigative procedure conducted to produce the items"),
@@ -126,6 +128,7 @@ columns_item.extend((
            "Progressive number of biosample on which the experimental protocol was performed"),
     Column('Replicate', 'technical_replicate_number', int, False,
            "Progressive number of distinct replicates from the same biosample (each treated identically)"),
+    Column('Donor', 'donor_source_id', str, False,""),
 ))
 
 columns_dict = {x.column_name: x for x in columns}
@@ -197,7 +200,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     if gcm_query and pair_where:
         where_part = gcm_where + " AND " + pair_where
     elif pair_where and not gcm_where:
-        where_part = 'WHERE '+pair_where
+        where_part = 'WHERE ' + pair_where
     elif gcm_where and not pair_where:
         where_part = gcm_where
 
@@ -279,7 +282,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
 
 
-def generate_where_sql(gcm_query, search_type, rel_distance = 3):
+def generate_where_sql(gcm_query, search_type, rel_distance=3):
     sub_where = []
     where_part = ""
     if gcm_query:
@@ -329,9 +332,9 @@ def generate_where_pairs(pair_query):
     pair_join = []
 
     where = []
-    i=0
+    i = 0
     for x in searched:
-        kv = "kv_"+str(i)
+        kv = "kv_" + str(i)
         i += 1
         join = f" join unified_pair {kv} on it.item_id = {kv}.item_id "
         pair_join.append(join)
@@ -349,7 +352,7 @@ def generate_where_pairs(pair_query):
             for value in values:
                 v = value.replace("'", "''")
                 sub_sub_where.append(f"lower({kv}.value) = lower('{v}')")
-            a += ("("+" OR ".join(sub_sub_where)+")")
+            a += ("(" + " OR ".join(sub_sub_where) + ")")
 
             # print(a)
             sub_where.append(a)
@@ -362,15 +365,15 @@ def generate_where_pairs(pair_query):
             for value in values:
                 v = value.replace("'", "''")
                 sub_sub_where.append(f"lower({kv}.value) = lower('{v}')")
-            a += ("("+" OR ".join(sub_sub_where)+")")
+            a += ("(" + " OR ".join(sub_sub_where) + ")")
 
             # print(a)
             sub_where.append(a)
 
-        where.append("("+") OR (".join(sub_where)+")")
+        where.append("(" + ") OR (".join(sub_where) + ")")
 
     where_part = ""
     if pair_query:
-        where_part = "("+") AND (".join(where)+")"
+        where_part = "(" + ") AND (".join(where) + ")"
 
     return {'where': where_part, 'join': " ".join(pair_join)}

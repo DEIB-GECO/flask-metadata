@@ -122,6 +122,7 @@ query_result = api.model('QueryResult', {
     'age': fields.String,
     'gender': fields.String,
     'ethnicity': fields.String,
+    'donor_source_id': fields.String,
 
     # CASE
     'source_site': fields.String,
