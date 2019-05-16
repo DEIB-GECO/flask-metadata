@@ -73,15 +73,15 @@ columns = [
     Column('CaseStudy', 'source_site', str, False, "Physical site where material was analysed"),
 
     # extraction
+    Column('Item', 'content_type', str, True, "Type of represented regions"),
+    Column('Item', 'platform', str, True, "Instrument used to sequence the raw data related to the items"),
+    Column('Item', 'pipeline', str, False, "Methods used for processing phases, from raw data to processed data"),
+
     Column('Dataset', 'data_type', str, False, "Specific kind of genomic data contained in the items"),
     Column('Dataset', 'assembly', str, False, "Reference genome alignment"),
     Column('Dataset', 'file_format', str, False, "Standard data format used in the region items"),
     Column('Dataset', 'is_annotation', bool, False, "True for annotations, False for experimental items"),
     Column('Dataset', 'dataset_name', str, False, "Directory in which items are stored for tertiary analysis"),
-
-    Column('Item', 'content_type', str, True, "Type of represented regions"),
-    Column('Item', 'platform', str, True, "Instrument used to sequence the raw data related to the items"),
-    Column('Item', 'pipeline', str, False, "Methods used for processing phases, from raw data to processed data"),
 
     # biological
     Column('Biosample', 'biosample_type', str, False, "Kind of material sample used for the experiment"),
@@ -95,21 +95,21 @@ columns = [
            "True for healthy/normal/control samples, False for non-healthy/tumoral samples", "Healthy/Control/Normal"),
 
     Column('Donor', 'age', int, False,
-           "Age of individual from which the biological sample was derived (or cell line established)", "Donor age"),
+           "Interval of ages including the individual from which the biological sample was derived (or cell line established).", "Donor age"),
     Column('Donor', 'gender', str, False, "Gender/sex of the individual"),
     Column('Donor', 'ethnicity', str, True, "Ethnicity/race information of the individual"),
     Column('Donor', 'species', str, True,
            "Specific organism from which the biological sample was derived (or cell line established)"),
 
-    Column('Replicate', 'biological_replicate_number', int, False,
+    Column('Replicate', 'biological_replicate_count', int, False,
            "Progressive number of biosample on which the experimental protocol was performed"),
-    Column('Replicate', 'technical_replicate_number', int, False,
+    Column('Replicate', 'technical_replicate_count', int, False,
            "Progressive number of distinct replicates from the same biosample (each treated identically)"),
 
     # technological
     Column('ExperimentType', 'technique', str, True, "Investigative procedure conducted to produce the items"),
     Column('ExperimentType', 'feature', str, True, "Specific genomic aspect described by the experiment"),
-    Column('ExperimentType', 'target', str, True, "Gene or protein which is targeted by the experiment"),
+    Column('ExperimentType', 'target', str, True, "Gene or protein targeted by the experiment"),
     Column('ExperimentType', 'antibody', str, False, "Antibody protein against specific target"),
 
 ]
@@ -120,7 +120,12 @@ columns_item.extend((
     Column('Item', 'size', str, False, ""),
     Column('Item', 'date', str, False, ""),
     Column('Item', 'source_url', str, False, ""),
-    Column('Item', 'local_url', str, False, "")
+    Column('Item', 'local_url', str, False, ""),
+    Column('Item', 'source_page', str, False, ""),
+    Column('Replicate', 'biological_replicate_number', int, False,
+           "Progressive number of biosample on which the experimental protocol was performed"),
+    Column('Replicate', 'technical_replicate_number', int, False,
+           "Progressive number of distinct replicates from the same biosample (each treated identically)"),
 ))
 
 columns_dict = {x.column_name: x for x in columns}
@@ -137,11 +142,16 @@ del columns
 # print([x.var_column() for x in columns_dict.values() if x.has_tid])
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
-                        offset=0, orderCol="item_source_id", orderDir="ASC"):
+                        offset=0, order_col="item_source_id", order_dir="ASC", rel_distance=3):
     select_part = ""
     from_part = ""
-    item = " FROM item it "
+    item = " FROM dw.item it "
     dataset_join = " join dataset da on it.dataset_id = da.dataset_id "
+
+    pairs = generate_where_pairs(pairs_query)
+
+    pair_join = pairs['join']
+    pair_where = pairs['where']
 
     experiment_type_join = " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id"
 
@@ -176,11 +186,20 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             index = calc_distance(view, 'Item', table)
             joins += view_join[view][:index]
         joins = list(OrderedDict.fromkeys(joins))
-        from_part = item + " ".join(joins)
+        from_part = item + " ".join(joins) + pair_join
     else:
-        from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join
+        from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join + pair_join
 
-    where_part = generate_where_sql(gcm_query, search_type)
+    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
+
+    where_part = ""
+
+    if gcm_query and pair_where:
+        where_part = gcm_where + " AND " + pair_where
+    elif pair_where and not gcm_where:
+        where_part = 'WHERE '+pair_where
+    elif gcm_where and not pair_where:
+        where_part = gcm_where
 
     sub_where_part = ""
     group_by_part = ""
@@ -204,7 +223,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             limit_part = f" LIMIT {limit} "
         if offset:
             offset_part = f"OFFSET {offset} "
-        order_by = f" ORDER BY {orderCol} {orderDir} "
+        order_by = f" ORDER BY {order_col} {order_dir} "
     elif return_type == 'count-dataset':
         select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
         group_by_part = " GROUP BY da.dataset_name"
@@ -233,7 +252,10 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         column_type = col.column_type
         lower_pre = 'LOWER(' if column_type == str else ''
         lower_post = ')' if column_type == str else ''
-        select_part = f"SELECT {lower_pre}{field_selected}{lower_post} as label, it.item_id as item "
+        distinct = ""
+        if search_type == 'original':
+            distinct = "distinct"
+        select_part = f"SELECT {distinct} {lower_pre}{field_selected}{lower_post} as label, it.item_id as item "
 
     elif return_type == 'field_value_tid':
         select_part = f"SELECT LOWER(label), it.item_id as item "
@@ -246,15 +268,18 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         if where_part:
             sub_where_part = " AND type <> 'RELATED' "
             if search_type == 'expanded':
-                sub_where_part += " AND rel.distance < 4 "
+                sub_where_part += f" AND rel.distance <= {rel_distance} "
         else:
             sub_where_part = " WHERE type <> 'RELATED' "
             if search_type == 'expanded':
-                sub_where_part += " AND rel.distance < 4 "
+                sub_where_part += f" AND rel.distance <= {rel_distance} "
+    elif return_type == 'item_id':
+        select_part = f"SELECT it.item_id "
 
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
 
-def generate_where_sql(gcm_query, search_type):
+
+def generate_where_sql(gcm_query, search_type, rel_distance = 3):
     sub_where = []
     where_part = ""
     if gcm_query:
@@ -266,6 +291,7 @@ def generate_where_sql(gcm_query, search_type):
         lower_pre = 'LOWER(' if column_type == str else ''
         lower_post = ')' if column_type == str else ''
         syn_sub_where = []
+
         if search_type == 'synonym' and col.has_tid:
             syn_sub_where = [f"{col.column_name}_tid in (SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}'))"
                              for
@@ -273,17 +299,78 @@ def generate_where_sql(gcm_query, search_type):
                              if value is not None]
         elif search_type == 'expanded' and col.has_tid:
             syn_sub_where = [f"{col.column_name}_tid in (SELECT tid_descendant "
-                             f"FROM relationship_unfolded WHERE tid_ancestor in "
+                             f"FROM relationship_unfolded WHERE distance <= {rel_distance} and tid_ancestor in "
                              f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
                              value in values
                              if value is not None]
-
-        sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
-        sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
-        sub_sub_where.extend(sub_sub_where_none)
-        sub_sub_where.extend(syn_sub_where)
-        sub_where.append(" OR ".join(sub_sub_where))
+        if col.column_name == 'age':
+            min = values['min_age']
+            max = values['max_age']
+            isNull = values['null']
+            a = f" age >= {min} and age <= {max} "
+            if isNull:
+                a += "or age is null "
+            sub_where.append(a)
+        else:
+            sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
+            sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
+            sub_sub_where.extend(sub_sub_where_none)
+            sub_sub_where.extend(syn_sub_where)
+            sub_where.append(" OR ".join(sub_sub_where))
 
     if gcm_query:
         where_part += ") AND (".join(sub_where) + ")"
     return where_part
+
+
+def generate_where_pairs(pair_query):
+    searched = pair_query.keys()
+
+    pair_join = []
+
+    where = []
+    i=0
+    for x in searched:
+        kv = "kv_"+str(i)
+        i += 1
+        join = f" join unified_pair {kv} on it.item_id = {kv}.item_id "
+        pair_join.append(join)
+        items = pair_query[x]['query']
+        gcm = items['gcm']
+        pair = items['pairs']
+
+        sub_where = []
+
+        for k in gcm.keys():
+            a = ""
+            a += f" lower({kv}.key) = lower('{k}') and {kv}.is_gcm = true and "
+            values = gcm[k]
+            sub_sub_where = []
+            for value in values:
+                v = value.replace("'", "''")
+                sub_sub_where.append(f"lower({kv}.value) = lower('{v}')")
+            a += ("("+" OR ".join(sub_sub_where)+")")
+
+            # print(a)
+            sub_where.append(a)
+
+        for k in pair.keys():
+            a = ""
+            a += f" lower({kv}.key) = lower('{k}') and {kv}.is_gcm = false and "
+            values = pair[k]
+            sub_sub_where = []
+            for value in values:
+                v = value.replace("'", "''")
+                sub_sub_where.append(f"lower({kv}.value) = lower('{v}')")
+            a += ("("+" OR ".join(sub_sub_where)+")")
+
+            # print(a)
+            sub_where.append(a)
+
+        where.append("("+") OR (".join(sub_where)+")")
+
+    where_part = ""
+    if pair_query:
+        where_part = "("+") AND (".join(where)+")"
+
+    return {'where': where_part, 'join': " ".join(pair_join)}

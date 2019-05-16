@@ -1,4 +1,5 @@
 import flask
+import sqlalchemy
 from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
@@ -15,15 +16,21 @@ query = api.model('Query', {
 
 parser = api.parser()
 parser.add_argument('body', type="json", help='json ', location='json')
+parser.add_argument('rel_distance', type=int, default=3)
+
+count_parser = api.parser()
+count_parser.add_argument('body', type="json", help='json ', location='json')
+count_parser.add_argument('agg', type=inputs.boolean, default=False)
+count_parser.add_argument('rel_distance', type=int, default=3)
 
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
 table_parser.add_argument('agg', type=inputs.boolean, default=False)
-table_parser.add_argument('page', type=int, default=1)
-table_parser.add_argument('num_elems', type=int, default=10)
+table_parser.add_argument('page', type=int)
+table_parser.add_argument('num_elems', type=int)
 table_parser.add_argument('order_col', type=str, default='item_source_id')
 table_parser.add_argument('order_dir', type=str, default='asc')
-
+table_parser.add_argument('rel_distance', type=int, default=3)
 # parser_graph = api.parser()
 # parser_graph.add_argument('limit', type=int, default=5)
 # parser_graph.add_argument('biological_view', type=inputs.boolean)
@@ -69,6 +76,9 @@ table_parser.add_argument('order_dir', type=str, default='asc')
 #             return api.abort(404, f'Not found')
 
 
+################################API IMPLEMENTATION###########################################
+
+
 query_result = api.model('QueryResult', {
     # ITEM
     'item_source_id': fields.String,
@@ -79,6 +89,7 @@ query_result = api.model('QueryResult', {
     'source_url': fields.String,
     'local_url': fields.String,
     'content_type': fields.String,
+    'source_page': fields.String,
 
     # DATASET
     'dataset_name': fields.String,
@@ -96,6 +107,8 @@ query_result = api.model('QueryResult', {
     # REPLICATE
     'biological_replicate_number': fields.String,
     'technical_replicate_number': fields.String,
+    'biological_replicate_count': fields.String,
+    'technical_replicate_count': fields.String,
 
     # BIOSAMPLE
     'biosample_type': fields.String,
@@ -119,47 +132,79 @@ query_result = api.model('QueryResult', {
     'source': fields.String
 })
 
+################################API DOCUMENTATION STRINGS###################################
+body_desc = 'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{}}.\n ' \
+            'Example values for the three parameters: \n ' \
+            '- gcm may contain \"disease\":[\"prostate adenocarcinoma\",\"prostate cancer\"],\"assembly\":[\"grch38\"]\n ' \
+            '- type may be original, synonym or expanded\n ' \
+            '- kv may contain \"tumor_0\":{\"type_query\":\"key\",\"exact\":false,\"query\":{\"gcm\":{},\"pairs\":{\"biospecimen__bio__tumor_descriptor\":[\"metastatic\"]}}}'
 
+agg_desc = 'Agg is true for aggregated view (one row per each item, potentially multiple values for an attribute are separated with \\|).\n' \
+           'Agg is false for replicated view (one row for each Replicate/Biosample/Donor generating the item).'
+
+page_desc = 'Progressive number of page of results to retrieve.'
+
+num_elems_desc = 'Number of resulting items to retrieve per page.'
+
+order_col_desc = 'Name of column on which table order is based.'
+
+order_dir_desc = 'Order of column specified in order_col parameter: asc (ascendant) or desc (descendant).'
+
+rel_distance_desc = 'When type is \'expanded\', it indicates the depth of hyponyms in the ontological hierarchy to consider.'
+
+
+#############################SERVICES IMPLEMENTATION#############################################
 @api.route('/table')
-@api.response(404, 'Field not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class Query(Resource):
-    @api.doc('return_query_result')
+    @api.doc('return_query_result', params={'body': body_desc,
+                                            'agg': agg_desc,
+                                            'page': page_desc,
+                                            'num_elems': num_elems_desc,
+                                            'order_col': order_col_desc,
+                                            'order_dir': order_dir_desc,
+                                            'rel_distance': rel_distance_desc})
     @api.marshal_with(query_result)
     @api.expect(table_parser)
     def post(self):
-        '''For the posted query, it retrieves a list of items with selected characteristics'''
+        '''For the posted query, it retrieves a list of items with the related GCM metadata'''
 
         payload = api.payload
         args = table_parser.parse_args()
+        rel_distance = args['rel_distance']
         agg = args['agg']
         orderCol = args['order_col']
         orderDir = args['order_dir']
         if orderCol == "null":
             orderCol = "item_source_id"
+
         numPage = args['page']
         numElems = args['num_elems']
 
-        print(numPage, numElems)
-        offset = (numPage-1)*numElems
-        limit = numElems
+        if numPage and numElems:
+            offset = (numPage - 1) * numElems
+            limit = numElems
+        else:
+            offset = None
+            limit = None
 
         filter_in = payload.get("gcm")
 
         type = payload.get("type")
         pairs = payload.get("kv")
 
-        query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit= limit, offset=offset,
-                                    orderCol=orderCol, orderDir=orderDir)
+        query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit=limit, offset=offset,
+                                    order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance)
 
-        res = db.engine.execute(query).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
         for row in res:
             result.append({f'{x}': row[x] for x in query_result.keys()})
 
-        flask.current_app.logger.info("QUI QUERY")
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug("QUI QUERY")
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
         return result
 
@@ -169,35 +214,41 @@ count_result = api.model('QueryResult', {
     'count': fields.Integer,
 })
 
+
 @api.route('/count')
-@api.response(404, 'Field not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryCountDataset(Resource):
-    @api.doc('return_query_result2')
-    @api.expect(table_parser)
+    @api.doc('return_query_result1', params={'body': body_desc,
+                                             'agg': agg_desc,
+                                             'rel_distance': rel_distance_desc})
+    @api.expect(count_parser)
     def post(self):
-        '''For the posted query, it retrieves the total number of items'''
+        '''For the posted query, it retrieves the total number of item rows'''
         payload = api.payload
         filter_in = payload.get('gcm')
         type = payload.get('type')
         pairs = payload.get('kv')
-        args = table_parser.parse_args()
+        args = count_parser.parse_args()
         agg = args['agg']
+        rel_distance = args['rel_distance']
         query = "select count(*) "
         query += "from ("
-        sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None)
+        sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None,
+                                        rel_distance=rel_distance)
         query += sub_query + ") as a "
-        flask.current_app.logger.info(query)
+        flask.current_app.logger.debug(query)
 
-        res = db.engine.execute(query).fetchall()
-        print(res[0][0])
-        flask.current_app.logger.info('got results')
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
+        flask.current_app.logger.debug('got results')
         return res[0][0]
+
 
 # TODO check code repetition
 @api.route('/count/dataset')
-@api.response(404, 'Field not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryCountDataset(Resource):
-    @api.doc('return_query_result2')
+    @api.doc('return_query_result2', params={'body': body_desc,
+                                             'rel_distance': rel_distance_desc})
     @api.marshal_with(count_result)
     @api.expect(parser)
     def post(self):
@@ -208,13 +259,15 @@ class QueryCountDataset(Resource):
         filter_in = payload.get('gcm')
         type = payload.get('type')
         pairs = payload.get('kv')
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
 
-        query = sql_query_generator(filter_in, type, pairs, 'count-dataset')
-        flask.current_app.logger.info(query)
+        query = sql_query_generator(filter_in, type, pairs, 'count-dataset', rel_distance=rel_distance)
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
-        res = db.engine.execute(query).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
         for row in res:
             result.append({f'{x}': row[x] for x in count_result.keys()})
@@ -224,24 +277,26 @@ class QueryCountDataset(Resource):
 
 # TODO check code repetition
 @api.route('/count/source')
-@api.response(404, 'Field not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryCountSource(Resource):
-    @api.doc('return_query_result3')
+    @api.doc('return_query_result3', params={'body': body_desc,
+                                             'rel_distance': rel_distance_desc})
     @api.marshal_with(count_result)
     @api.expect(parser)
     def post(self):
         '''For the posted query, it retrieves number of items aggregated by source'''
 
         json = api.payload
-
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
         filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        query = sql_query_generator(filter_in, type, pairs, 'count-source')
-        flask.current_app.logger.info(query)
+        query = sql_query_generator(filter_in, type, pairs, 'count-source', rel_distance=rel_distance)
+        flask.current_app.logger.debug(query)
 
-        res = db.engine.execute(query).fetchall()
+        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
         for row in res:
             result.append({f'{x}': row[x] for x in count_result.keys()})
@@ -251,25 +306,27 @@ class QueryCountSource(Resource):
 
 # TODO check code repetition
 @api.route('/download')
-@api.response(404, 'Field not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryDownload(Resource):
-    @api.doc('return_query_result4')
+    @api.doc('return_query_result4', params={'body': body_desc,
+                                             'rel_distance': rel_distance_desc})
     @api.expect(parser)
     def post(self):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
         json = api.payload
-
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
         filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        query = sql_query_generator(filter_in, type, pairs, 'download-links')
-        flask.current_app.logger.info(query)
+        query = sql_query_generator(filter_in, type, pairs, 'download-links', rel_distance=rel_distance)
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
-        results = db.engine.execute(query).fetchall()
+        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
 
         results = [x[0] for x in results]
 
@@ -282,26 +339,29 @@ class QueryDownload(Resource):
 
 
 @api.route('/gmql')
-@api.response(404, 'Field not found')  # TODO correct
+@api.response(404, 'Results not found')  # TODO correct
 class QueryGmql(Resource):
-    @api.doc('return_query_result5')
+    @api.doc('return_query_result5', params={'body': body_desc,
+                                             'rel_distance': rel_distance_desc})
     @api.expect(parser)
     def post(self):
         '''Creates gmql query from repository viewer query'''
 
         json = api.payload
+        args = parser.parse_args()
+        rel_distance = args['rel_distance']
 
         filter_in = json.get('gcm')
         type = json.get('type')
         pairs = json.get('kv')
 
-        query = sql_query_generator(filter_in, type, pairs, 'gmql')
-        flask.current_app.logger.info(query)
+        query = sql_query_generator(filter_in, type, pairs, 'gmql', rel_distance=rel_distance)
+        flask.current_app.logger.debug(query)
 
-        flask.current_app.logger.info('got results')
+        flask.current_app.logger.debug('got results')
 
         # result_columns = results.columns
-        results = db.engine.execute(query).fetchall()
+        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
         # TODO CHECK RETURN TYPE
         length = len(results)
 
@@ -333,6 +393,7 @@ class QueryGmql(Resource):
 
         return Response(gmql_query, mimetype='text/plain')
 
+
 def merge_dicts(dict_args):
     """
     Given any number of dicts, shallow copy and merge into a new dict,
@@ -342,7 +403,6 @@ def merge_dicts(dict_args):
     for dictionary in dict_args:
         result.update(dictionary['data'])
     return result
-
 
 # def create_where_part(column, values, is_syn):
 #     col = columns_dict_item[column]
