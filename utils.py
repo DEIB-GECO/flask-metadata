@@ -73,15 +73,15 @@ columns = [
     Column('CaseStudy', 'source_site', str, False, "Physical site where material was analysed"),
 
     # extraction
+    Column('Item', 'content_type', str, True, "Type of represented regions"),
+    Column('Item', 'platform', str, True, "Instrument used to sequence the raw data related to the items"),
+    Column('Item', 'pipeline', str, False, "Methods used for processing phases, from raw data to processed data"),
+
     Column('Dataset', 'data_type', str, False, "Specific kind of genomic data contained in the items"),
     Column('Dataset', 'assembly', str, False, "Reference genome alignment"),
     Column('Dataset', 'file_format', str, False, "Standard data format used in the region items"),
     Column('Dataset', 'is_annotation', bool, False, "True for annotations, False for experimental items"),
     Column('Dataset', 'dataset_name', str, False, "Directory in which items are stored for tertiary analysis"),
-
-    Column('Item', 'content_type', str, True, "Type of represented regions"),
-    Column('Item', 'platform', str, True, "Instrument used to sequence the raw data related to the items"),
-    Column('Item', 'pipeline', str, False, "Methods used for processing phases, from raw data to processed data"),
 
     # biological
     Column('Biosample', 'biosample_type', str, False, "Kind of material sample used for the experiment"),

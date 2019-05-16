@@ -50,7 +50,7 @@ dictConfig({
 
 base_url = '/repo-viewer/'
 api_url = base_url + 'api'
-graph_static_url = base_url + 'graph_static'
+repo_static_url = base_url + 'repo_static'
 
 my_app = Flask(__name__)
 
@@ -66,7 +66,7 @@ simple_page = Blueprint('root_pages', __name__,
 
 graph_pages = Blueprint('static', __name__,
                         # static_url_path='/',
-                        static_folder='./graph_static/',
+                        static_folder='./repo_static/',
                         # template_folder='../vue-metadata/dist'
                         )
 
@@ -88,7 +88,7 @@ def redirect_all(path):
 
 # register blueprints
 my_app.register_blueprint(api_blueprint, url_prefix=api_url)
-my_app.register_blueprint(graph_pages, url_prefix=graph_static_url)
+my_app.register_blueprint(graph_pages, url_prefix=repo_static_url)
 my_app.register_blueprint(simple_page, url_prefix=base_url)
 my_app.app_context().push()
 
