@@ -128,7 +128,8 @@ columns_item.extend((
            "Progressive number of biosample on which the experimental protocol was performed"),
     Column('Replicate', 'technical_replicate_number', int, False,
            "Progressive number of distinct replicates from the same biosample (each treated identically)"),
-    Column('Donor', 'donor_source_id', str, False,""),
+    Column('Donor', 'donor_source_id', str, False, ""),
+    Column('Biosample', 'biosample_source_id', str, False, ""),
 ))
 
 columns_dict = {x.column_name: x for x in columns}

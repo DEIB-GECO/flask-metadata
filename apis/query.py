@@ -116,6 +116,7 @@ query_result = api.model('QueryResult', {
     'disease': fields.String,
     'cell': fields.String,
     'is_healthy': fields.String,
+    'biosample_source_id': fields.String,
 
     # DONOR
     'species': fields.String,
