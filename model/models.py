@@ -3,9 +3,7 @@ from sqlalchemy import BigInteger, Boolean, Column, Integer, Table, Text, Unique
 
 from flask_sqlalchemy import SQLAlchemy
 
-
 db = SQLAlchemy()
-
 
 t_flatten = db.Table(
     'flatten',
@@ -15,6 +13,7 @@ t_flatten = db.Table(
     db.Column('cell', db.Text),
     db.Column('is_healthy', db.Boolean),
     db.Column('disease', db.Text),
+    db.Column('biosample_source_id', db.Text),
     db.Column('source_site', db.Text),
     db.Column('external_reference', db.Text),
     db.Column('dataset_name', db.Text),
@@ -26,6 +25,7 @@ t_flatten = db.Table(
     db.Column('age', db.Integer),
     db.Column('gender', db.Text),
     db.Column('ethnicity', db.Text),
+    db.Column('donor_source_id', db.Text),
     db.Column('technique', db.Text),
     db.Column('feature', db.Text),
     db.Column('target', db.Text),
@@ -39,6 +39,11 @@ t_flatten = db.Table(
     db.Column('technical_replicate_number', db.Text),
     db.Column('biological_replicate_count', db.BigInteger),
     db.Column('technical_replicate_count', db.BigInteger),
-    db.UniqueConstraint('item_id', 'biosample_type', 'tissue', 'cell', 'is_healthy', 'disease', 'source_site', 'external_reference', 'dataset_name', 'data_type', 'file_format', 'assembly', 'is_annotation', 'species', 'age', 'gender', 'ethnicity', 'technique', 'feature', 'target', 'antibody', 'platform', 'pipeline', 'content_type', 'source', 'project_name', 'biological_replicate_number', 'technical_replicate_number', 'biological_replicate_count', 'technical_replicate_count'),
+    db.UniqueConstraint('item_id', 'biosample_type', 'tissue', 'cell', 'is_healthy', 'disease', 'donor_source_id',
+                        'source_site', 'external_reference', 'dataset_name', 'data_type', 'file_format', 'assembly',
+                        'is_annotation', 'species', 'age', 'gender', 'ethnicity', 'donor_source_id', 'technique',
+                        'feature', 'target', 'antibody', 'platform', 'pipeline', 'content_type', 'source',
+                        'project_name', 'biological_replicate_number', 'technical_replicate_number',
+                        'biological_replicate_count', 'technical_replicate_count'),
     schema='dw'
 )
