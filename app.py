@@ -23,9 +23,9 @@ def get_db_uri():
     #postgres_pw = get_env_variable("POSTGRES_PW")
     #postgres_db = get_env_variable("POSTGRES_DB")
     postgres_url = "localhost"
-    postgres_user = "geco"
+    postgres_user = "geco_ro"
     postgres_pw = "geco78"
-    postgres_db = "gmql_meta_new7"
+    postgres_db = "gmql_meta_new8"
     return 'postgresql+psycopg2://{user}:{pw}@{url}/{db}'.format(user=postgres_user,
                                                                  pw=postgres_pw,
                                                                  url=postgres_url,
@@ -48,7 +48,7 @@ dictConfig({
     }
 })
 
-base_url = '/repo-viewer/'
+base_url = '/genosurf/'
 api_url = base_url + 'api'
 repo_static_url = base_url + 'repo_static'
 

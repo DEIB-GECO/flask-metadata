@@ -11,9 +11,9 @@ from .pair import api as pair_api
 api_blueprint = Blueprint('api', __name__)
 
 api = Api(api_blueprint,
-          title='Repository Viewer API',
+          title='GenoSurf API',
           version='1.0',
-          description='Repository Viewer API is a set of RESTful endpoints -- programmable interfaces over the Web -- '
+          description='GenoSurf API is a set of RESTful endpoints -- programmable interfaces over the Web -- '
                       'that allows third-party developers to build automation scripts and apps. '
                       'This documentation describes the API in detail, including data model information of both inputs '
                       '(parameters) and outputs (response records). It also allows you to interact with and test out '

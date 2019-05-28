@@ -52,7 +52,7 @@ parser.add_argument('voc', type=inputs.boolean,
 #     # @api.expect(parser)
 #     def get(self, label, id):
 #
-#         # url = f'/repo-viewer/api/item/{id}/count'
+#         # url = f'/genosurf/api/item/{id}/count'
 #         # r = requests.get(url)
 #         #
 #         # count = r.content

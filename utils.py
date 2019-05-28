@@ -257,12 +257,12 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         lower_pre = 'LOWER(' if column_type == str else ''
         lower_post = ')' if column_type == str else ''
         distinct = ""
-        if search_type == 'original':
-            distinct = "distinct"
+        # if search_type == 'original':
+        distinct = "distinct"
         select_part = f"SELECT {distinct} {lower_pre}{field_selected}{lower_post} as label, it.item_id as item "
 
     elif return_type == 'field_value_tid':
-        select_part = f"SELECT LOWER(label), it.item_id as item "
+        select_part = f"SELECT distinct LOWER(label), it.item_id as item "
 
         if search_type == 'synonym':
             from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
