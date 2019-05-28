@@ -347,7 +347,7 @@ class QueryGmql(Resource):
                                              'rel_distance': rel_distance_desc})
     @api.expect(parser)
     def post(self):
-        '''Creates gmql query from repository viewer query'''
+        '''Creates gmql query from GenoSurf query'''
 
         json = api.payload
         args = parser.parse_args()

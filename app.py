@@ -48,7 +48,7 @@ dictConfig({
     }
 })
 
-base_url = '/repo-viewer/'
+base_url = '/genosurf/'
 api_url = base_url + 'api'
 repo_static_url = base_url + 'repo_static'
 
