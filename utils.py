@@ -160,7 +160,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     experiment_type_join = " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id"
 
     replicate_join = " join replicate2item r2i on it.item_id = r2i.item_id" \
-                     " join replicate rep on r2i.replicate_id = rep.replicate_id"
+                     " join dw.replicate rep on r2i.replicate_id = rep.replicate_id"
 
     biosample_join = " join biosample bi on rep.biosample_id = bi.biosample_id"
 
@@ -216,7 +216,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                 x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables) + " "
 
             select_part += "," + ','.join(
-                "STRING_AGG(COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ORDER BY item_source_id) as "
+                "STRING_AGG(DISTINCT COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ) as "
                 + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
             group_by_part = " GROUP BY " + ",".join(
                 x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
