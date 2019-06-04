@@ -309,7 +309,13 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                              if value is not None]
         if col.column_name == 'age':
             min = values['min_age']
+            if min is None:
+                min = -1
+
             max = values['max_age']
+            if max is None:
+                max = 500*365
+
             isNull = values['null']
             a = f" age >= {min} and age <= {max} "
             if isNull:

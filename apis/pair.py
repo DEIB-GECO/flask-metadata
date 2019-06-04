@@ -148,10 +148,10 @@ class Key(Resource):
 
         # print(from_sub)
         # print(where_sub)
-        query = f"select distinct up.value as value, count(up.item_id) as count " + from_sub + \
-                " join unified_pair up on it.item_id = up.item_id " + where_sub + \
-                f" and lower(up.key) = lower('{key}') and up.is_gcm = {is_gcm}" \
-                    f" group by up.value"
+        query = f"select up.value as value, count(distinct it.item_id) as count " + from_sub +  " " \
+                "left join unified_pair up on (" \
+                f"it.item_id = up.item_id and up.key = lower('{key}') and up.is_gcm = {is_gcm}) " + where_sub + \
+                f" group by up.value"
 
         flask.current_app.logger.debug(query)
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
