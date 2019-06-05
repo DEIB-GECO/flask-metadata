@@ -152,18 +152,6 @@ class Key(Resource):
                 " join unified_pair up on it.item_id = up.item_id " + where_sub + \
                 f" and up.key = lower('{key}') and up.is_gcm = {is_gcm} " \
                 " group by up.value"
-        print()
-        print()
-        print()
-        print()
-        print(query)
-        print()
-        print()
-        print()
-        print()
-        print("")
-
-
 
 
         flask.current_app.logger.debug(query)
