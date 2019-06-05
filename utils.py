@@ -316,8 +316,8 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
             if max is None:
                 max = 500*365
 
-            isNull = values['null']
-            a = f" age >= {min} and age <= {max} "
+            isNull = values['is_null']
+            a = f" (age >= {min} and age <= {max}) "
             if isNull:
                 a += "or age is null "
             sub_where.append(a)
