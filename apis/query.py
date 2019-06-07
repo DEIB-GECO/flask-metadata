@@ -6,6 +6,8 @@ from model.models import db
 from utils import columns_dict_item, \
     run_query, views, calc_distance, var_table, agg_tables, generate_where_sql, sql_query_generator
 import json
+from flask import request
+import time, datetime
 
 api = Namespace('query', description='Operations to perform queries using metadata')
 
@@ -240,6 +242,27 @@ class QueryCountDataset(Resource):
         query += sub_query + ") as a "
         flask.current_app.logger.debug(query)
 
+        import os
+        ROOT_DIR = os.path.abspath(os.curdir).replace("vue","flask")
+        print(ROOT_DIR)
+        fn = ROOT_DIR+"/logs/count.log"
+        f = open(fn, 'a+')
+        header = "timestamp\tIP_address\tquery\n"
+        addr = request.remote_addr
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        data = timestamp+"\t"+addr+"\t"+str(payload)+"\n"
+        f.seek(0)
+        firstline = f.read()
+
+
+        if firstline == '':
+            f.write(header)
+            f.write(data)
+        else:
+            f.write(data)
+
+        f.close()
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         flask.current_app.logger.debug('got results')
         return res[0][0]
