@@ -250,7 +250,7 @@ class QueryCountDataset(Resource):
         fn = ROOT_DIR+"/logs/count.log"
         f = open(fn, 'a+')
         header = "timestamp\tIP_address\tquery\n"
-        addr = request.remote_addr
+        addr = request.environ['HTTP_X_REAL_IP']
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         data = timestamp+"\t"+addr+"\t"+str(payload)+"\n"
