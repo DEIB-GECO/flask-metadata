@@ -243,7 +243,7 @@ class QueryCountDataset(Resource):
         query += sub_query + ") as a "
         flask.current_app.logger.debug(query)
 
-        ROOT_DIR = os.path.abspath(os.curdir).replace("vue","flask")
+        ROOT_DIR = os.path.dirname(os.getcwd())
         print(ROOT_DIR)
         if not os.path.exists(ROOT_DIR+"/logs"):
             os.makedirs(ROOT_DIR+"/logs")
