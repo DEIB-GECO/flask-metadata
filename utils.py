@@ -1,7 +1,12 @@
+import os
+import time, datetime
+
 from neo4jrestclient.client import GraphDatabase
 # noinspection PyUnresolvedReferences
 from neo4jrestclient.constants import DATA_GRAPH, DATA_ROWS, RAW
 from collections import OrderedDict
+
+from flask import request
 
 # the view order definitions
 views = {
@@ -314,7 +319,7 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
 
             max = values['max_age']
             if max is None:
-                max = 500*365
+                max = 500 * 365
 
             isNull = values['is_null']
             a = f" (age >= {min} and age <= {max}) "
@@ -384,3 +389,37 @@ def generate_where_pairs(pair_query):
         where_part = "(" + ") AND (".join(where) + ")"
 
     return {'where': where_part, 'join': " ".join(pair_join)}
+
+
+
+
+
+#IP ADDRESS AND QUERY LOGGING
+
+ROOT_DIR = os.path.dirname(os.getcwd())
+if not os.path.exists(ROOT_DIR + "/logs"):
+    os.makedirs(ROOT_DIR + "/logs")
+fn = ROOT_DIR + "/logs/count.log"
+f = open(fn, 'a+')
+header = "timestamp\tIP_address\tendpoint\tquery\tpayload\n"
+
+f.seek(0)
+firstline = f.read()
+
+if firstline == '':
+    f.write(header)
+
+f.close()
+
+
+def log_query(endpoint,q,payload):
+    if 'HTTP_X_REAL_IP' in request.environ:
+        addr = request.environ['HTTP_X_REAL_IP']
+    else:
+        addr = request.remote_addr
+    ts = time.time()
+    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    data = timestamp + "\t" + addr + "\t" + endpoint + "\t" + q + "\t" + str(payload) + "\n"
+    fi = open(fn, 'a+')
+    fi.write(data)
+    fi.close()

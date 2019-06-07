@@ -5,7 +5,7 @@ from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
 from utils import columns_dict_item, \
-    run_query, views, calc_distance, var_table, agg_tables, generate_where_sql, sql_query_generator
+    run_query, views, calc_distance, var_table, agg_tables, generate_where_sql, sql_query_generator, log_query
 import json
 from flask import request
 import time, datetime
@@ -243,28 +243,8 @@ class QueryCountDataset(Resource):
         query += sub_query + ") as a "
         flask.current_app.logger.debug(query)
 
-        ROOT_DIR = os.path.dirname(os.getcwd())
-        print(ROOT_DIR)
-        if not os.path.exists(ROOT_DIR+"/logs"):
-            os.makedirs(ROOT_DIR+"/logs")
-        fn = ROOT_DIR+"/logs/count.log"
-        f = open(fn, 'a+')
-        header = "timestamp\tIP_address\tquery\n"
-        addr = request.environ['HTTP_X_REAL_IP']
-        ts = time.time()
-        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-        data = timestamp+"\t"+addr+"\t"+str(payload)+"\n"
-        f.seek(0)
-        firstline = f.read()
+        log_query('query/count','',payload)
 
-
-        if firstline == '':
-            f.write(header)
-            f.write(data)
-        else:
-            f.write(data)
-
-        f.close()
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         flask.current_app.logger.debug('got results')
         return res[0][0]

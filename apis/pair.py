@@ -3,7 +3,7 @@ from flask_restplus import fields
 from flask_restplus import inputs
 import sqlalchemy
 import flask
-from utils import sql_query_generator
+from utils import sql_query_generator, log_query
 from model.models import db
 
 api = Namespace('pair', description='Operations to perform queries on key-value metadata pairs')
@@ -116,6 +116,8 @@ class Key(Resource):
 
         results = {'gcm': results_gcm, 'pairs': results_pairs}
 
+        log_query('pair/keys',q,payload)
+
         return results
 
 
@@ -220,4 +222,7 @@ class Key(Resource):
                 results_pairs.append({'key': r.key, 'value': r.value, 'count': r.count, 'id': j})
                 j += 1
         results = {'gcm': results_gcm, 'pairs': results_pairs}
+
+        log_query('pair/values',q,payload)
+
         return results
