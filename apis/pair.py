@@ -76,6 +76,8 @@ class Key(Resource):
 
         payload = api.payload
 
+        log_query('pair/keys',q,payload)
+
         filter_in = payload.get("gcm")
         type = payload.get("type")
         pairs = payload.get("kv")
@@ -115,8 +117,6 @@ class Key(Resource):
             results_pairs.append({'key': r.key, 'count_values': r.count})
 
         results = {'gcm': results_gcm, 'pairs': results_pairs}
-
-        log_query('pair/keys',q,payload)
 
         return results
 
@@ -190,6 +190,8 @@ class Key(Resource):
 
         payload = api.payload
 
+        log_query('pair/values', q, payload)
+
         filter_in = payload.get("gcm")
         type = payload.get("type")
         pairs = payload.get("kv")
@@ -222,7 +224,5 @@ class Key(Resource):
                 results_pairs.append({'key': r.key, 'value': r.value, 'count': r.count, 'id': j})
                 j += 1
         results = {'gcm': results_gcm, 'pairs': results_pairs}
-
-        log_query('pair/values',q,payload)
 
         return results

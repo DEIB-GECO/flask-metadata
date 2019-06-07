@@ -230,6 +230,8 @@ class QueryCountDataset(Resource):
     def post(self):
         '''For the posted query, it retrieves the total number of item rows'''
         payload = api.payload
+        log_query('query/count', '', payload)
+
         filter_in = payload.get('gcm')
         type = payload.get('type')
         pairs = payload.get('kv')
@@ -242,8 +244,6 @@ class QueryCountDataset(Resource):
                                         rel_distance=rel_distance)
         query += sub_query + ") as a "
         flask.current_app.logger.debug(query)
-
-        log_query('query/count','',payload)
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         flask.current_app.logger.debug('got results')
