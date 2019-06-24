@@ -1,14 +1,10 @@
-import os
 import flask
 import sqlalchemy
 from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
+
 from model.models import db
-from utils import columns_dict_item, \
-    run_query, views, calc_distance, var_table, agg_tables, generate_where_sql, sql_query_generator, log_query
-import json
-from flask import request
-import time, datetime
+from utils import sql_query_generator, log_query
 
 api = Namespace('query', description='Operations to perform queries using metadata')
 
@@ -336,6 +332,9 @@ class QueryDownload(Resource):
         results = db.engine.execute(sqlalchemy.text(query)).fetchall()
 
         results = [x[0] for x in results]
+
+        # add meta files
+        results = [y for x in results for y in (x, x[::-1].replace("noiger", "atadatem", 1)[::-1])]
 
         results = [x.replace("www.gmql.eu", "genomic.deib.polimi.it") for x in results]
         results = [x + "?authToken=DOWNLOAD-TOKEN" for x in results]

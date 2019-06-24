@@ -423,3 +423,22 @@ def log_query(endpoint,q,payload):
     fi = open(fn, 'a+')
     fi.write(data)
     fi.close()
+
+
+
+def ip_info(addr=''):
+    from urllib.request import urlopen
+    from json import load
+    if addr == '':
+        url = 'https://ipinfo.io/json'
+    else:
+        url = 'https://ipinfo.io/' + addr + '/json'
+    res = urlopen(url)
+    #response from url(if res==None then check connection)
+    data = load(res)
+    #will load the json response into data
+    for attr in data.keys():
+        #will print the data line by line
+        print(attr,' '*13+'\t->\t',data[attr])
+    print(data)
+
