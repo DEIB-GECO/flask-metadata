@@ -324,7 +324,13 @@ class QueryDownload(Resource):
         type = json.get('type')
         pairs = json.get('kv')
 
-        query = sql_query_generator(filter_in, type, pairs, 'download-links', rel_distance=rel_distance)
+        orderCol = args['order_col']
+        orderDir = args['order_dir']
+        if orderCol == "null":
+            orderCol = "item_source_id"
+
+        query = sql_query_generator(filter_in, type, pairs, 'download-links', rel_distance=rel_distance,
+                                    order_col=orderCol, order_dir=orderDir)
         flask.current_app.logger.debug(query)
 
         flask.current_app.logger.debug('got results')
