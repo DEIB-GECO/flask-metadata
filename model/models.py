@@ -14,6 +14,7 @@ t_flatten = db.Table(
     db.Column('is_healthy', db.Boolean),
     db.Column('disease', db.Text),
     db.Column('biosample_source_id', db.Text),
+    db.Column('alt_biosample_source_id', db.Text),
     db.Column('source_site', db.Text),
     db.Column('external_reference', db.Text),
     db.Column('dataset_name', db.Text),
