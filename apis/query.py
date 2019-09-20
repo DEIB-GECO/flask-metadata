@@ -324,8 +324,16 @@ class QueryDownload(Resource):
         type = json.get('type')
         pairs = json.get('kv')
 
-        orderCol = args['order_col']
-        orderDir = args['order_dir']
+        if 'order_col' in args:
+            orderCol = args['order_col']
+        else :
+            orderCol = "null"
+
+        if 'order_dir' in args:
+            orderDir = args['order_dir']
+        else :
+            orderDir = "ASC"
+
         if orderCol == "null":
             orderCol = "item_source_id"
 
