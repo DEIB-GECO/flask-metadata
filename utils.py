@@ -136,6 +136,8 @@ columns_item.extend((
     Column('Donor', 'donor_source_id', str, False, ""),
     Column('Biosample', 'biosample_source_id', str, False, ""),
     Column('Biosample', 'alt_biosample_source_id', str, False, ""),
+    Column('Donor', 'alt_donor_source_id', str, False, ""),
+    Column('Item', 'alt_item_source_id', str, False, ""),
 ))
 
 columns_dict = {x.column_name: x for x in columns}

@@ -89,6 +89,7 @@ query_result = api.model('QueryResult', {
     'local_url': fields.String,
     'content_type': fields.String,
     'source_page': fields.String,
+    'alt_item_source_id': fields.String,
 
     # DATASET
     'dataset_name': fields.String,
@@ -124,6 +125,7 @@ query_result = api.model('QueryResult', {
     'gender': fields.String,
     'ethnicity': fields.String,
     'donor_source_id': fields.String,
+    'alt_donor_source_id': fields.String,
 
     # CASE
     'source_site': fields.String,
