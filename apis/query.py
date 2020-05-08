@@ -156,6 +156,9 @@ order_dir_desc = 'Order of column specified in order_col parameter: asc (ascenda
 
 rel_distance_desc = 'When type is \'expanded\', it indicates the depth of hyponyms in the ontological hierarchy to consider.'
 
+deprecated_desc = "## In the next release, the endpoint will not be available\n" + \
+                  "## Please use */field/{field_name}* endpoint\n" + \
+                  "------------------\n"
 
 #############################SERVICES IMPLEMENTATION#############################################
 @api.route('/table')
@@ -250,11 +253,12 @@ class QueryCountDataset(Resource):
 
 
 # TODO check code repetition
+@api.deprecated
 @api.route('/count/dataset')
 @api.response(404, 'Results not found')  # TODO correct
 class QueryCountDataset(Resource):
-    @api.doc('return_query_result2', params={'body': body_desc,
-                                             'rel_distance': rel_distance_desc})
+    @api.doc('return_query_result2', params={'body': deprecated_desc + body_desc,
+                                             'rel_distance': rel_distance_desc}, )
     @api.marshal_with(count_result)
     @api.expect(parser)
     def post(self):
@@ -282,10 +286,11 @@ class QueryCountDataset(Resource):
 
 
 # TODO check code repetition
+@api.deprecated
 @api.route('/count/source')
 @api.response(404, 'Results not found')  # TODO correct
 class QueryCountSource(Resource):
-    @api.doc('return_query_result3', params={'body': body_desc,
+    @api.doc('return_query_result3', params={'body': deprecated_desc + body_desc,
                                              'rel_distance': rel_distance_desc})
     @api.marshal_with(count_result)
     @api.expect(parser)
