@@ -7,7 +7,6 @@ from .query import api as query_api
 from .item import api as item_api
 from .pair import api as pair_api
 
-# TODO change URL prefix before deploy
 api_blueprint = Blueprint('api', __name__)
 
 api = Api(api_blueprint,
@@ -36,5 +35,6 @@ api.add_namespace(models_api)
 
 api.add_namespace(field_api)
 api.add_namespace(query_api)
-api.add_namespace(item_api)
-api.add_namespace(pair_api)
+# TODO removed item and pair
+# api.add_namespace(item_api)
+# api.add_namespace(pair_api)

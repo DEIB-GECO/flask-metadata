@@ -3,14 +3,13 @@ from flask_restplus import fields
 from flask_restplus import inputs
 import sqlalchemy
 import flask
-from utils import sql_query_generator, log_query
+from utils import sql_query_generator, log_query, center_table_id
 from model.models import db
 
 api = Namespace('pair', description='Operations to perform queries on key-value metadata pairs')
 
 query = api.model('Pair', {
     'key': fields.String(attribute='column_name', required=True, description='Field name '),
-    # 'info': fields.Nested(info, required=False, description='Info', skip_none=True),
 })
 
 parser = api.parser()
@@ -89,8 +88,6 @@ class Key(Resource):
         from_sub = sub_query[from_start:where_start]
         where_sub = sub_query[where_start:]
 
-        # print(from_sub)
-        # print(where_sub)
         query_gcm = f"select up.key as key, " \
                         f" count(distinct up.value) as count, " \
                         f" array(select unnest(array_agg(distinct up.value)) limit 10) as ex_values " + from_sub + \
@@ -148,8 +145,6 @@ class Key(Resource):
         from_sub = sub_query[from_start:where_start]
         where_sub = sub_query[where_start:]
 
-        # print(from_sub)
-        # print(where_sub)
         query = f"select up.value as value, count(distinct it.item_id) as count " + from_sub + " " \
                 " join unified_pair up on it.item_id = up.item_id " + where_sub + \
                 f" and up.key = lower('{key}') and up.is_gcm = {is_gcm} " \
