@@ -70,8 +70,6 @@ def calc_distance(view_name, pre_table, table_name):
 
 
 columns = [
-
-
 #    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None):
     # technological
     #Column('Sequence', 'accession_id', str, False, "Sequence-accession_id description"),
@@ -89,7 +87,7 @@ columns = [
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False, "ExperimentType-sequencing_lab description"),
-    #Column('SequencingProject', 'submission_date', str, False, "ExperimentType-submission_date description"),
+    Column('SequencingProject', 'submission_date', datetime, False, "ExperimentType-submission_date description"),
     Column('SequencingProject', 'bioproject_id', str, False, "ExperimentType-bioproject_id description"),
     Column('SequencingProject', 'database_source', str, False, "ExperimentType-database_source description"),
 
@@ -98,7 +96,7 @@ columns = [
     #Column('HostSample', 'species_taxon_id', int, False, "HostSample-species_taxon_id description"),
     #Column('HostSample', 'collection_date', str, False, "HostSample-collection_date description"),
     #Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
-    #Column('HostSample', 'oritinating_lab', str, False, "HostSample-oritinating_lab description"),
+    #Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
     #Column('HostSample', 'country', str, False, "HostSample-country description"),
     #Column('HostSample', 'region', str, False, "HostSample-region description"),
     #Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
@@ -113,11 +111,11 @@ columns_item = list(columns)
 
 columns_item.extend((
     Column('Sequence', 'accession_id', str, False, ""),
-    Column('Sequence','nucleotide_sequence',str, False, "")
+    Column('Sequence','nucleotide_sequence',str, False, ""),
     # Column('Item', 'item_source_id', str, False, ""),
     # Column('Item', 'size', str, False, ""),
     # Column('Item', 'date', str, False, ""),
-    # Column('Item', 'source_url', str, False, ""),
+    #Column('Sequence', 'source_url', str, False, ""),
     # Column('Item', 'local_url', str, False, ""),
     # Column('Item', 'source_page', str, False, ""),
     # Column('Replicate', 'biological_replicate_number', int, False,

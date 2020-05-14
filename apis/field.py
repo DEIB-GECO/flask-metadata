@@ -8,6 +8,9 @@ from model.models import t_flatten, db
 from utils import columns_dict, unfold_list, sql_query_generator
 from .flask_models import Info, info_field
 
+import datetime
+
+
 api = Namespace('field',
                 description='Operations related to fields (i.e., attributes from the Genomic Conceptual Model)')
 
@@ -128,7 +131,13 @@ class FieldValue(Resource):
                 flask.current_app.logger.debug(query)
                 item_count = sum(map(lambda row: row['item_count'], res))
 
-                res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+                if column.column_type == datetime:
+                    res = [{'value': str(row['label']), 'count': row['item_count']} for row in res]
+                else:
+                    res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+
+                if field_name == 'gc_percentage':
+                    print(res)
 
                 length = len(res)
 
