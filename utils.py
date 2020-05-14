@@ -13,10 +13,10 @@ center_table_id = 'sequence_id'
 
 # the view order definitions
 views = {
-    # 'biological_h': [center_table, 'HostSample'],
-    # 'biological_v': [center_table, 'Virus'],
+    #'biological_h': [center_table, 'HostSample'],
+    #'biological_v': [center_table, 'Virus'],
     'technological': [center_table, 'ExperimentType'],
-    # 'organizational': [center_table, 'SequencingProject'],
+    'organizational': [center_table, 'SequencingProject'],
     # 'analytical_a': [center_table, 'Annotation', 'AminoAcidVariant'],
     # 'analytical_v': [center_table, 'Variant'],
 
@@ -74,18 +74,46 @@ columns = [
 
 #    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None):
     # technological
+    #Column('Sequence', 'accession_id', str, False, "Sequence-accession_id description"),
     Column('Sequence', 'strain_name', str, False, "Sequence-strain_name description"),
-    Column('Sequence', 'accession_id', str, False, "Sequence-accession_id description"),
+    Column('Sequence', 'is_reference', bool, False, "Sequence-is_reference description"),
     Column('Sequence', 'is_complete', bool, False, "Sequence-is_complete description"),
+    #Column('Sequence', 'nucleotide_sequence', str, False, "Sequence-nucleotide_sequence description"),
+    Column('Sequence', 'strand', str, False, "Sequence-strand description"),
+    Column('Sequence', 'length', int, False, "Sequence-length description"),
+    Column('Sequence', 'gc_percentage', float, False, "Sequence-gc_percentage description"),
 
-    Column('ExperimentType', 'sequencing_technology', str, False, "ExperimentType-sequence_technology description"),
+    Column('ExperimentType', 'sequencing_technology', str, False, "ExperimentType-sequencing_technology description"),
     Column('ExperimentType', 'assembly_method', str, False, "ExperimentType-assembly_method description"),
+    Column('ExperimentType', 'coverage', str, False, "ExperimentType-coverage description"),
 
+    # organizational
+    Column('SequencingProject', 'sequencing_lab', str, False, "ExperimentType-sequencing_lab description"),
+    #Column('SequencingProject', 'submission_date', str, False, "ExperimentType-submission_date description"),
+    Column('SequencingProject', 'bioproject_id', str, False, "ExperimentType-bioproject_id description"),
+    Column('SequencingProject', 'database_source', str, False, "ExperimentType-database_source description"),
+
+    # biological
+    #Column('HostSample', 'species', str, False, "HostSample-species description"),
+    #Column('HostSample', 'species_taxon_id', int, False, "HostSample-species_taxon_id description"),
+    #Column('HostSample', 'collection_date', str, False, "HostSample-collection_date description"),
+    #Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
+    #Column('HostSample', 'oritinating_lab', str, False, "HostSample-oritinating_lab description"),
+    #Column('HostSample', 'country', str, False, "HostSample-country description"),
+    #Column('HostSample', 'region', str, False, "HostSample-region description"),
+    #Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
+
+    #Column('Virus', 'virus_taxonomy_id', str, False, "Virus-virus_taxonomy_id description"),
+    #Column('Virus', 'species_name', str, False, "Virus-species_name description"),
+    #Column('Virus', 'species_taxon_id', str, False, "Virus-species_taxon_id description"),
+    #Column('Virus', 'genbank_acronym', str, False, "Virus-genbank_acronym description"),
 ]
+
 columns_item = list(columns)
 
 columns_item.extend((
-    Column('ExperimentType', 'coverage', str, False, ""),
+    Column('Sequence', 'accession_id', str, False, ""),
+    Column('Sequence','nucleotide_sequence',str, False, "")
     # Column('Item', 'item_source_id', str, False, ""),
     # Column('Item', 'size', str, False, ""),
     # Column('Item', 'date', str, False, ""),
@@ -130,7 +158,13 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     item = " FROM sequence it "
     # dataset_join = " join dataset da on it.dataset_id = da.dataset_id "
 
-    experiment_type_join = " join experiment_type ex on it.experiment_type_id= ex.experiment_type_id"
+    experiment_type_join = " join experiment_type ex on it.experiment_type_id = ex.experiment_type_id"
+
+    sequencing_project_join = " join sequence_project sp on it.sequence_project_id = sp.sequence_project_id"
+
+    #host_sample_join = " join host_sample hs on it.host_sample_id = hs.host_sample_id"
+
+    #virus_join = " join virus v on it.virus_id = v.virus_id"
 
     # replicate_join = " join replicate2item r2i on it.item_id = r2i.item_id" \
     #                  " join dw.replicate rep on r2i.replicate_id = rep.replicate_id"
@@ -146,8 +180,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     view_join = {
         # TODO VIRUS
-        # 'biological': [replicate_join, biosample_join, donor_join],
-        # 'management': [case_join, project_join],
+        #'biological_h': [host_sample_join],
+        #'biological_v': [virus_join],
+        'organizational': [sequencing_project_join],
         'technological': [experiment_type_join],
         # 'extraction': [dataset_join],
     }
@@ -166,7 +201,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     else:
         # from_part = item + dataset_join + experiment_type_join + replicate_join + biosample_join + donor_join + case_join + project_join + pair_join
         # TODO VIRUS add all tables
-        from_part = item + experiment_type_join + pair_join
+        from_part = item + experiment_type_join + sequencing_project_join + pair_join #+ host_sample_join + virus_join
 
 
 

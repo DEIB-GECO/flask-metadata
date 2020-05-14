@@ -25,7 +25,7 @@ def get_db_uri():
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = "geco78"
-    postgres_db = "vcm_01"
+    postgres_db = "vcm_dev"
     return 'postgresql+psycopg2://{user}:{pw}@{url}/{db}'.format(user=postgres_user,
                                                                  pw=postgres_pw,
                                                                  url=postgres_url,
@@ -48,7 +48,7 @@ dictConfig({
     }
 })
 
-base_url = '/genosurf/'
+base_url = '/virusurf/'
 api_url = base_url + 'api'
 repo_static_url = base_url + 'repo_static'
 
