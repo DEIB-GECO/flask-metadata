@@ -1,15 +1,14 @@
+import datetime
+
 import flask
+import sqlalchemy
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
-import sqlalchemy
 
-from model.models import t_flatten, db
-from utils import columns_dict, unfold_list, sql_query_generator
+from model.models import db
+from utils import columns_dict, sql_query_generator
 from .flask_models import Info, info_field
-
-import datetime
-
 
 api = Namespace('field',
                 description='Operations related to fields (i.e., attributes from the Genomic Conceptual Model)')
@@ -136,8 +135,6 @@ class FieldValue(Resource):
                 else:
                     res = [{'value': row['label'], 'count': row['item_count']} for row in res]
 
-                if field_name == 'gc_percentage':
-                    print(res)
 
                 length = len(res)
 

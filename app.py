@@ -1,13 +1,11 @@
+import os
 from logging.config import dictConfig
 
 import flask
 from flask import Flask, render_template, redirect, Blueprint, url_for
 
 from apis import api_blueprint
-
 from model.models import db
-
-import os
 
 
 def get_env_variable(name):

@@ -1,17 +1,7 @@
 import flask
-from flask_restplus import Namespace, Resource
-from flask_restplus import fields
-from flask_restplus import inputs
-from neo4jrestclient import constants
-
-import flask
-from flask import Response
 from flask_restplus import Namespace, Resource, fields, inputs
+
 from model.models import db
-
-import requests
-
-from utils import unfold_list
 from .flask_models import info_field, Info
 
 api = Namespace('item', description='Operations applicable on single items')

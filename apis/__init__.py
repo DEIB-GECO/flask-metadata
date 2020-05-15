@@ -3,9 +3,9 @@ from flask_restplus import Api
 
 from .field import api as field_api
 from .flask_models import api as models_api
-from .query import api as query_api
 from .item import api as item_api
 from .pair import api as pair_api
+from .query import api as query_api
 
 api_blueprint = Blueprint('api', __name__)
 

@@ -1,10 +1,11 @@
+import flask
+import sqlalchemy
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
-import sqlalchemy
-import flask
-from utils import sql_query_generator, log_query, center_table_id
+
 from model.models import db
+from utils import sql_query_generator, log_query
 
 api = Namespace('pair', description='Operations to perform queries on key-value metadata pairs')
 

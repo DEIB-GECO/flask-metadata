@@ -1,9 +1,6 @@
+import datetime
 import os
-import time, datetime
-
-from neo4jrestclient.client import GraphDatabase
-# noinspection PyUnresolvedReferences
-from neo4jrestclient.constants import DATA_GRAPH, DATA_ROWS, RAW
+import time
 from collections import OrderedDict
 
 from flask import request
