@@ -62,6 +62,8 @@ query_result = api.model('QueryResult', {
     'is_positive_stranded': fields.String,
     'host_taxon_id': fields.String,
     'host_taxon_name': fields.String,
+    'gender': fields.String,
+    'age': fields.String,
     'collection_date': fields.String,
     'isolation_source': fields.String,
     'originating_lab': fields.String,

@@ -97,6 +97,8 @@ columns = [
     Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
     Column('HostSample', 'country', str, False, "HostSample-country description"),
     Column('HostSample', 'region', str, False, "HostSample-region description"),
+    Column('HostSample', 'gender', str, False, "HostSample-gender description"),
+    Column('HostSample', 'age', int, False, "HostSample-age description"),
 ]
 
 columns_item = list(columns)
