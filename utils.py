@@ -10,8 +10,8 @@ center_table_id = 'sequence_id'
 
 # the view order definitions
 views = {
-    'biological_h': [center_table, 'HostSample'],
     'biological_v': [center_table, 'Virus'],
+    'biological_h': [center_table, 'HostSample'],
     'technological': [center_table, 'ExperimentType'],
     'organizational': [center_table, 'SequencingProject'],
     # 'analytical_a': [center_table, 'Annotation', 'AminoAcidVariant'],
@@ -88,15 +88,15 @@ columns = [
     Column('SequencingProject', 'database_source', str, False, "ExperimentType-database_source description"),
 
     # biological
+    Column('Virus', 'taxon_id', int, False, "Virus-virus_taxonomy_id description", "Virus taxon id"),
+    Column('Virus', 'taxon_name', str, False, "Virus-virus_taxonomy_id description", "Virus taxon name"),
+    Column('Virus', 'species', str, False, "Virus-species_name description", "Virus species"),
+
     Column('HostSample', 'host_taxon_name', str, False, "HostSample-host_taxon_name description"),
     Column('HostSample', 'collection_date', str, False, "HostSample-collection_date description"),
     Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
     Column('HostSample', 'country', str, False, "HostSample-country description"),
     Column('HostSample', 'region', str, False, "HostSample-region description"),
-
-    Column('Virus', 'taxon_id', int, False, "Virus-virus_taxonomy_id description"),
-    Column('Virus', 'taxon_name', str, False, "Virus-virus_taxonomy_id description"),
-    Column('Virus', 'species', str, False, "Virus-species_name description")
 ]
 
 columns_item = list(columns)
