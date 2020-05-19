@@ -74,7 +74,6 @@ rel_distance_hyper_desc = 'When type is \'expanded\', it indicates the depth of 
 
 
 @api.route("/age")
-@api.hide
 class Age(Resource):
     @api.doc('return_age_interval', params={'body': body_desc,
                                             'rel_distance': rel_distance_hyper_desc})
@@ -100,7 +99,6 @@ class Age(Resource):
             }
 
         return result
-
 
 @api.route('/<field_name>')
 @api.response(404, 'Field not found')
