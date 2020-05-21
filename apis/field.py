@@ -19,7 +19,9 @@ field = api.model('Field', {
     'view': fields.String(attribute='view', description='Field view '),
     'description': fields.String(attribute='description', description='Field description '),
     'title': fields.String(attribute='title', description='Field title '),
-    'is_numerical': fields.String(attribute='is_numerical', description='True if field is numerical, False otherwise '),
+    'is_numerical': fields.Boolean(attribute='is_numerical',
+                                   description='True if field is numerical, False otherwise '),
+    'is_date': fields.Boolean(attribute='is_date', description='True if field is a date, False otherwise '),
 })
 
 field_list = api.model('Fields', {
@@ -123,18 +125,17 @@ class Numerical(Resource):
             query = gen_query_field(field_name, 'original', filter_in, pair_query)
 
             res = db.engine.execute(query).fetchall()
-            flask.current_app.logger.debug("QUI QUERY NUMERICAL")
             flask.current_app.logger.debug(query)
             res = [row['label'] for row in res if row['label'] is not None]
             if res:
                 result = {
-                    'max_age': max(res),
-                    'min_age': min(res)
+                    'max_val': max(res),
+                    'min_val': min(res)
                 }
             else:
                 result = {
-                    'max_age': "",
-                    'min_age': ""
+                    'max_val': "",
+                    'min_val': ""
                 }
 
             return result

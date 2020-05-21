@@ -30,7 +30,7 @@ def get_view(table):
 
 class Column:
 
-    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None, is_numerical=False):
+    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None, is_numerical=False, is_date=False):
         self.table_name = table_name
         self.column_name = column_name
         self.column_type = column_type
@@ -39,6 +39,7 @@ class Column:
         self.title = title
         self.view = get_view(table_name)
         self.is_numerical = is_numerical
+        self.is_date = is_date
 
     def var_table(self):
         return var_table(self.table_name)
@@ -76,7 +77,7 @@ columns = [
     Column('Sequence', 'is_complete', bool, False, "Sequence-is_complete description"),
     Column('Sequence', 'strand', str, False, "Sequence-strand description"),
     Column('Sequence', 'length', int, False, "Sequence-length description", is_numerical=True),
-    Column('Sequence', 'gc_percentage', float, False, "Sequence-gc_percentage description"),
+    Column('Sequence', 'gc_percentage', float, False, "Sequence-gc_percentage description", is_numerical=True),
 
     Column('ExperimentType', 'sequencing_technology', str, False, "ExperimentType-sequencing_technology description"),
     Column('ExperimentType', 'assembly_method', str, False, "ExperimentType-assembly_method description"),
@@ -84,7 +85,7 @@ columns = [
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False, "ExperimentType-sequencing_lab description"),
-    Column('SequencingProject', 'submission_date', datetime, False, "ExperimentType-submission_date description"),
+    Column('SequencingProject', 'submission_date', datetime, False, "ExperimentType-submission_date description", is_date=True),
     Column('SequencingProject', 'bioproject_id', str, False, "ExperimentType-bioproject_id description"),
     Column('SequencingProject', 'database_source', str, False, "ExperimentType-database_source description"),
 
@@ -94,7 +95,7 @@ columns = [
     Column('Virus', 'species', str, False, "Virus-species_name description", "Virus species"),
 
     Column('HostSample', 'host_taxon_name', str, False, "HostSample-host_taxon_name description"),
-    Column('HostSample', 'collection_date', str, False, "HostSample-collection_date description"),
+    Column('HostSample', 'collection_date', str, False, "HostSample-collection_date description", is_date=True),
     Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
     Column('HostSample', 'country', str, False, "HostSample-country description"),
     Column('HostSample', 'region', str, False, "HostSample-region description"),
@@ -304,12 +305,12 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                              f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
                              value in values
                              if value is not None]
-        if col.is_numerical:
-            min = values['min_age']
+        if col.is_numerical or col.is_date:
+            min = values['min_val']
             if min is None:
                 min = -1
 
-            max = values['max_age']
+            max = values['max_val']
             if max is None:
                 max = 500 * 365
 

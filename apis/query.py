@@ -144,7 +144,7 @@ class Query(Resource):
         for row in res:
             result.append({f'{x}': row[x] for x in query_result.keys()})
 
-        flask.current_app.logger.debug("QUI QUERY")
+        flask.current_app.logger.debug("QUERY: ")
         flask.current_app.logger.debug(query)
 
         flask.current_app.logger.debug('got results')
