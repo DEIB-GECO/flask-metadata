@@ -19,6 +19,7 @@ field = api.model('Field', {
     'view': fields.String(attribute='view', description='Field view '),
     'description': fields.String(attribute='description', description='Field description '),
     'title': fields.String(attribute='title', description='Field title '),
+    'is_numerical': fields.String(attribute='is_numerical', description='True if field is numerical, False otherwise '),
 })
 
 field_list = api.model('Fields', {
@@ -72,7 +73,6 @@ body_desc = 'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{
 
 rel_distance_hyper_desc = 'When type is \'expanded\', it indicates the depth of hypernyms in the ontological hierarchy to consider.'
 
-
 """
 @api.route("/age")
 class Age(Resource):
@@ -102,6 +102,7 @@ class Age(Resource):
         return result
 """
 
+
 @api.route("/numerical/<field_name>")
 class Numerical(Resource):
     @api.doc('return_num_interval', params={'body': body_desc,
@@ -120,8 +121,6 @@ class Numerical(Resource):
             column_name = column.column_name
 
             query = gen_query_field(field_name, 'original', filter_in, pair_query)
-
-
 
             res = db.engine.execute(query).fetchall()
             flask.current_app.logger.debug("QUI QUERY NUMERICAL")

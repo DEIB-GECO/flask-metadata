@@ -304,7 +304,7 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                              f"(SELECT tid FROM synonym WHERE LOWER(label) = LOWER('{value}')))" for
                              value in values
                              if value is not None]
-        if col.column_name == 'age':
+        if col.is_numerical:
             min = values['min_age']
             if min is None:
                 min = -1
@@ -314,9 +314,9 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                 max = 500 * 365
 
             isNull = values['is_null']
-            a = f" (age >= {min} and age <= {max}) "
+            a = f" ({col.column_name} >= {min} and {col.column_name} <= {max}) "
             if isNull:
-                a += "or age is null "
+                a += f"or {col.column_name} is null "
             sub_where.append(a)
         else:
             sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
