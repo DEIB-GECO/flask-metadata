@@ -30,7 +30,7 @@ def get_view(table):
 
 class Column:
 
-    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None):
+    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None, is_numerical=False):
         self.table_name = table_name
         self.column_name = column_name
         self.column_type = column_type
@@ -38,6 +38,7 @@ class Column:
         self.description = description
         self.title = title
         self.view = get_view(table_name)
+        self.is_numerical = is_numerical
 
     def var_table(self):
         return var_table(self.table_name)
@@ -74,7 +75,7 @@ columns = [
     Column('Sequence', 'is_reference', bool, False, "Sequence-is_reference description"),
     Column('Sequence', 'is_complete', bool, False, "Sequence-is_complete description"),
     Column('Sequence', 'strand', str, False, "Sequence-strand description"),
-    Column('Sequence', 'length', int, False, "Sequence-length description"),
+    Column('Sequence', 'length', int, False, "Sequence-length description", is_numerical=True),
     Column('Sequence', 'gc_percentage', float, False, "Sequence-gc_percentage description"),
 
     Column('ExperimentType', 'sequencing_technology', str, False, "ExperimentType-sequencing_technology description"),
@@ -98,7 +99,7 @@ columns = [
     Column('HostSample', 'country', str, False, "HostSample-country description"),
     Column('HostSample', 'region', str, False, "HostSample-region description"),
     Column('HostSample', 'gender', str, False, "HostSample-gender description"),
-    Column('HostSample', 'age', int, False, "HostSample-age description"),
+    Column('HostSample', 'age', int, False, "HostSample-age description",is_numerical=True),
 ]
 
 columns_item = list(columns)

@@ -73,13 +73,14 @@ body_desc = 'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{
 rel_distance_hyper_desc = 'When type is \'expanded\', it indicates the depth of hypernyms in the ontological hierarchy to consider.'
 
 
+"""
 @api.route("/age")
 class Age(Resource):
     @api.doc('return_age_interval', params={'body': body_desc,
                                             'rel_distance': rel_distance_hyper_desc})
     @api.expect(parser_body)
     def post(self):
-        """For the posted query, returns minimum and maximum ages"""
+        """"""For the posted query, returns minimum and maximum ages""""""
 
         payload = api.payload
         filter_in = payload.get("gcm")
@@ -99,6 +100,48 @@ class Age(Resource):
             }
 
         return result
+"""
+
+@api.route("/numerical/<field_name>")
+class Numerical(Resource):
+    @api.doc('return_num_interval', params={'body': body_desc,
+                                            'rel_distance': rel_distance_hyper_desc,
+                                            'field_name': 'The requested metadata field.'})
+    @api.expect(parser_body)
+    def post(self, field_name):
+        """For the posted query, returns minimum and maximum values of numerical field"""
+        args = parser_body.parse_args()
+        payload = api.payload
+        filter_in = payload.get("gcm")
+        pair_query = payload.get("kv")
+
+        if field_name in columns_dict:
+            column = columns_dict[field_name]
+            column_name = column.column_name
+
+            query = gen_query_field(field_name, 'original', filter_in, pair_query)
+
+
+
+            res = db.engine.execute(query).fetchall()
+            flask.current_app.logger.debug("QUI QUERY NUMERICAL")
+            flask.current_app.logger.debug(query)
+            res = [row['label'] for row in res if row['label'] is not None]
+            if res:
+                result = {
+                    'max_age': max(res),
+                    'min_age': min(res)
+                }
+            else:
+                result = {
+                    'max_age': "",
+                    'min_age': ""
+                }
+
+            return result
+        else:
+            api.abort(404)
+
 
 @api.route('/<field_name>')
 @api.response(404, 'Field not found')
@@ -132,7 +175,6 @@ class FieldValue(Resource):
                     res = [{'value': str(row['label']), 'count': row['item_count']} for row in res]
                 else:
                     res = [{'value': row['label'], 'count': row['item_count']} for row in res]
-
 
                 length = len(res)
 
