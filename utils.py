@@ -95,7 +95,7 @@ columns = [
     Column('Virus', 'species', str, False, "Virus-species_name description", "Virus species"),
 
     Column('HostSample', 'host_taxon_name', str, False, "HostSample-host_taxon_name description"),
-    Column('HostSample', 'collection_date', str, False, "HostSample-collection_date description", is_date=True),
+    Column('HostSample', 'collection_date', datetime, False, "HostSample-collection_date description", is_date=True),
     Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
     Column('HostSample', 'country', str, False, "HostSample-country description"),
     Column('HostSample', 'region', str, False, "HostSample-region description"),
@@ -315,6 +315,9 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                 max = 500 * 365
 
             isNull = values['is_null']
+
+            #todo anna add if condition for quotes and divide min/max
+
             a = f" ({col.column_name} >= {min} and {col.column_name} <= {max}) "
             if isNull:
                 a += f"or {col.column_name} is null "

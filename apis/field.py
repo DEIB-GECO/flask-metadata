@@ -126,7 +126,12 @@ class Numerical(Resource):
 
             res = db.engine.execute(query).fetchall()
             flask.current_app.logger.debug(query)
-            res = [row['label'] for row in res if row['label'] is not None]
+
+            if column.column_type == datetime:
+                res = [str(row['label']) for row in res if row['label'] is not None]
+            else:
+                res = [row['label'] for row in res if row['label'] is not None]
+
             if res:
                 result = {
                     'max_val': max(res),
