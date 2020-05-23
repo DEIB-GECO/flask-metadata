@@ -306,22 +306,29 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                              value in values
                              if value is not None]
         if col.is_numerical or col.is_date:
+
             min = values['min_val']
-            if min is None:
-                min = -1
-
             max = values['max_val']
-            if max is None:
-                max = 500 * 365
-
             isNull = values['is_null']
+            a = "true"
 
-            #todo anna add if condition for quotes and divide min/max
+            if min:
+                if col.is_date:
+                    a += f" and {col.column_name} >= '{min}' "
+                else:
+                    a += f" and {col.column_name} >= {min} "
 
-            a = f" ({col.column_name} >= {min} and {col.column_name} <= {max}) "
+            if max:
+                if col.is_date:
+                    a += f" and {col.column_name} <= '{max}' "
+                else:
+                    a += f" and {col.column_name} <= {max} "
+
             if isNull:
-                a += f"or {col.column_name} is null "
+                a += f" or {col.column_name} is null "
+
             sub_where.append(a)
+
         else:
             sub_sub_where = [f"{lower_pre}{column}{lower_post} = '{value}'" for value in values if value is not None]
             sub_sub_where_none = [f"{column} IS NULL" for value in values if value is None]
