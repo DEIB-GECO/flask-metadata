@@ -72,12 +72,17 @@ columns = [
 #    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None):
 
     # technological
+    Column('Sequence', 'accession_id', str, False, "Sequence-lineage description"),
+
     Column('Sequence', 'strain_name', str, False, "Sequence-strain_name description"),
     Column('Sequence', 'is_reference', bool, False, "Sequence-is_reference description"),
     Column('Sequence', 'is_complete', bool, False, "Sequence-is_complete description"),
     Column('Sequence', 'strand', str, False, "Sequence-strand description"),
     Column('Sequence', 'length', int, False, "Sequence-length description", is_numerical=True),
     Column('Sequence', 'gc_percentage', float, False, "Sequence-gc_percentage description", is_numerical=True),
+
+    Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
+    Column('Sequence', 'clade', str, False, "Sequence-clade description"),
 
     Column('ExperimentType', 'sequencing_technology', str, False, "ExperimentType-sequencing_technology description"),
     Column('ExperimentType', 'assembly_method', str, False, "ExperimentType-assembly_method description"),
@@ -106,7 +111,7 @@ columns = [
 columns_item = list(columns)
 
 columns_item.extend((
-    Column('Sequence', 'accession_id', str, False, ""),
+    # Column('Sequence', 'accession_id', str, False, ""),
     Column('Sequence','nucleotide_sequence',str, False, ""),
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
     Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
@@ -278,6 +283,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     elif return_type == 'item_id':
         select_part = f"SELECT it.{center_table_id} "
 
+    print(select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part)
     return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
 
 
