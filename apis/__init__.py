@@ -9,12 +9,12 @@ from .query import api as query_api
 
 api_blueprint = Blueprint('api', __name__)
 
-api = Api(api_blueprint,
-          title='ViruSurf API',
+api = Api(title='ViruSurf API',
           version='1.0',
           description='TODO',
-          doc='/',
+          doc=False,
           )
+api.init_app(api_blueprint,  add_specs=False)
 
 api.add_namespace(models_api)
 
