@@ -30,7 +30,8 @@ def get_view(table):
 
 class Column:
 
-    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None, is_numerical=False, is_date=False):
+    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None,
+                 is_numerical=False, is_date=False):
         self.table_name = table_name
         self.column_name = column_name
         self.column_type = column_type
@@ -58,7 +59,6 @@ def var_table(table_name):
     return table_name[:2].lower()
 
 
-
 def unfold_list(res):
     return [item for sublist in res for item in sublist]
 
@@ -69,7 +69,7 @@ def calc_distance(view_name, pre_table, table_name):
 
 
 columns = [
-#    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None):
+    #    def __init__(self, table_name, column_name, column_type, has_tid=False, description="", title=None):
 
     # technological
     Column('Sequence', 'accession_id', str, False, "Sequence-lineage description"),
@@ -90,7 +90,8 @@ columns = [
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False, "ExperimentType-sequencing_lab description"),
-    Column('SequencingProject', 'submission_date', datetime, False, "ExperimentType-submission_date description", is_date=True),
+    Column('SequencingProject', 'submission_date', datetime, False, "ExperimentType-submission_date description",
+           is_date=True),
     Column('SequencingProject', 'bioproject_id', str, False, "ExperimentType-bioproject_id description"),
     Column('SequencingProject', 'database_source', str, False, "ExperimentType-database_source description"),
 
@@ -105,14 +106,14 @@ columns = [
     Column('HostSample', 'country', str, False, "HostSample-country description"),
     Column('HostSample', 'region', str, False, "HostSample-region description"),
     Column('HostSample', 'gender', str, False, "HostSample-gender description"),
-    Column('HostSample', 'age', int, False, "HostSample-age description",is_numerical=True),
+    Column('HostSample', 'age', int, False, "HostSample-age description", is_numerical=True),
 ]
 
 columns_item = list(columns)
 
 columns_item.extend((
     # Column('Sequence', 'accession_id', str, False, ""),
-    Column('Sequence','nucleotide_sequence',str, False, ""),
+    Column('Sequence', 'nucleotide_sequence', str, False, ""),
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
     Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
     Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
@@ -132,20 +133,37 @@ columns_dict_item = {x.column_name: x for x in columns_item}
 # TODO uncomment if there are replications on the management view,
 #  and create a query that takes care for different views
 # TODO VIRUS
-agg_tables = [] #views['biological'][1:]  # +views['management'][1:]
+agg_tables = []  # views['biological'][1:]  # +views['management'][1:]
 
 del columns
 
 
-
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
                         offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3):
-
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
-    pairs = generate_where_pairs({})
-    pair_join = pairs['join']
-    pair_where = pairs['where']
+    # pairs = generate_where_pairs({})
+    pair_join = ''
+    pair_where = ''
+
+    if pairs_query:
+        pair_join += " NATURAL JOIN annotation "
+        if set(pairs_query).difference(['gene_name', 'product']):
+            pair_join += " NATURAL JOIN aminoacid_variant "
+
+        where_temp = []
+        print(pairs_query.items())
+        for name, val in pairs_query.items():
+            if name == 'start_aa':
+                where_temp.append(f" start_aa_original >= {int(val)} ")
+            elif name == 'end_aa':
+                where_temp.append(f" start_aa_original + variant_aa_length <= {int(val)} ")
+            else:
+                where_temp.append(f" lower({name}) = '{val.lower()}' ")
+
+        pair_where = " AND ".join(where_temp)
+    print('pair_join: ', pair_join)
+    print('pair_where: ', pair_where)
 
     select_part = ""
     from_part = ""
@@ -195,8 +213,6 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         # TODO VIRUS add all tables
         from_part = item + experiment_type_join + sequencing_project_join + host_sample_join + virus_join + pair_join
 
-
-
     gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
 
     where_part = ""
@@ -214,45 +230,12 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     offset_part = ""
     order_by = ""
     if return_type == 'table':
-        if agg:
-            select_part = "SELECT " + ",".join(
-                x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables) + " "
-
-            select_part += "," + ','.join(
-                "STRING_AGG(DISTINCT COALESCE(" + x.column_name + "::VARCHAR,'N/D'),' | ' ) as "
-                + x.column_name for x in columns_dict_item.values() if x.table_name in agg_tables)
-            group_by_part = " GROUP BY " + ",".join(
-                x.column_name for x in columns_dict_item.values() if x.table_name not in agg_tables)
-
-        else:
-            select_part = "SELECT " + ','.join(columns_dict_item.keys()) + " "
+        select_part = "SELECT DISTINCT " + ','.join(columns_dict_item.keys()) + " "
         if limit:
             limit_part = f" LIMIT {limit} "
         if offset:
             offset_part = f"OFFSET {offset} "
         order_by = f" ORDER BY {order_col} {order_dir} "
-    # elif return_type == 'count-dataset':
-    #     select_part = "SELECT da.dataset_name as name, count(distinct it.item_id) as count "
-    #     group_by_part = " GROUP BY da.dataset_name"
-    #
-    # elif return_type == 'count-source':
-    #     select_part = "SELECT pr.source as name, count(distinct it.item_id) as count "
-    #     group_by_part = " GROUP BY pr.source"
-
-    elif return_type == 'download-links':
-        select_part = "SELECT distinct it.local_url "
-        if where_part:
-            sub_where_part = " AND local_url IS NOT NULL "
-        else:
-            sub_where_part = " WHERE local_url IS NOT NULL "
-
-    elif return_type == 'gmql':
-        select_part = "SELECT dataset_name, array_agg(file_name) "
-        if where_part:
-            sub_where_part = " AND local_url IS NOT NULL "
-        else:
-            sub_where_part = " WHERE local_url IS NOT NULL "
-        group_by_part = "GROUP BY dataset_name"
 
     elif return_type == 'field_value':
         col = columns_dict_item[field_selected]
@@ -264,27 +247,11 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         distinct = "distinct"
         select_part = f"SELECT {distinct} {lower_pre}{field_selected}{lower_post} as label, it.{center_table_id} as item "
 
-    elif return_type == 'field_value_tid':
-        select_part = f"SELECT distinct LOWER(label), it.{center_table_id} as item "
-
-        if search_type == 'synonym':
-            from_part += f" join synonym syn on {field_selected}_tid = syn.tid "
-        elif search_type == 'expanded':
-            from_part += f" join relationship_unfolded rel on {field_selected}_tid = rel.tid_descendant "
-            from_part += f" join synonym syn on rel.tid_ancestor = syn.tid "
-        if where_part:
-            sub_where_part = " AND type <> 'RELATED' "
-            if search_type == 'expanded':
-                sub_where_part += f" AND rel.distance <= {rel_distance} "
-        else:
-            sub_where_part = " WHERE type <> 'RELATED' "
-            if search_type == 'expanded':
-                sub_where_part += f" AND rel.distance <= {rel_distance} "
     elif return_type == 'item_id':
-        select_part = f"SELECT it.{center_table_id} "
+        select_part = f"SELECT DISTINCT it.{center_table_id} "
 
-    print(select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part)
-    return select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
+    full_query = select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
+    return full_query
 
 
 def generate_where_sql(gcm_query, search_type, rel_distance=3):
@@ -400,10 +367,7 @@ def generate_where_pairs(pair_query):
     return {'where': where_part, 'join': " ".join(pair_join)}
 
 
-
-
-
-#IP ADDRESS AND QUERY LOGGING
+# IP ADDRESS AND QUERY LOGGING
 
 ROOT_DIR = os.path.dirname(os.getcwd())
 if not os.path.exists(ROOT_DIR + "/logs"):
@@ -421,7 +385,7 @@ if firstline == '':
 f.close()
 
 
-def log_query(endpoint,q,payload):
+def log_query(endpoint, q, payload):
     if 'HTTP_X_REAL_IP' in request.environ:
         addr = request.environ['HTTP_X_REAL_IP']
     else:
@@ -434,7 +398,6 @@ def log_query(endpoint,q,payload):
     fi.close()
 
 
-
 def ip_info(addr=''):
     from urllib.request import urlopen
     from json import load
@@ -443,11 +406,10 @@ def ip_info(addr=''):
     else:
         url = 'https://ipinfo.io/' + addr + '/json'
     res = urlopen(url)
-    #response from url(if res==None then check connection)
+    # response from url(if res==None then check connection)
     data = load(res)
-    #will load the json response into data
+    # will load the json response into data
     for attr in data.keys():
-        #will print the data line by line
-        print(attr,' '*13+'\t->\t',data[attr])
+        # will print the data line by line
+        print(attr, ' ' * 13 + '\t->\t', data[attr])
     print(data)
-
