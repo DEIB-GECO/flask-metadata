@@ -157,7 +157,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             if name == 'start_aa':
                 where_temp.append(f" start_aa_original >= {int(val)} ")
             elif name == 'end_aa':
-                where_temp.append(f" start_aa_original + variant_aa_length <= {int(val)} ")
+                where_temp.append(f" start_aa_original <= {int(val)} ")
             else:
                 where_temp.append(f" lower({name}) = '{val.lower()}' ")
 
