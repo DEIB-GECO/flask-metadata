@@ -159,7 +159,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             elif name == 'end_aa':
                 where_temp.append(f" start_aa_original <= {int(val)} ")
             else:
-                where_temp.append(f" lower({name}) = '{val.lower()}' ")
+                if val.lower() != 'n/d':
+                    where_temp.append(f" lower({name}) = '{val.lower()}' ")
 
         pair_where = " AND ".join(where_temp)
     print('pair_join: ', pair_join)
