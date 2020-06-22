@@ -7,7 +7,7 @@ from flask_restplus import fields
 from flask_restplus import inputs
 
 from model.models import db
-from utils import columns_dict, sql_query_generator
+from utils import columns_dict, columns_dict_all, sql_query_generator
 from .flask_models import Info, info_field
 
 api = Namespace('field',
@@ -166,8 +166,8 @@ class FieldValue(Resource):
         pair_query = payload.get("kv")
         rel_distance = args['rel_distance']
 
-        if field_name in columns_dict:
-            column = columns_dict[field_name]
+        if field_name in columns_dict_all:
+            column = columns_dict_all[field_name]
             column_name = column.column_name
             has_tid = column.has_tid
             if type == 'original':
@@ -208,7 +208,7 @@ class FieldValue(Resource):
 
 
 def gen_query_field(field_name, type, filter_in, pair_query, rel_distance=3):
-    column = columns_dict[field_name]
+    column = columns_dict_all[field_name]
     column_name = column.column_name
     has_tid = column.has_tid
     if type == 'original':

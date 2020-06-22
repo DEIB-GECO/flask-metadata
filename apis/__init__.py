@@ -12,9 +12,9 @@ api_blueprint = Blueprint('api', __name__)
 api = Api(title='ViruSurf API',
           version='1.0',
           description='TODO',
-          doc=False,
+          # doc=False,
           )
-api.init_app(api_blueprint,  add_specs=False)
+api.init_app(api_blueprint)
 
 api.add_namespace(models_api)
 
