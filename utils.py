@@ -84,46 +84,44 @@ columns = [
     Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
     Column('Sequence', 'clade', str, False, "Sequence-clade description"),
 
-    Column('ExperimentType', 'sequencing_technology', str, False, "ExperimentType-sequencing_technology description"),
-    Column('ExperimentType', 'assembly_method', str, False, "ExperimentType-assembly_method description"),
-    Column('ExperimentType', 'coverage', str, False, "ExperimentType-coverage description"),
-
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False, "ExperimentType-sequencing_lab description"),
     Column('SequencingProject', 'submission_date', datetime, False, "ExperimentType-submission_date description",
            is_date=True),
-    Column('SequencingProject', 'bioproject_id', str, False, "ExperimentType-bioproject_id description"),
-    Column('SequencingProject', 'database_source', str, False, "ExperimentType-database_source description"),
 
     # biological
-    Column('Virus', 'taxon_id', int, False, "Virus-virus_taxonomy_id description", "Virus taxon id"),
-    Column('Virus', 'taxon_name', str, False, "Virus-virus_taxonomy_id description", "Virus taxon name"),
-    Column('Virus', 'species', str, False, "Virus-species_name description", "Virus species"),
-
     Column('HostSample', 'host_taxon_name', str, False, "HostSample-host_taxon_name description"),
-    Column('HostSample', 'collection_date', datetime, False, "HostSample-collection_date description", is_date=True),
-    Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
-    Column('HostSample', 'country', str, False, "HostSample-country description"),
-    Column('HostSample', 'region', str, False, "HostSample-region description"),
+    Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
     Column('HostSample', 'gender', str, False, "HostSample-gender description"),
     Column('HostSample', 'age', int, False, "HostSample-age description", is_numerical=True),
+    Column('HostSample', 'collection_date', datetime, False, "HostSample-collection_date description", is_date=True),
+    Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
+    Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
+    Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
+    Column('HostSample', 'country', str, False, "HostSample-country description"),
+    Column('HostSample', 'region', str, False, "HostSample-region description"),
 ]
 
 columns_item = list(columns)
 
 columns_item.extend((
-    # Column('Sequence', 'accession_id', str, False, ""),
-    Column('Sequence', 'nucleotide_sequence', str, False, ""),
-    Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
-    Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
-    Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
+    Column('Sequence', 'nucleotide_sequence', str, False, "Sequence-nucleotide_sequence description"),
+    Column('Virus', 'taxon_id', int, False, "Virus-virus_taxonomy_id description", "Virus taxon id"),
+    Column('Virus', 'taxon_name', str, False, "Virus-virus_taxonomy_id description", "Virus taxon name"),
+    Column('Virus', 'species', str, False, "Virus-species_name description", "Virus species"),
     Column('Virus', 'genus', str, False, "Virus-genus description"),
     Column('Virus', 'sub_family', str, False, "Virus-sub_family description"),
     Column('Virus', 'family', str, False, "Virus-family description"),
     Column('Virus', 'equivalent_list', str, False, "Virus-equivalent_list description"),
     Column('Virus', 'molecule_type', str, False, "Virus-molecule_type description"),
     Column('Virus', 'is_single_stranded', str, False, "Virus-is_single_stranded description"),
-    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description")
+    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description"),
+    Column('ExperimentType', 'sequencing_technology', str, False, "ExperimentType-sequencing_technology description"),
+    Column('ExperimentType', 'assembly_method', str, False, "ExperimentType-assembly_method description"),
+    Column('ExperimentType', 'coverage', str, False, "ExperimentType-coverage description"),
+    Column('SequencingProject', 'bioproject_id', str, False, "ExperimentType-bioproject_id description"),
+    Column('SequencingProject', 'database_source', str, False, "ExperimentType-database_source description"),
+
 ))
 
 columns_dict = {x.column_name: x for x in columns}
