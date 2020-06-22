@@ -146,6 +146,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     pair_join = ''
     pair_where = ''
 
+    gcm_query['database_source'] = ["gisaid"]
+
     if pairs_query:
         pair_join += " NATURAL JOIN annotation "
         if set(pairs_query).difference(['gene_name', 'product']):

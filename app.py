@@ -46,7 +46,7 @@ dictConfig({
     }
 })
 
-base_url = '/virusurf/'
+base_url = '/virusurf_gisaid/'
 api_url = base_url + 'api'
 repo_static_url = base_url + 'repo_static'
 
