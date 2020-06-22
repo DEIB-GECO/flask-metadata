@@ -151,8 +151,6 @@ class Query(Resource):
 
         flask.current_app.logger.debug('got results')
 
-        result = [{'accession_id': x['accession_id']} for x in result]
-
         return result
 
 
