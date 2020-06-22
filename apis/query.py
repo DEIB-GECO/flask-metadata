@@ -29,7 +29,6 @@ table_parser.add_argument('order_col', type=str, default='accession_id')
 table_parser.add_argument('order_dir', type=str, default='asc')
 table_parser.add_argument('rel_distance', type=int, default=3)
 
-
 ################################API IMPLEMENTATION###########################################
 
 
@@ -98,6 +97,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "## Please use */field/{field_name}* endpoint\n" + \
                   "------------------\n"
 
+
 #############################SERVICES IMPLEMENTATION#############################################
 @api.route('/table')
 @api.response(404, 'Results not found')  # TODO correct
@@ -150,6 +150,8 @@ class Query(Resource):
         flask.current_app.logger.debug(query)
 
         flask.current_app.logger.debug('got results')
+
+        result = [{'accession_id': x['accession_id']} for x in result]
 
         return result
 
@@ -210,12 +212,12 @@ class QueryDownload(Resource):
 
         if 'order_col' in args:
             orderCol = args['order_col']
-        else :
+        else:
             orderCol = "null"
 
         if 'order_dir' in args:
             orderDir = args['order_dir']
-        else :
+        else:
             orderDir = "ASC"
 
         if orderCol == "null":
@@ -305,4 +307,3 @@ def merge_dicts(dict_args):
     for dictionary in dict_args:
         result.update(dictionary['data'])
     return result
-
