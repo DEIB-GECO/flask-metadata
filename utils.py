@@ -92,8 +92,6 @@ columns = [
     # biological
     Column('HostSample', 'host_taxon_name', str, False, "HostSample-host_taxon_name description"),
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
-    Column('HostSample', 'gender', str, False, "HostSample-gender description"),
-    Column('HostSample', 'age', int, False, "HostSample-age description", is_numerical=True),
     Column('HostSample', 'collection_date', datetime, False, "HostSample-collection_date description", is_date=True),
     Column('HostSample', 'isolation_source', str, False, "HostSample-isolation_source description"),
     Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
@@ -106,6 +104,8 @@ columns_item = list(columns)
 
 columns_item.extend((
     Column('Sequence', 'nucleotide_sequence', str, False, "Sequence-nucleotide_sequence description"),
+    Column('HostSample', 'gender', str, False, "HostSample-gender description"),
+    Column('HostSample', 'age', int, False, "HostSample-age description", is_numerical=True),
     Column('Virus', 'taxon_id', int, False, "Virus-virus_taxonomy_id description", "Virus taxon id"),
     Column('Virus', 'taxon_name', str, False, "Virus-virus_taxonomy_id description", "Virus taxon name"),
     Column('Virus', 'species', str, False, "Virus-species_name description", "Virus species"),
