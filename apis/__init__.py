@@ -7,14 +7,16 @@ from .item import api as item_api
 from .pair import api as pair_api
 from .query import api as query_api
 
+enable_doc = False
+
 api_blueprint = Blueprint('api', __name__)
 
 api = Api(title='ViruSurf API',
           version='1.0',
           description='TODO',
-          # doc=False,
+          doc=enable_doc,
           )
-api.init_app(api_blueprint)
+api.init_app(api_blueprint, add_specs=enable_doc)
 
 api.add_namespace(models_api)
 
