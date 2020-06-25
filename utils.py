@@ -118,6 +118,10 @@ columns_others = [
 
     Column('AminoacidVariant', 'sequence_aa_original', str, False, "Annotation-sequence_aa_original description"),
     Column('AminoacidVariant', 'sequence_aa_alternative', str, False, "Annotation-sequence_aa_alternative description"),
+    Column('AminoacidVariant', 'aa_position', str, False, "AminoacidVariant-aa_position"),
+
+
+
 
     Column('NucleotideVariant', 'sequence_original', str, False,
            "NucleotideVariant-sequence_original description"),
@@ -125,9 +129,7 @@ columns_others = [
            "NucleotideVariant-sequence_alternative description"),
     Column('NucleotideVariant', 'variant_type', str, False,
            "NucleotideVariant-variant_type description"),
-    # Column('AminoacidVariant', 'start_var', str, False, "Annotation-start_aa description"),
-    # Column('AminoacidVariant', 'end_var', str, False, "Annotation-end_aa description"),
-
+    Column('NucleotideVariant', 'var_position', str, False, "NucleotideVariant-var_position"),
 
     Column('NucleotideVariantAnnotation', 'n_feature_type', str, False,
            "NucleotideVariantAnnotation-n_feature_type description"),
@@ -229,20 +231,28 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                             break
 
 
-                    inner_text_list = []
                     if name == 'aa_position':
+                        position_sub = []
                         if 'min_val' in val:
-                            inner_text_list.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['min_val'])} ")
+                            position_sub.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['min_val'])} ")
                         if 'max_val' in val:
-                            inner_text_list.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['max_val'])} ")
+                            position_sub.append(f" aa_var_{pair_key}.start_aa_original <= {int(val['max_val'])} ")
+                        where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
+                    if name == 'var_position':
+                        position_sub = []
+                        if 'min_val' in val:
+                            position_sub.append(f" n_var_{pair_key}.start_original >= {int(val['min_val'])} ")
+                        if 'max_val' in val:
+                            position_sub.append(f" n_var_{pair_key}.start_original <= {int(val['max_val'])} ")
+                        where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
                     else:
+                        inner_text_list = []
                         if None in val:
                             inner_text_list.append(f" lower({inner_table_name}.{name}) IS NULL ")
                         vals = ",".join([f"'{x.lower()}'" for x in val if x])
                         if vals:
                             inner_text_list.append(f" lower({inner_table_name}.{name}) IN ({vals}) ")
-
-                    where_temp_inner.append("(" + " OR ".join(inner_text_list) + ")")
+                        where_temp_inner.append("(" + " OR ".join(inner_text_list) + ")")
 
                 where_temp_outer_or.append("(" + " AND ".join(where_temp_inner) + ")")
             where_temp_outer_and.append("(" + " OR ".join(where_temp_outer_or) + ")")
