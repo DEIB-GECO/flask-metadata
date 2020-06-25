@@ -15,7 +15,9 @@ views = {
     'technological': [center_table, 'ExperimentType'],
     'organizational': [center_table, 'SequencingProject'],
     'analytical_a': [center_table, 'Annotation', 'AminoacidVariant'],
-    'analytical_v': [center_table, 'Variant'],
+    'analytical_v': [center_table, 'NucleotideVariant', 'NucleotideVariantAnnotation'],
+    'analytical_impact': [center_table, 'NucleotideVariant', 'VariantImpact'],
+
 }
 
 
@@ -111,11 +113,37 @@ columns_others = [
     Column('Annotation', 'product', str, False, "Annotation-product description"),
 
     Column('AminoacidVariant', 'variant_aa_type', str, False, "Annotation-variant_aa_type description"),
-    Column('AminoacidVariant', 'start_aa', str, False, "Annotation-start_aa description"),
-    Column('AminoacidVariant', 'end_aa', str, False, "Annotation-end_aa description"),
+    # Column('AminoacidVariant', 'start_aa_var', str, False, "Annotation-start_aa description"),
+    # Column('AminoacidVariant', 'end_aa_var', str, False, "Annotation-end_aa description"),
 
     Column('AminoacidVariant', 'sequence_aa_original', str, False, "Annotation-sequence_aa_original description"),
     Column('AminoacidVariant', 'sequence_aa_alternative', str, False, "Annotation-sequence_aa_alternative description"),
+
+    Column('NucleotideVariant', 'sequence_original', str, False,
+           "NucleotideVariant-sequence_original description"),
+    Column('NucleotideVariant', 'sequence_alternative', str, False,
+           "NucleotideVariant-sequence_alternative description"),
+    Column('NucleotideVariant', 'variant_type', str, False,
+           "NucleotideVariant-variant_type description"),
+    # Column('AminoacidVariant', 'start_var', str, False, "Annotation-start_aa description"),
+    # Column('AminoacidVariant', 'end_var', str, False, "Annotation-end_aa description"),
+
+
+    Column('NucleotideVariantAnnotation', 'n_feature_type', str, False,
+           "NucleotideVariantAnnotation-n_feature_type description"),
+    Column('NucleotideVariantAnnotation', 'n_gene_name', str, False,
+           "NucleotideVariantAnnotation-n_gene_name description"),
+    Column('NucleotideVariantAnnotation', 'n_product', str, False,
+           "NucleotideVariantAnnotation-n_product description"),
+
+
+    Column('VariantImpact', 'effect', str, False,
+           "VariantImpact-effect description"),
+    Column('VariantImpact', 'putative_impact', str, False,
+           "VariantImpact-putative_impact description"),
+    Column('VariantImpact', 'impact_gene_name', str, False,
+           "VariantImpact-impact_gene_name description"),
+
 ]
 
 columns_item = [
@@ -166,41 +194,56 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         pair_queries = pair_value['query']
         # print('pair_queries', pair_queries)
 
-        pair_join += f" JOIN annotation as ann_{pair_key} ON ann_{pair_key}.sequence_id = it.sequence_id "
-        if set(y for x in pair_value['query'] for y in x.keys()).difference(['gene_name', 'product']):
-            pair_join += f" LEFT JOIN aminoacid_variant aa_var_{pair_key} ON aa_var_{pair_key}.annotation_id = ann_{pair_key}.annotation_id "
+        tables = set(y for x in pair_value['query'] for y in x.keys())
+        if type_query == 'aa':
+            pair_join += f" JOIN annotation as ann_{pair_key} ON ann_{pair_key}.sequence_id = it.sequence_id "
+            if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'AminoacidVariant']):
+                pair_join += f" LEFT JOIN aminoacid_variant as aa_var_{pair_key} ON aa_var_{pair_key}.annotation_id = ann_{pair_key}.annotation_id "
+        if type_query == 'nuc':
+            pair_join += f" JOIN nucleotide_variant as n_var_{pair_key} ON n_var_{pair_key}.sequence_id = it.sequence_id "
+            if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'NucleotideVariantAnnotation']):
+                pair_join += f" LEFT JOIN nucleotide_variant_annotation as n_var_ann_{pair_key} ON n_var_ann_{pair_key}.nucleotide_variant_id = n_var_{pair_key}.nucleotide_variant_id "
+            if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'VariantImpact']):
+                pair_join += f" LEFT JOIN variant_impact as var_imp_{pair_key} ON var_imp_{pair_key}.nucleotide_variant_id = n_var_{pair_key}.nucleotide_variant_id "
 
-        where_temp_outer_or = []
-        for pair_query in pair_queries:
+        if type_query == 'aa' or True:
+            where_temp_outer_or = []
+            for pair_query in pair_queries:
 
-            # print(pair_query)
-            where_temp_inner = []
-            for name, val in pair_query.items():
-                # print('name', name)
-                # print('val', val)
-                if name in ['gene_name', 'product']:
-                    inner_table_name = f"ann_{pair_key}"
-                else:
-                    inner_table_name = f"aa_var_{pair_key}"
+                # print(pair_query)
+                where_temp_inner = []
+                for name, val in pair_query.items():
+                    search_list = [
+                        ('Annotation', f"ann_{pair_key}"),
+                        ('AminoacidVariant', f"aa_var_{pair_key}"),
+                        ('NucleotideVariant', f"n_var_{pair_key}"),
+                        ('NucleotideVariantAnnotation',f"n_var_ann_{pair_key}" ),
+                        ('VariantImpact', f"var_imp_{pair_key}"),
+                    ]
+                    inner_table_name = ''
+                    for t_name, t_alias in search_list:
+                        if name in [x.column_name for x in columns_dict_all.values() if x.table_name == t_name]:
+                            inner_table_name = t_alias
+                            break
 
-                inner_text_list = []
-                if name == 'aa_position':
-                    if 'min_val' in val:
-                        inner_text_list.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['min_val'])} ")
-                    if 'max_val' in val:
-                        inner_text_list.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['max_val'])} ")
-                else:
 
-                    if None in val:
-                        inner_text_list.append(f" lower({inner_table_name}.{name}) IS NULL ")
-                    vals = ",".join([f"'{x.lower()}'" for x in val if x])
-                    if vals:
-                        inner_text_list.append(f" lower({inner_table_name}.{name}) IN ({vals}) ")
+                    inner_text_list = []
+                    if name == 'aa_position':
+                        if 'min_val' in val:
+                            inner_text_list.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['min_val'])} ")
+                        if 'max_val' in val:
+                            inner_text_list.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['max_val'])} ")
+                    else:
+                        if None in val:
+                            inner_text_list.append(f" lower({inner_table_name}.{name}) IS NULL ")
+                        vals = ",".join([f"'{x.lower()}'" for x in val if x])
+                        if vals:
+                            inner_text_list.append(f" lower({inner_table_name}.{name}) IN ({vals}) ")
 
-                where_temp_inner.append("(" + " OR ".join(inner_text_list) + ")")
+                    where_temp_inner.append("(" + " OR ".join(inner_text_list) + ")")
 
-            where_temp_outer_or.append("(" + " AND ".join(where_temp_inner) + ")")
-        where_temp_outer_and.append("(" + " OR ".join(where_temp_outer_or) + ")")
+                where_temp_outer_or.append("(" + " AND ".join(where_temp_inner) + ")")
+            where_temp_outer_and.append("(" + " OR ".join(where_temp_outer_or) + ")")
 
     pair_where += " AND ".join(where_temp_outer_and)
 
@@ -226,6 +269,10 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     nucleotide_variant_join = " JOIN nucleotide_variant as n_var ON it.sequence_id = n_var.sequence_id "
 
+    nucleotide_variant_annotation_join = " LEFT JOIN nucleotide_variant_annotation as n_var_ann ON n_var.nucleotide_variant_id = n_var_ann.nucleotide_variant_id "
+
+    nucleotide_variant_impact = " LEFT JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
+
     view_join = {
         # TODO VIRUS
         'biological_h': [host_sample_join],
@@ -233,7 +280,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         'organizational': [sequencing_project_join],
         'technological': [experiment_type_join],
         'analytical_a': [annotation_join, aminoacid_variant_join],
-        'analytical_v': [nucleotide_variant_join],
+        'analytical_v': [nucleotide_variant_join, nucleotide_variant_annotation_join],
+        'analytical_impact': [nucleotide_variant_join, nucleotide_variant_impact],
     }
 
     if field_selected != "":
@@ -262,6 +310,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         where_part = ' WHERE ' + pair_where
     elif gcm_where and not pair_where:
         where_part = gcm_where
+    print("where_part:", where_part)
 
     sub_where_part = ""
     group_by_part = ""

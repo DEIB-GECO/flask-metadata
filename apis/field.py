@@ -204,6 +204,7 @@ class FieldValue(Resource):
                        }
                 return res
         else:
+            flask.current_app.logger.debug(f"404: field {field_name} not found")
             api.abort(404)
 
 
