@@ -91,7 +91,7 @@ columns = [
     Column('HostSample', 'host_taxon_name', str, False, "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy"),
     Column('HostSample', 'collection_date', datetime, False, "Date in which the infected biological sample was collected", is_date=True),
     Column('HostSample', 'isolation_source', str, False, "Tissue from which the infected biological sample was collected"),
-    Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
+    Column('HostSample', 'geo_group', str, False, "Continent where the biological sample was collected"),
 
     Column('HostSample', 'country', str, False, "Country where the biological sample was collected"),
     Column('HostSample', 'region', str, False, "Region (i.e., part of country) where the biological sample was collected"),
