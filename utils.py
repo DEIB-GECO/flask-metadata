@@ -229,7 +229,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                         if 'max_val' in val:
                             position_sub.append(f" aa_var_{pair_key}.start_aa_original <= {int(val['max_val'])} ")
                         where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
-                    if name == 'var_position':
+                    elif name == 'var_position':
                         position_sub = []
                         if 'min_val' in val:
                             position_sub.append(f" n_var_{pair_key}.start_original >= {int(val['min_val'])} ")
