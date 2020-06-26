@@ -42,6 +42,7 @@ query_result = api.model('QueryResult', {
     'strand': fields.String,
     'length': fields.String,
     'gc_percentage': fields.String,
+    'n_percentage': fields.String,
     'lineage': fields.String,
     'clade': fields.String,
     'sequencing_technology': fields.String,
