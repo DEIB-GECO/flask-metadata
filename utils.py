@@ -106,22 +106,30 @@ columns = [
     Column('HostSample', 'age', int, False, "Host organism age (in years, when applicable) ", is_numerical=True),
 ]
 
-
+columns_item = [
+    Column('Sequence', 'nucleotide_sequence', str, False, ""),
+    Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
+    Column('Sequence', 'clade', str, False, "Sequence-clade description"),
+    Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
+    Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
+    Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
+    Column('Virus', 'genus', str, False, "Virus-genus description"),
+    Column('Virus', 'sub_family', str, False, "Virus-sub_family description"),
+    Column('Virus', 'family', str, False, "Virus-family description"),
+    Column('Virus', 'equivalent_list', str, False, "Virus-equivalent_list description"),
+    Column('Virus', 'molecule_type', str, False, "Virus-molecule_type description"),
+    Column('Virus', 'is_single_stranded', str, False, "Virus-is_single_stranded description"),
+    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description")
+]
 
 columns_others = [
     Column('Annotation', 'gene_name', str, False, "Annotation-gene_name description"),
     Column('Annotation', 'product', str, False, "Annotation-product description"),
 
     Column('AminoacidVariant', 'variant_aa_type', str, False, "Annotation-variant_aa_type description"),
-    # Column('AminoacidVariant', 'start_aa_var', str, False, "Annotation-start_aa description"),
-    # Column('AminoacidVariant', 'end_aa_var', str, False, "Annotation-end_aa description"),
-
     Column('AminoacidVariant', 'sequence_aa_original', str, False, "Annotation-sequence_aa_original description"),
     Column('AminoacidVariant', 'sequence_aa_alternative', str, False, "Annotation-sequence_aa_alternative description"),
     Column('AminoacidVariant', 'aa_position', str, False, "AminoacidVariant-aa_position"),
-
-
-
 
     Column('NucleotideVariant', 'sequence_original', str, False,
            "NucleotideVariant-sequence_original description"),
@@ -138,31 +146,14 @@ columns_others = [
     Column('NucleotideVariantAnnotation', 'n_product', str, False,
            "NucleotideVariantAnnotation-n_product description"),
 
-
     Column('VariantImpact', 'effect', str, False,
            "VariantImpact-effect description"),
     Column('VariantImpact', 'putative_impact', str, False,
            "VariantImpact-putative_impact description"),
     Column('VariantImpact', 'impact_gene_name', str, False,
            "VariantImpact-impact_gene_name description"),
-
 ]
 
-columns_item = [
-    Column('Sequence', 'nucleotide_sequence', str, False, ""),
-    Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
-    Column('Sequence', 'clade', str, False, "Sequence-clade description"),
-    Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
-    Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
-    Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
-    Column('Virus', 'genus', str, False, "Virus-genus description"),
-    Column('Virus', 'sub_family', str, False, "Virus-sub_family description"),
-    Column('Virus', 'family', str, False, "Virus-family description"),
-    Column('Virus', 'equivalent_list', str, False, "Virus-equivalent_list description"),
-    Column('Virus', 'molecule_type', str, False, "Virus-molecule_type description"),
-    Column('Virus', 'is_single_stranded', str, False, "Virus-is_single_stranded description"),
-    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description")
-]
 
 columns_dict = {x.column_name: x for x in columns}
 
