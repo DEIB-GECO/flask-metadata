@@ -7,7 +7,7 @@ from .item import api as item_api
 from .pair import api as pair_api
 from .query import api as query_api
 
-enable_doc = True
+enable_doc = False
 
 api_blueprint = Blueprint('api', __name__)
 
