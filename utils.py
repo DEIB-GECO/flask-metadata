@@ -81,29 +81,23 @@ columns = [
     Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", is_numerical=True),
     Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", is_numerical=True),
 
-    Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
-    Column('ExperimentType', 'assembly_method', str, False, "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
-    Column('ExperimentType', 'coverage', str, False, "Number of unique reads that include a specific nucleotide in the reconstructed sequence"),
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False, "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')"),
     Column('SequencingProject', 'submission_date', datetime, False, "Date of submission of the sequence to the databank (encoded by \'Database source\')",
            is_date=True),
-    Column('SequencingProject', 'bioproject_id', str, False, "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/"),
-    Column('SequencingProject', 'database_source', str, False, "Original database from which information is collected"),
 
-    # biological
-    Column('Virus', 'taxon_id', int, False, "Virus numerical id as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon id"),
-    Column('Virus', 'taxon_name', str, False, "Virus name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon name"),
-    Column('Virus', 'species', str, False, "Virus species name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus species"),
 
     Column('HostSample', 'host_taxon_name', str, False, "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy"),
     Column('HostSample', 'collection_date', datetime, False, "Date in which the infected biological sample was collected", is_date=True),
     Column('HostSample', 'isolation_source', str, False, "Tissue from which the infected biological sample was collected"),
+    Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
+
     Column('HostSample', 'country', str, False, "Country where the biological sample was collected"),
     Column('HostSample', 'region', str, False, "Region (i.e., part of country) where the biological sample was collected"),
-    Column('HostSample', 'gender', str, False, "Host organism gender (when applicable)"),
-    Column('HostSample', 'age', int, False, "Host organism age (in years, when applicable) ", is_numerical=True),
+
+    Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
+    Column('Sequence', 'clade', str, False, "Sequence-clade description"),
 ]
 
 
@@ -150,18 +144,38 @@ columns_others = [
 
 columns_item = [
     Column('Sequence', 'nucleotide_sequence', str, False, ""),
-    Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
-    Column('Sequence', 'clade', str, False, "Sequence-clade description"),
+
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
     Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
-    Column('HostSample', 'geo_group', str, False, "HostSample-geo_group description"),
     Column('Virus', 'genus', str, False, "Virus-genus description"),
     Column('Virus', 'sub_family', str, False, "Virus-sub_family description"),
     Column('Virus', 'family', str, False, "Virus-family description"),
     Column('Virus', 'equivalent_list', str, False, "Virus-equivalent_list description"),
     Column('Virus', 'molecule_type', str, False, "Virus-molecule_type description"),
     Column('Virus', 'is_single_stranded', str, False, "Virus-is_single_stranded description"),
-    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description")
+    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description"),
+
+    # biological
+    Column('Virus', 'taxon_id', int, False,
+           "Virus numerical id as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon id"),
+    Column('Virus', 'taxon_name', str, False,
+           "Virus name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon name"),
+    Column('Virus', 'species', str, False,
+           "Virus species name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus species"),
+
+    Column('HostSample', 'gender', str, False, "Host organism gender (when applicable)"),
+    Column('HostSample', 'age', int, False, "Host organism age (in years, when applicable) ", is_numerical=True),
+
+    Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
+    Column('ExperimentType', 'assembly_method', str, False,
+           "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
+    Column('ExperimentType', 'coverage', str, False,
+           "Number of unique reads that include a specific nucleotide in the reconstructed sequence"),
+
+    Column('SequencingProject', 'bioproject_id', str, False,
+           "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/"),
+    Column('SequencingProject', 'database_source', str, False, "Original database from which information is collected"),
+
 ]
 
 columns_dict = {x.column_name: x for x in columns}
