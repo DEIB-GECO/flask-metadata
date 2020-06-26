@@ -102,45 +102,7 @@ columns = [
 
 
 
-columns_others = [
-    Column('Annotation', 'gene_name', str, False, "Annotation-gene_name description"),
-    Column('Annotation', 'product', str, False, "Annotation-product description"),
 
-    Column('AminoacidVariant', 'variant_aa_type', str, False, "Annotation-variant_aa_type description"),
-    # Column('AminoacidVariant', 'start_aa_var', str, False, "Annotation-start_aa description"),
-    # Column('AminoacidVariant', 'end_aa_var', str, False, "Annotation-end_aa description"),
-
-    Column('AminoacidVariant', 'sequence_aa_original', str, False, "Annotation-sequence_aa_original description"),
-    Column('AminoacidVariant', 'sequence_aa_alternative', str, False, "Annotation-sequence_aa_alternative description"),
-    Column('AminoacidVariant', 'aa_position', str, False, "AminoacidVariant-aa_position"),
-
-
-
-
-    Column('NucleotideVariant', 'sequence_original', str, False,
-           "NucleotideVariant-sequence_original description"),
-    Column('NucleotideVariant', 'sequence_alternative', str, False,
-           "NucleotideVariant-sequence_alternative description"),
-    Column('NucleotideVariant', 'variant_type', str, False,
-           "NucleotideVariant-variant_type description"),
-    Column('NucleotideVariant', 'var_position', str, False, "NucleotideVariant-var_position"),
-
-    Column('NucleotideVariantAnnotation', 'n_feature_type', str, False,
-           "NucleotideVariantAnnotation-n_feature_type description"),
-    Column('NucleotideVariantAnnotation', 'n_gene_name', str, False,
-           "NucleotideVariantAnnotation-n_gene_name description"),
-    Column('NucleotideVariantAnnotation', 'n_product', str, False,
-           "NucleotideVariantAnnotation-n_product description"),
-
-
-    Column('VariantImpact', 'effect', str, False,
-           "VariantImpact-effect description"),
-    Column('VariantImpact', 'putative_impact', str, False,
-           "VariantImpact-putative_impact description"),
-    Column('VariantImpact', 'impact_gene_name', str, False,
-           "VariantImpact-impact_gene_name description"),
-
-]
 
 columns_item = [
     Column('Sequence', 'nucleotide_sequence', str, False, ""),
@@ -177,6 +139,39 @@ columns_item = [
     Column('SequencingProject', 'database_source', str, False, "Original database from which information is collected"),
 
 ]
+
+columns_others = [
+    Column('Annotation', 'gene_name', str, False, "Annotation-gene_name description"),
+    Column('Annotation', 'product', str, False, "Annotation-product description"),
+
+    Column('AminoacidVariant', 'variant_aa_type', str, False, "Annotation-variant_aa_type description"),
+    Column('AminoacidVariant', 'sequence_aa_original', str, False, "Annotation-sequence_aa_original description"),
+    Column('AminoacidVariant', 'sequence_aa_alternative', str, False, "Annotation-sequence_aa_alternative description"),
+    Column('AminoacidVariant', 'aa_position', str, False, "AminoacidVariant-aa_position"),
+
+    Column('NucleotideVariant', 'sequence_original', str, False,
+           "NucleotideVariant-sequence_original description"),
+    Column('NucleotideVariant', 'sequence_alternative', str, False,
+           "NucleotideVariant-sequence_alternative description"),
+    Column('NucleotideVariant', 'variant_type', str, False,
+           "NucleotideVariant-variant_type description"),
+    Column('NucleotideVariant', 'var_position', str, False, "NucleotideVariant-var_position"),
+
+    Column('NucleotideVariantAnnotation', 'n_feature_type', str, False,
+           "NucleotideVariantAnnotation-n_feature_type description"),
+    Column('NucleotideVariantAnnotation', 'n_gene_name', str, False,
+           "NucleotideVariantAnnotation-n_gene_name description"),
+    Column('NucleotideVariantAnnotation', 'n_product', str, False,
+           "NucleotideVariantAnnotation-n_product description"),
+
+    Column('VariantImpact', 'effect', str, False,
+           "VariantImpact-effect description"),
+    Column('VariantImpact', 'putative_impact', str, False,
+           "VariantImpact-putative_impact description"),
+    Column('VariantImpact', 'impact_gene_name', str, False,
+           "VariantImpact-impact_gene_name description"),
+]
+
 
 columns_dict = {x.column_name: x for x in columns}
 
