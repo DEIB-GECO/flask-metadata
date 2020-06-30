@@ -23,7 +23,9 @@ def get_db_uri():
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = "geco78"
-    postgres_db = "vcm_dev_tom_5_f"
+    #postgres_db = "vcm_dev_tom_5_f"
+    #postgres_db = "vcm_dev_6"
+    postgres_db = "vcm_dev_tom_mp"
     return 'postgresql+psycopg2://{user}:{pw}@{url}/{db}'.format(user=postgres_user,
                                                                  pw=postgres_pw,
                                                                  url=postgres_url,
