@@ -195,7 +195,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             # if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'AminoacidVariant']):
             pair_join += f" JOIN aminoacid_variant as aa_var_{pair_key} ON aa_var_{pair_key}.annotation_id = ann_{pair_key}.annotation_id "
         if type_query == 'nuc':
-            pair_join += f" JOIN nucleotide_variant as n_var_{pair_key} ON n_var_{pair_key}.sequence_id = it.sequence_id "
+            pair_join += f" JOIN nucleotide_variant_limited as n_var_{pair_key} ON n_var_{pair_key}.sequence_id = it.sequence_id "
             if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'NucleotideVariantAnnotation']):
                 pair_join += f" LEFT JOIN nucleotide_variant_annotation as n_var_ann_{pair_key} ON n_var_ann_{pair_key}.nucleotide_variant_id = n_var_{pair_key}.nucleotide_variant_id "
             if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'VariantImpact']):
