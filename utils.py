@@ -192,8 +192,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         tables = set(y for x in pair_value['query'] for y in x.keys())
         if type_query == 'aa':
             pair_join += f" JOIN annotation_cds as ann_{pair_key} ON ann_{pair_key}.sequence_id = it.sequence_id "
-            if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'AminoacidVariant']):
-                pair_join += f" LEFT JOIN aminoacid_variant as aa_var_{pair_key} ON aa_var_{pair_key}.annotation_id = ann_{pair_key}.annotation_id "
+            # if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'AminoacidVariant']):
+            pair_join += f" JOIN aminoacid_variant as aa_var_{pair_key} ON aa_var_{pair_key}.annotation_id = ann_{pair_key}.annotation_id "
         if type_query == 'nuc':
             pair_join += f" JOIN nucleotide_variant as n_var_{pair_key} ON n_var_{pair_key}.sequence_id = it.sequence_id "
             if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'NucleotideVariantAnnotation']):
@@ -268,9 +268,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     annotation_join = " JOIN annotation_cds as ann ON it.sequence_id = ann.sequence_id "
 
-    aminoacid_variant_join = " LEFT JOIN aminoacid_variant as aa_var ON aa_var.annotation_id = ann.annotation_id "
+    aminoacid_variant_join = " JOIN aminoacid_variant as aa_var ON aa_var.annotation_id = ann.annotation_id "
 
-    nucleotide_variant_join = " JOIN nucleotide_variant as n_var ON it.sequence_id = n_var.sequence_id "
+    nucleotide_variant_join = " JOIN nucleotide_variant_limited as n_var ON it.sequence_id = n_var.sequence_id "
 
     nucleotide_variant_annotation_join = " LEFT JOIN nucleotide_variant_annotation as n_var_ann ON n_var.nucleotide_variant_id = n_var_ann.nucleotide_variant_id "
 
