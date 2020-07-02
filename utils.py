@@ -195,7 +195,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
         tables = set(y for x in pair_value['query'] for y in x.keys())
         if type_query == 'aa':
-            pair_join += f" JOIN annotation_cds as ann_{pair_key} ON ann_{pair_key}.sequence_id = it.sequence_id "
+            pair_join += f" JOIN annotation as ann_{pair_key} ON ann_{pair_key}.sequence_id = it.sequence_id "
             # if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'AminoacidVariant']):
             pair_join += f" JOIN aminoacid_variant as aa_var_{pair_key} ON aa_var_{pair_key}.annotation_id = ann_{pair_key}.annotation_id "
         if type_query == 'nuc':
@@ -270,7 +270,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     virus_join = " join virus v on it.virus_id = v.virus_id"
 
-    annotation_join = " JOIN annotation_cds as ann ON it.sequence_id = ann.sequence_id "
+    annotation_join = " JOIN annotation as ann ON it.sequence_id = ann.sequence_id "
 
     aminoacid_variant_join = " JOIN aminoacid_variant as aa_var ON aa_var.annotation_id = ann.annotation_id "
 
