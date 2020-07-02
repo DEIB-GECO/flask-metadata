@@ -126,6 +126,7 @@ class Query(Resource):
 
         numPage = args['page']
         numElems = args['num_elems']
+        numElems = 20
 
         if numPage and numElems:
             offset = (numPage - 1) * numElems
