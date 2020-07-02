@@ -290,6 +290,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     if field_selected != "":
         columns = [x for x in gcm_query.keys()]
         columns.append(field_selected)
+        # TODO update sub-part count add all the related columns except the field selected
         tables = [columns_dict_all[x].table_name for x in columns]
         joins = []
         for table in tables:
@@ -304,6 +305,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         from_part = item + experiment_type_join + sequencing_project_join + host_sample_join + virus_join + pair_join
 
     gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
+
+    # TODO update sub-part add where parts of sub part!!!!
 
     where_part = ""
 
