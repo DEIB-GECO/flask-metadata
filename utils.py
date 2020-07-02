@@ -75,35 +75,50 @@ columns = [
     # technological
     Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database"),
 
-    Column('Sequence', 'strain_name', str, False, "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)"),
-    Column('Sequence', 'is_reference', bool, False, "True when the sequence is the reference one (from RefSeq) for the virus species, False when the sequence is not the reference one"),
-    Column('Sequence', 'is_complete', bool, False, "True when the sequence is complete, False when the sequence is partial"),
+    Column('Sequence', 'strain_name', str, False,
+           "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)"),
+    Column('Sequence', 'is_reference', bool, False,
+           "True when the sequence is the reference one (from RefSeq) for the virus species, False when the sequence is not the reference one"),
+    Column('Sequence', 'is_complete', bool, False,
+           "True when the sequence is complete, False when the sequence is partial"),
     Column('Sequence', 'strand', str, False, "Strand to which the sequence belongs to (either positive or negative)"),
     Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", is_numerical=True),
     Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", is_numerical=True),
     Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", is_numerical=True),
 
     Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
-    Column('ExperimentType', 'assembly_method', str, False, "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
-    Column('ExperimentType', 'coverage', str, False, "Number of unique reads that include a specific nucleotide in the reconstructed sequence"),
+    Column('ExperimentType', 'assembly_method', str, False,
+           "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
+    Column('ExperimentType', 'coverage', str, False,
+           "Number of unique reads that include a specific nucleotide in the reconstructed sequence"),
 
     # organizational
-    Column('SequencingProject', 'sequencing_lab', str, False, "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')"),
-    Column('SequencingProject', 'submission_date', datetime, False, "Date of submission of the sequence to the databank (encoded by \'Database source\')",
+    Column('SequencingProject', 'sequencing_lab', str, False,
+           "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')"),
+    Column('SequencingProject', 'submission_date', datetime, False,
+           "Date of submission of the sequence to the databank (encoded by \'Database source\')",
            is_date=True),
-    Column('SequencingProject', 'bioproject_id', str, False, "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/"),
+    Column('SequencingProject', 'bioproject_id', str, False,
+           "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/"),
     Column('SequencingProject', 'database_source', str, False, "Original database from which information is collected"),
 
     # biological
-    Column('Virus', 'taxon_id', int, False, "Virus numerical id as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon id"),
-    Column('Virus', 'taxon_name', str, False, "Virus name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon name"),
-    Column('Virus', 'species', str, False, "Virus species name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus species"),
+    Column('Virus', 'taxon_id', int, False,
+           "Virus numerical id as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon id"),
+    Column('Virus', 'taxon_name', str, False,
+           "Virus name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon name"),
+    Column('Virus', 'species', str, False,
+           "Virus species name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus species"),
 
-    Column('HostSample', 'host_taxon_name', str, False, "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy"),
-    Column('HostSample', 'collection_date', datetime, False, "Date in which the infected biological sample was collected", is_date=True),
-    Column('HostSample', 'isolation_source', str, False, "Tissue from which the infected biological sample was collected"),
+    Column('HostSample', 'host_taxon_name', str, False,
+           "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy"),
+    Column('HostSample', 'collection_date', datetime, False,
+           "Date in which the infected biological sample was collected", is_date=True),
+    Column('HostSample', 'isolation_source', str, False,
+           "Tissue from which the infected biological sample was collected"),
     Column('HostSample', 'country', str, False, "Country where the biological sample was collected"),
-    Column('HostSample', 'region', str, False, "Region (i.e., part of country) where the biological sample was collected"),
+    Column('HostSample', 'region', str, False,
+           "Region (i.e., part of country) where the biological sample was collected"),
     Column('HostSample', 'gender', str, False, "Host organism gender (when applicable)"),
     Column('HostSample', 'age', int, False, "Host organism age (in years, when applicable) ", is_numerical=True),
 ]
@@ -158,7 +173,6 @@ columns_others = [
            "VariantImpact-impact_gene_name description"),
 ]
 
-
 columns_dict = {x.column_name: x for x in columns}
 
 columns_dict_item = {x.column_name: x for x in columns + columns_item}
@@ -175,8 +189,50 @@ del columns_others
 agg_tables = []  # views['biological'][1:]  # +views['management'][1:]
 
 
+def pair_query_resolver(pair_query, pair_key):
+    # print(pair_query)
+    where_temp_inner = []
+    for name, val in pair_query.items():
+        search_list = [
+            ('Annotation', f"ann{pair_key}"),
+            ('AminoacidVariant', f"aa_var{pair_key}"),
+            ('NucleotideVariant', f"n_var{pair_key}"),
+            ('NucleotideVariantAnnotation', f"n_var_ann{pair_key}"),
+            ('VariantImpact', f"n_imp{pair_key}"),
+        ]
+        inner_table_name = ''
+        for t_name, t_alias in search_list:
+            if name in [x.column_name for x in columns_dict_all.values() if x.table_name == t_name]:
+                inner_table_name = t_alias
+                break
+
+        if name == 'start_aa_original':
+            position_sub = []
+            if 'min_val' in val:
+                position_sub.append(f" aa_var{pair_key}.start_aa_original >= {int(val['min_val'])} ")
+            if 'max_val' in val:
+                position_sub.append(f" aa_var{pair_key}.start_aa_original <= {int(val['max_val'])} ")
+            where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
+        elif name == 'start_original':
+            position_sub = []
+            if 'min_val' in val:
+                position_sub.append(f" n_var{pair_key}.start_original >= {int(val['min_val'])} ")
+            if 'max_val' in val:
+                position_sub.append(f" n_var{pair_key}.start_original <= {int(val['max_val'])} ")
+            where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
+        else:
+            inner_text_list = []
+            if None in val:
+                inner_text_list.append(f" lower({inner_table_name}.{name}) IS NULL ")
+            vals = ",".join([f"'{x.lower()}'" for x in val if x])
+            if vals:
+                inner_text_list.append(f" lower({inner_table_name}.{name}) IN ({vals}) ")
+            where_temp_inner.append("(" + " OR ".join(inner_text_list) + ")")
+    return "(" + " AND ".join(where_temp_inner) + ")"
+
+
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
-                        offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3):
+                        offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -195,62 +251,23 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
         tables = set(y for x in pair_value['query'] for y in x.keys())
         if type_query == 'aa':
-            pair_join += f" JOIN annotation as ann_{pair_key} ON ann_{pair_key}.sequence_id = it.sequence_id "
+            pair_join += f" JOIN annotation as ann{pair_key} ON ann{pair_key}.sequence_id = it.sequence_id "
             # if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'AminoacidVariant']):
-            pair_join += f" JOIN aminoacid_variant as aa_var_{pair_key} ON aa_var_{pair_key}.annotation_id = ann_{pair_key}.annotation_id "
+            pair_join += f" JOIN aminoacid_variant as aa_var{pair_key} ON aa_var{pair_key}.annotation_id = ann{pair_key}.annotation_id "
         if type_query == 'nuc':
-            pair_join += f" JOIN nucleotide_variant_limited as n_var_{pair_key} ON n_var_{pair_key}.sequence_id = it.sequence_id "
-            if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'NucleotideVariantAnnotation']):
-                pair_join += f" LEFT JOIN nucleotide_variant_annotation as n_var_ann_{pair_key} ON n_var_ann_{pair_key}.nucleotide_variant_id = n_var_{pair_key}.nucleotide_variant_id "
-            if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'VariantImpact']):
-                pair_join += f" LEFT JOIN variant_impact as var_imp_{pair_key} ON var_imp_{pair_key}.nucleotide_variant_id = n_var_{pair_key}.nucleotide_variant_id "
+            pair_join += f" JOIN nucleotide_variant_limited as n_var{pair_key} ON n_var{pair_key}.sequence_id = it.sequence_id "
+            if tables.intersection([x.column_name for x in columns_dict_all.values() if
+                                    x.table_name == 'NucleotideVariantAnnotation']):
+                pair_join += f" LEFT JOIN nucleotide_variant_annotation as n_var_ann{pair_key} ON n_var_ann{pair_key}.nucleotide_variant_id = n_var{pair_key}.nucleotide_variant_id "
+            if tables.intersection(
+                    [x.column_name for x in columns_dict_all.values() if x.table_name == 'VariantImpact']):
+                pair_join += f" LEFT JOIN variant_impact as n_imp{pair_key} ON n_imp{pair_key}.nucleotide_variant_id = n_imp{pair_key}.nucleotide_variant_id "
 
-        if type_query == 'aa' or True:
-            where_temp_outer_or = []
-            for pair_query in pair_queries:
-
-                # print(pair_query)
-                where_temp_inner = []
-                for name, val in pair_query.items():
-                    search_list = [
-                        ('Annotation', f"ann_{pair_key}"),
-                        ('AminoacidVariant', f"aa_var_{pair_key}"),
-                        ('NucleotideVariant', f"n_var_{pair_key}"),
-                        ('NucleotideVariantAnnotation',f"n_var_ann_{pair_key}" ),
-                        ('VariantImpact', f"var_imp_{pair_key}"),
-                    ]
-                    inner_table_name = ''
-                    for t_name, t_alias in search_list:
-                        if name in [x.column_name for x in columns_dict_all.values() if x.table_name == t_name]:
-                            inner_table_name = t_alias
-                            break
-
-
-                    if name == 'start_aa_original':
-                        position_sub = []
-                        if 'min_val' in val:
-                            position_sub.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['min_val'])} ")
-                        if 'max_val' in val:
-                            position_sub.append(f" aa_var_{pair_key}.start_aa_original <= {int(val['max_val'])} ")
-                        where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
-                    elif name == 'start_original':
-                        position_sub = []
-                        if 'min_val' in val:
-                            position_sub.append(f" n_var_{pair_key}.start_original >= {int(val['min_val'])} ")
-                        if 'max_val' in val:
-                            position_sub.append(f" n_var_{pair_key}.start_original <= {int(val['max_val'])} ")
-                        where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
-                    else:
-                        inner_text_list = []
-                        if None in val:
-                            inner_text_list.append(f" lower({inner_table_name}.{name}) IS NULL ")
-                        vals = ",".join([f"'{x.lower()}'" for x in val if x])
-                        if vals:
-                            inner_text_list.append(f" lower({inner_table_name}.{name}) IN ({vals}) ")
-                        where_temp_inner.append("(" + " OR ".join(inner_text_list) + ")")
-
-                where_temp_outer_or.append("(" + " AND ".join(where_temp_inner) + ")")
-            where_temp_outer_and.append("(" + " OR ".join(where_temp_outer_or) + ")")
+        where_temp_outer_or = []
+        for pair_query in pair_queries:
+            pair_query_res = pair_query_resolver(pair_query, pair_key)
+            where_temp_outer_or.append(pair_query_res)
+        where_temp_outer_and.append("(" + " OR ".join(where_temp_outer_or) + ")")
 
     pair_where += " AND ".join(where_temp_outer_and)
 
@@ -294,7 +311,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     if field_selected != "":
         columns = [x for x in gcm_query.keys()]
         columns.append(field_selected)
-        # TODO update sub-part count add all the related columns except the field selected
+        if panel:
+            for key_panel in panel:
+                columns.append(key_panel)
         tables = [columns_dict_all[x].table_name for x in columns]
         joins = []
         for table in tables:
@@ -311,15 +330,16 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
 
     # TODO update sub-part add where parts of sub part!!!!
+    panel_where = ''
+    if panel:
+        panel_where = pair_query_resolver(panel, '')
 
     where_part = ""
+    where_list = [x for x in (gcm_where, pair_where, panel_where) if x]
 
-    if gcm_query and pair_where:
-        where_part = gcm_where + " AND " + pair_where
-    elif pair_where and not gcm_where:
-        where_part = ' WHERE ' + pair_where
-    elif gcm_where and not pair_where:
-        where_part = gcm_where
+    if where_list:
+        where_part = " WHERE " + " AND ".join(where_list)
+
     print("where_part:", where_part)
 
     sub_where_part = ""
@@ -337,12 +357,16 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     elif return_type == 'field_value':
         # TODO add new....
-        if field_selected in ['gene_name', 'product']:
+        if columns_dict_all[field_selected].table_name == 'Annotation':
             field_selected_new = "ann." + field_selected
-        elif field_selected in ['variant_aa_type', 'sequence_aa_original', 'sequence_aa_alternative']:
+        elif columns_dict_all[field_selected].table_name == 'AminoacidVariant':
             field_selected_new = "aa_var." + field_selected
-        elif field_selected in ['variant_type', 'sequence_original', 'sequence_alternative']:
+        elif columns_dict_all[field_selected].table_name == 'NucleotideVariant':
             field_selected_new = "n_var." + field_selected
+        elif columns_dict_all[field_selected].table_name == 'NucleotideVariantAnnotation':
+            field_selected_new = "n_var_ann." + field_selected
+        elif columns_dict_all[field_selected].table_name == 'VariantImpact':
+            field_selected_new = "n_imp." + field_selected
         else:
             field_selected_new = field_selected
 
@@ -367,7 +391,7 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
     sub_where = []
     where_part = ""
     if gcm_query:
-        where_part = " WHERE ("
+        where_part = " ("
 
     for (column, values) in gcm_query.items():
         col = columns_dict_item[column]
