@@ -118,8 +118,8 @@ class Numerical(Resource):
         filter_in = payload.get("gcm")
         pair_query = payload.get("kv")
 
-        if field_name in columns_dict:
-            column = columns_dict[field_name]
+        if field_name in columns_dict_all:
+            column = columns_dict_all[field_name]
             column_name = column.column_name
 
             query = gen_query_field(field_name, 'original', filter_in, pair_query)

@@ -66,6 +66,8 @@ def unfold_list(res):
 
 def calc_distance(view_name, pre_table, table_name):
     view = views[view_name]
+    if view_name == 'analytical_a':
+        return 2
     return view.index(table_name) - view.index(pre_table)
 
 
@@ -129,7 +131,8 @@ columns_others = [
     Column('AminoacidVariant', 'variant_aa_type', str, False, "Annotation-variant_aa_type description"),
     Column('AminoacidVariant', 'sequence_aa_original', str, False, "Annotation-sequence_aa_original description"),
     Column('AminoacidVariant', 'sequence_aa_alternative', str, False, "Annotation-sequence_aa_alternative description"),
-    Column('AminoacidVariant', 'aa_position', str, False, "AminoacidVariant-aa_position"),
+    # Column('AminoacidVariant', 'aa_position', int, False, "AminoacidVariant-aa_position"),
+    Column('AminoacidVariant', 'start_aa_original', int, False, "AminoacidVariant-start_aa_original"),
 
     Column('NucleotideVariant', 'sequence_original', str, False,
            "NucleotideVariant-sequence_original description"),
@@ -137,7 +140,8 @@ columns_others = [
            "NucleotideVariant-sequence_alternative description"),
     Column('NucleotideVariant', 'variant_type', str, False,
            "NucleotideVariant-variant_type description"),
-    Column('NucleotideVariant', 'var_position', str, False, "NucleotideVariant-var_position"),
+    # Column('NucleotideVariant', 'var_position', int, False, "NucleotideVariant-var_position"),
+    Column('NucleotideVariant', 'start_original', int, False, "NucleotideVariant-var_position"),
 
     Column('NucleotideVariantAnnotation', 'n_feature_type', str, False,
            "NucleotideVariantAnnotation-n_feature_type description"),
@@ -222,14 +226,14 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
                             break
 
 
-                    if name == 'aa_position':
+                    if name == 'start_aa_original':
                         position_sub = []
                         if 'min_val' in val:
                             position_sub.append(f" aa_var_{pair_key}.start_aa_original >= {int(val['min_val'])} ")
                         if 'max_val' in val:
                             position_sub.append(f" aa_var_{pair_key}.start_aa_original <= {int(val['max_val'])} ")
                         where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
-                    elif name == 'var_position':
+                    elif name == 'start_original':
                         position_sub = []
                         if 'min_val' in val:
                             position_sub.append(f" n_var_{pair_key}.start_original >= {int(val['min_val'])} ")
