@@ -118,11 +118,13 @@ class Numerical(Resource):
         filter_in = payload.get("gcm")
         pair_query = payload.get("kv")
 
-        if field_name in columns_dict:
-            column = columns_dict[field_name]
+        panel = payload.get("panel")
+
+        if field_name in columns_dict_all:
+            column = columns_dict_all[field_name]
             column_name = column.column_name
 
-            query = gen_query_field(field_name, 'original', filter_in, pair_query)
+            query = gen_query_field(field_name, 'original', filter_in, pair_query, panel=panel)
 
             res = db.engine.execute(query).fetchall()
             flask.current_app.logger.debug(query)
@@ -166,12 +168,14 @@ class FieldValue(Resource):
         pair_query = payload.get("kv")
         rel_distance = args['rel_distance']
 
+        panel = payload.get("panel")
+
         if field_name in columns_dict_all:
             column = columns_dict_all[field_name]
             column_name = column.column_name
             has_tid = column.has_tid
             if type == 'original':
-                query = gen_query_field(field_name, type, filter_in, pair_query)
+                query = gen_query_field(field_name, type, filter_in, pair_query, panel=panel)
                 res = db.engine.execute(query).fetchall()
                 flask.current_app.logger.debug(query)
                 item_count = sum(map(lambda row: row['item_count'], res))
@@ -208,14 +212,21 @@ class FieldValue(Resource):
             api.abort(404)
 
 
-def gen_query_field(field_name, type, filter_in, pair_query, rel_distance=3):
+def gen_query_field(field_name, type, filter_in, pair_query, rel_distance=3, panel=None):
     column = columns_dict_all[field_name]
     column_name = column.column_name
     has_tid = column.has_tid
     if type == 'original':
         filter_in_new = {x: filter_in[x] for x in filter_in if x != column_name}
+        if panel:
+            panel_new = {x: panel[x] for x in panel if x != column_name}
+            print('panel_new', panel_new)
+            if len(panel_new) == 0:
+                panel = None
+        else:
+            panel_new = None
         sub_query1 = sql_query_generator(filter_in_new, pairs_query=pair_query, search_type=type,
-                                         return_type='field_value', field_selected=field_name)
+                                         return_type='field_value', field_selected=field_name, panel=panel_new)
         group_by = " group by label "
         order_by = " order by item_count desc, label asc "
         select_part = f"SELECT label, count(*) as item_count "

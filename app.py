@@ -7,6 +7,10 @@ from flask import Flask, render_template, redirect, Blueprint, url_for
 from apis import api_blueprint
 from model.models import db
 
+base_url = '/virusurf_gisaid/'
+api_url = base_url + 'api'
+repo_static_url = base_url + 'repo_static'
+
 
 def get_env_variable(name):
     try:
@@ -15,19 +19,34 @@ def get_env_variable(name):
         message = "Expected environment variable '{}' not set.".format(name)
         raise Exception(message)
 
+
 def get_db_uri():
-    #postgres_url = get_env_variable("POSTGRES_URL")
-    #postgres_user = get_env_variable("POSTGRES_USER")
-    #postgres_pw = get_env_variable("POSTGRES_PW")
-    #postgres_db = get_env_variable("POSTGRES_DB")
+    # postgres_url = get_env_variable("POSTGRES_URL")
+    # postgres_user = get_env_variable("POSTGRES_USER")
+    # postgres_pw = get_env_variable("POSTGRES_PW")
+    # postgres_db = get_env_variable("POSTGRES_DB")
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = "geco78"
     postgres_db = "vcm_dev_gisaid"
-    return 'postgresql+psycopg2://{user}:{pw}@{url}/{db}'.format(user=postgres_user,
-                                                                 pw=postgres_pw,
-                                                                 url=postgres_url,
-                                                                 db=postgres_db)
+
+    application_name = []
+
+    if 'ENV' in my_app.config:
+        application_name.append(my_app.config['ENV'])
+
+    application_name.append(os.uname()[1])
+
+    application_name.append(base_url)
+
+    application_name = ", ".join(application_name)
+
+    return 'postgresql+psycopg2://{user}:{pw}@{url}/{db}?application_name={application_name}'.format(
+        user=postgres_user,
+        pw=postgres_pw,
+        url=postgres_url,
+        db=postgres_db,
+        application_name=application_name, )
 
 
 dictConfig({
@@ -45,10 +64,6 @@ dictConfig({
         'handlers': ['wsgi']
     }
 })
-
-base_url = '/virusurf_gisaid/'
-api_url = base_url + 'api'
-repo_static_url = base_url + 'repo_static'
 
 my_app = Flask(__name__)
 
