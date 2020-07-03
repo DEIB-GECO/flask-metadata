@@ -73,7 +73,7 @@ def calc_distance(view_name, pre_table, table_name):
 
 columns = [
     # technological
-    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database"),
+    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database", "Accession ID"),
 
     Column('Sequence', 'strain_name', str, False,
            "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)"),
@@ -82,9 +82,9 @@ columns = [
     Column('Sequence', 'is_complete', bool, False,
            "True when the sequence is complete, False when the sequence is partial"),
     Column('Sequence', 'strand', str, False, "Strand to which the sequence belongs to (either positive or negative)"),
-    Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", is_numerical=True),
-    Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", is_numerical=True),
-    Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", is_numerical=True),
+    Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", "Sequence Length", is_numerical=True),
+    Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", "GC%", is_numerical=True),
+    Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", "N%", is_numerical=True),
 
     Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
     Column('ExperimentType', 'assembly_method', str, False,
@@ -94,24 +94,24 @@ columns = [
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False,
-           "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')"),
+           "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')", "Submitting Lab"),
     Column('SequencingProject', 'submission_date', datetime, False,
            "Date of submission of the sequence to the databank (encoded by \'Database source\')",
            is_date=True),
     Column('SequencingProject', 'bioproject_id', str, False,
-           "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/"),
+           "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/", "BioProject ID"),
     Column('SequencingProject', 'database_source', str, False, "Original database from which information is collected"),
 
     # biological
     Column('Virus', 'taxon_id', int, False,
-           "Virus numerical id as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon id"),
+           "Virus numerical id as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon ID"),
     Column('Virus', 'taxon_name', str, False,
            "Virus name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus taxon name"),
     Column('Virus', 'species', str, False,
            "Virus species name as to the NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Virus species"),
 
     Column('HostSample', 'host_taxon_name', str, False,
-           "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy"),
+           "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy", "Host taxon name"),
     Column('HostSample', 'collection_date', datetime, False,
            "Date in which the infected biological sample was collected", is_date=True),
     Column('HostSample', 'isolation_source', str, False,
