@@ -73,42 +73,37 @@ def calc_distance(view_name, pre_table, table_name):
 
 columns = [
     # technological
-    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database"),
+    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database", "Accession ID"),
 
     Column('Sequence', 'strain_name', str, False,
-           "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)"),
+           "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)", "Virus Name (Strain name)"),
     Column('Sequence', 'is_reference', bool, False,
            "True when the sequence is the reference one for the virus species, False when the sequence is not the reference one"),
     Column('Sequence', 'is_complete', bool, False,
            "True when the sequence is complete, False when the sequence is partial"),
     Column('Sequence', 'strand', str, False, "Strand to which the sequence belongs to (either positive or negative)"),
-    Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", is_numerical=True),
-    Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", is_numerical=True),
-    Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", is_numerical=True),
-
-    Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
-    Column('ExperimentType', 'assembly_method', str, False,
-           "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
-    Column('ExperimentType', 'coverage', str, False,
-           "Number of unique reads that include a specific nucleotide in the reconstructed sequence"),
+    Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", "Sequence Length",is_numerical=True),
+    Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", "GC%", is_numerical=True),
+    Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", "N%", is_numerical=True),
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False,
-           "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')"),
+           "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')", "Submitting Lab"),
     Column('SequencingProject', 'submission_date', datetime, False,
            "Date of submission of the sequence to the databank (encoded by \'Database source\')",
            is_date=True),
 
-
+    # biological
     Column('HostSample', 'host_taxon_name', str, False,
-           "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy"),
+           "Host organism species name from NCBI Taxonomy https://www.ncbi.nlm.nih.gov/taxonomy","Host (Host taxon name)"),
     Column('HostSample', 'collection_date', datetime, False,
            "Date in which the infected biological sample was collected", is_date=True),
     Column('HostSample', 'isolation_source', str, False,
-           "Tissue from which the infected biological sample was collected"),
-    Column('HostSample', 'geo_group', str, False, "Continent where the biological sample was collected"),
-    Column('HostSample', 'country', str, False, "Country where the biological sample was collected"),
-    Column('HostSample', 'region', str, False, "Region (i.e., part of country) where the biological sample was collected"),
+           "Tissue from which the infected biological sample was collected", "Specimen Source (Isolation source)"),
+    Column('HostSample', 'geo_group', str, False, "Continent where the biological sample was collected", "Location (Geo group)"),
+    Column('HostSample', 'country', str, False, "Country where the biological sample was collected", "Location (Country)"),
+    Column('HostSample', 'region', str, False, "Region (i.e., part of country) where the biological sample was collected", "Location (Region)"),
+    Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
 
     Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
     Column('Sequence', 'clade', str, False, "Sequence-clade description"),
@@ -119,7 +114,6 @@ columns_item = [
     Column('Sequence', 'nucleotide_sequence', str, False, ""),
 
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
-    Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
     Column('Virus', 'genus', str, False, "Virus-genus description"),
     Column('Virus', 'sub_family', str, False, "Virus-sub_family description"),
     Column('Virus', 'family', str, False, "Virus-family description"),
@@ -139,6 +133,7 @@ columns_item = [
     Column('HostSample', 'gender', str, False, "Host organism gender (when applicable)"),
     Column('HostSample', 'age', int, False, "Host organism age (in years, when applicable) ", is_numerical=True),
 
+    # technical
     Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
     Column('ExperimentType', 'assembly_method', str, False,
            "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
