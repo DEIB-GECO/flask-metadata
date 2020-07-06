@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <!--<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">-->
+
+    <title> Data curation - ViruSurf</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Basic Styles -->
+    <link rel="stylesheet" type="text/css" media="screen"
+          href="./bootstrap.min.css">
+    <link rel="stylesheet" href="inc/font-awesome.min.4.4.0.css">
+
+    <!-- SmartAdmin Styles : Please note (smartadmin-production.css) was created using LESS variables -->
+    <link rel="stylesheet" type="text/css" media="screen"
+          href="smartadmin-production.min.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="contact.css">
+    <link rel="icon" href="favicon.ico">
+
+</head>
+<body id="extr-page">
+<!-- POSSIBLE CLASSES: minified, fixed-ribbon, fixed-header, fixed-width
+     You can also add different skin classes such as "smart-skin-1", "smart-skin-2" etc...-->
+
+
+<div id="main" role="main">
+    <!-- MAIN CONTENT -->
+    <div id="content" class="container">
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="bs-example bs-example-type">
+                    <h2 class="text-primary" style="margin: 20px 0; font-size:38px">Data curation</h2>
+                    <table class="table" style="background-color: #fafafa;">
+                        <tbody>
+                        <tr>
+                            <td>
+                                <h1 class="text-primary">Curation principles</h1>
+                                Data must be captured, standardized, organized, and made accessible to the scientific
+                                community in order to have a significant and lasting impact.
+                                The role of ViruSurf is to provide up-to-date, accurate, and accessible information,
+                                and, through this critical activity, facilitate virology scientific discovery.
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>
+                                <h1 class="text-primary">Metadata curation</h1>
+                                Our first curation contribution is to provide a unique schema
+                                (see <a href="https://www.biorxiv.org/content/10.1101/2020.04.29.067637v3">Viral
+                                Conceptual Model</a>)
+                                for different data sources.
+                                Different ad-hoc importer modules here (the code is available <a
+                                    href="https://github.com/acanakoglu/virusurf_downloader">here</a>)
+                                have been built to load GenBank, RefSeq, COG-UK, and GISAID data.
+                                Each source comes with different terminological choices when describing the different
+                                metadata.
+                                We have surveyed the the terms used in many sources to come up with appropriate
+                                reconciling solutions.
+                                <br><br>
+                                <img src="./table.jpg" alt="table to compare terminology">
+                                <br><br>
+                                A complete mapping of our terms with the intergated sources can be found at...
+                                All results have been browsed and manually checked by the development team.
+                                <br><br>
+                                Specific curation efforts have been dedicated to:
+                                <br>
+                                <ul>
+                                    <li>
+                                        Location information: when not available we add the GeoGroup (i.e., the
+                                        continent or sub-continent)
+                                    </li>
+                                    <li>
+                                        Collection date: when the specific day is not available, we typically add 01
+                                        (the first day of the month)
+                                        to make the item more easily searchable through date filters
+                                    </li>
+                                    <li>
+                                        Taxon name, ID, species: This is a critical field as it depends on the
+                                        information retrieved through the
+                                        authoritative NCBI Taxonomy. However, some viruses are described as "species"
+                                        (such as SARS-CoV), some others as "sub-species" (such as SARS-CoV 2).
+                                        This may result in confusion when comparing SARS-CoV vs. SARS-CoV 2.
+                                        We have thus chosen a comprehensive approach.
+                                        The field Taxon name refers to the most specific term used to define the type of
+                                        virus under examination.
+                                        The field Taxon ID is the related numerical identifier withing NCBI Taxon.
+                                        Instead, Species indicates the ...
+                                    </li>
+                                    <li>
+                                        For ease of introperability with other resources, we also add the Host Taxon ID
+                                        (which is added to the Host Taxon ID) manually.
+                                    </li>
+                                    <li>
+                                        From GenBank, not all the species of virus have a clearly specified reference
+                                        sequence. In some cases we have defined the reference sequence
+                                        by previously cross-checking with several research papers to ascertain that the
+                                        typical reference
+                                        sequence used for variant calling is defined.
+                                    </li>
+                                    <li>
+                                        The field Is Complete is computed for COG-UK following the same rules: if the
+                                        sequence length is >= 95% of the reference length and if N% is lower than 5%,
+                                        then
+                                        Is Complete = True, ele Is Complete = false.
+                                    </li>
+                                    <li>
+                                        Strand, as well as Molecule Type, Is Single Stranded and Is Positive Stranded
+                                        are curated manually.
+                                    </li>
+                                    <li>
+                                        GC% and N% have been computed to provide users with an additional information on
+                                        the quality of the sequence.
+                                    </li>
+                                    <li>
+                                        For the Coverage field, a series of curation steps were necessary, as the values gathered from GenBank were very heterogeneous in the notation.
+                                        <ul>
+                                            <li>remove strings (possibly within parenthesis) that on the left/right of
+                                                the numbers (including x, X, reads/nt, >, <.....)
+                                            </li>
+                                            <li>commas or dots in between numbers should be treated in two different
+                                                ways:
+                                                <ul>
+                                                    <li>if they have three numbers on their right: remove</li>
+                                                    <li>if they have less than three numbers on their right (so 1 or 2),
+                                                    treat those numbers as decimals and round the unit to the closest
+                                                        one (e.g. 112593.3 becomes 112593, whilst 70.8 becomes 71)</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                        These rules were applied after carefully checking many examples in the originary research papers to
+                                        ascertain that our homogenization functions were consistent with the original semantics.
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <h1 class="text-primary">Data curation</h1>
+                                In ViruSurf Annotations are currently imported from GenBank (<a href="https://biopython.org/DIST/docs/api/Bio.Entrez-module.html">
+                                NCBI Nuccore APIs</a>).
+                                <br>
+                                Nucleotide variants are computed...
+                                <br>
+                                Moreover, we use SNPEff to annotate each variant with multiple impacts and effects (see
+                                <a href="http://snpeff.sourceforge.net/SnpEff_manual.html">SnpEff documentation</a> at "Effect prediction details" section)
+                                <br>
+                                Amino acid variants are computed...
+                                <br>
+                                <br>
+                                Instead, for sequences coming from COG-UK, which come with much less metadata and no structural annotations,
+                                we compute these from scratch...
+                            </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <h1 class="text-primary">Planned developments</h1>
+                                In order to provide a homogeneous
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <h1 class="text-primary">Reference sequences</h1>
+                                aaa
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- END MAIN PANEL -->
+<!-- ==========================CONTENT ENDS HERE ========================== -->
+
+<!-- IMPORTANT: APP CONFIG -->
+<script src="js/app.config.js"></script>
+
+<!--[if IE 8]>
+
+<h1>Your browser is out of date, please update your browser by going to www.microsoft.com/download</h1>
+
+<![endif]-->
+
+<!-- Your GOOGLE ANALYTICS CODE Below -->
+
+<!--
+<script type="text/javascript">
+
+    var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-61689851-1']);
+        _gaq.push(['_trackPageview']);
+
+    (function() {
+        var ga = document.createElement('script');
+        ga.type = 'text/javascript';
+        ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(ga, s);
+    })();
+
+</script>
+-->
+
+</body>
+
+</html>
+
+<section id="contact" class="gray-section contact">
+    <div class="container">
+        <div class="row m-b-lg">
+            <div class="col-lg-12 text-center">
+                <div class="navy-line"></div>
+                <h1>Contact Us</h1>
+                <p>For questions, suggestions, bug reports, or any comment</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12 text-center">
+                <a href="mailto:arif.canakoglu@polimi.it" class="btn btn-primary">Send us mail</a>
+                <br><br>
+            </div>
+        </div>
+
+    </div>
+</section>
