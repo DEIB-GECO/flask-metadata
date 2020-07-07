@@ -17,6 +17,7 @@ views = {
     'analytical_a': [center_table, 'Annotation', 'AminoacidVariant'],
     'analytical_v': [center_table, 'NucleotideVariant', 'NucleotideVariantAnnotation'],
     'analytical_impact': [center_table, 'NucleotideVariant', 'VariantImpact'],
+    'view_annotation': [center_table, 'AnnotationView'],
 
 }
 
@@ -73,7 +74,8 @@ def calc_distance(view_name, pre_table, table_name):
 
 columns = [
     # technological
-    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database", "Accession ID"),
+    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database",
+           "Accession ID"),
 
     Column('Sequence', 'strain_name', str, False,
            "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)"),
@@ -82,7 +84,8 @@ columns = [
     Column('Sequence', 'is_complete', bool, False,
            "True when the sequence is complete, False when the sequence is partial"),
     Column('Sequence', 'strand', str, False, "Strand to which the sequence belongs to (either positive or negative)"),
-    Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", "Sequence Length", is_numerical=True),
+    Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", "Sequence Length",
+           is_numerical=True),
     Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", "GC%", is_numerical=True),
     Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", "N%", is_numerical=True),
 
@@ -94,12 +97,14 @@ columns = [
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False,
-           "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')", "Submitting Lab"),
+           "Laboratory that sequenced and submitted the sequence to the databank (encoded by \'Database source\')",
+           "Submitting Lab"),
     Column('SequencingProject', 'submission_date', datetime, False,
            "Date of submission of the sequence to the databank (encoded by \'Database source\')",
            is_date=True),
     Column('SequencingProject', 'bioproject_id', str, False,
-           "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/", "BioProject ID"),
+           "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/",
+           "BioProject ID"),
     Column('SequencingProject', 'database_source', str, False, "Original database from which information is collected"),
 
     # biological
@@ -136,7 +141,12 @@ columns_item = [
     Column('Virus', 'equivalent_list', str, False, "Virus-equivalent_list description"),
     Column('Virus', 'molecule_type', str, False, "Virus-molecule_type description"),
     Column('Virus', 'is_single_stranded', str, False, "Virus-is_single_stranded description"),
-    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description")
+    Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description"),
+
+    Column('AnnotationView', 'annotation_view_aminoacid_sequence', str, False,
+           "Virus-is_positive_stranded description"),
+    Column('AnnotationView', 'annotation_view_nucleotide_sequence', str, False,
+           "Virus-is_positive_stranded description"),
 ]
 
 columns_others = [
@@ -171,6 +181,8 @@ columns_others = [
            "VariantImpact-putative_impact description"),
     Column('VariantImpact', 'impact_gene_name', str, False,
            "VariantImpact-impact_gene_name description"),
+
+    Column('AnnotationView', 'annotation_view_product', str, False, "annotation_view_product description"),
 ]
 
 columns_dict = {x.column_name: x for x in columns}
@@ -232,7 +244,8 @@ def pair_query_resolver(pair_query, pair_key):
 
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
-                        offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None):
+                        offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
+                        annotation_type=None):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -297,6 +310,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     nucleotide_variant_impact = " LEFT JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
 
+    annotation_view_join = " LEFT JOIN annotation_view as ann_view ON it.sequence_id = ann_view.sequence_id "
+
     view_join = {
         # TODO VIRUS
         'biological_h': [host_sample_join],
@@ -306,6 +321,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         'analytical_a': [annotation_join, aminoacid_variant_join],
         'analytical_v': [nucleotide_variant_join, nucleotide_variant_annotation_join],
         'analytical_impact': [nucleotide_variant_join, nucleotide_variant_impact],
+        'view_annotation': [annotation_view_join],
     }
 
     if field_selected != "":
@@ -324,18 +340,19 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         joins = list(OrderedDict.fromkeys(joins))
         from_part = item + " ".join(joins) + pair_join
     else:
-        # TODO VIRUS add all tables
         from_part = item + experiment_type_join + sequencing_project_join + host_sample_join + virus_join + pair_join
+        if annotation_type:
+            annotation_type = annotation_type.replace("'", "''")
+            from_part = from_part + annotation_view_join + f" AND lower(ann_view.annotation_view_product) = lower('{annotation_type}')"
 
     gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
 
-    # TODO update sub-part add where parts of sub part!!!!
     panel_where = ''
     if panel:
         panel_where = pair_query_resolver(panel, '')
 
     where_part = ""
-    where_list = [x for x in (gcm_where, pair_where, panel_where) if x]
+    where_list = [x for x in (gcm_where, pair_where, panel_where,) if x]
 
     if where_list:
         where_part = " WHERE " + " AND ".join(where_list)
@@ -348,7 +365,13 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     offset_part = ""
     order_by = ""
     if return_type == 'table':
-        select_part = "SELECT DISTINCT " + ','.join(columns_dict_item.keys()) + " "
+        if annotation_type:
+            select_columns = columns_dict_item.keys()
+        else:
+            select_columns = (key for key, value in columns_dict_item.items() if value.table_name != 'AnnotationView')
+
+        select_part = "SELECT DISTINCT " + ','.join(select_columns) + " "
+
         if limit:
             limit_part = f" LIMIT {limit} "
         if offset:

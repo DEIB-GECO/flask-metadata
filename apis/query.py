@@ -19,6 +19,7 @@ count_parser = api.parser()
 count_parser.add_argument('body', type="json", help='json ', location='json')
 count_parser.add_argument('agg', type=inputs.boolean, default=False)
 count_parser.add_argument('rel_distance', type=int, default=3)
+count_parser.add_argument('annotation_type', type=str)
 
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
@@ -28,7 +29,7 @@ table_parser.add_argument('num_elems', type=int)
 table_parser.add_argument('order_col', type=str, default='accession_id')
 table_parser.add_argument('order_dir', type=str, default='asc')
 table_parser.add_argument('rel_distance', type=int, default=3)
-
+table_parser.add_argument('annotation_type', type=str)
 
 ################################API IMPLEMENTATION###########################################
 
@@ -40,6 +41,7 @@ query_result = api.model('QueryResult', {
     'is_reference': fields.String,
     'is_complete': fields.String,
     'nucleotide_sequence': fields.String,
+    'amino_acid_sequence': fields.String,
     'strand': fields.String,
     'length': fields.String,
     'gc_percentage': fields.String,
@@ -99,6 +101,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "## Please use */field/{field_name}* endpoint\n" + \
                   "------------------\n"
 
+
 #############################SERVICES IMPLEMENTATION#############################################
 @api.route('/table')
 @api.response(404, 'Results not found')  # TODO correct
@@ -127,6 +130,8 @@ class Query(Resource):
         numPage = args['page']
         numElems = args['num_elems']
 
+        annotation_type = args.get('annotation_type')
+
         if numPage and numElems:
             offset = (numPage - 1) * numElems
             limit = numElems
@@ -140,12 +145,19 @@ class Query(Resource):
         pairs = payload.get("kv")
 
         query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit=limit, offset=offset,
-                                    order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance)
+                                    order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
+                                    annotation_type=annotation_type)
 
-        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
+        pre_query = db.engine.execute(sqlalchemy.text(query))
+        return_columns = set(pre_query._metadata.keys)
+        res = pre_query.fetchall()
         result = []
         for row in res:
-            result.append({f'{x}': row[x] for x in query_result.keys()})
+            row_dict = {str(x): row[x] for x in return_columns}
+            if annotation_type:
+                row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
+                row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
+            result.append(row_dict)
 
         flask.current_app.logger.debug("QUERY: ")
         flask.current_app.logger.debug(query)
@@ -166,6 +178,7 @@ count_result = api.model('QueryResult', {
 class QueryCountDataset(Resource):
     @api.doc('return_query_result1', params={'body': body_desc,
                                              'agg': agg_desc,
+                                             'annotation_type': 'No description',
                                              'rel_distance': rel_distance_desc})
     @api.expect(count_parser)
     def post(self):
@@ -179,10 +192,12 @@ class QueryCountDataset(Resource):
         args = count_parser.parse_args()
         agg = args['agg']
         rel_distance = args['rel_distance']
+        annotation_type = args.get('annotation_type')
+
         query = "select count(*) "
         query += "from ("
         sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None,
-                                        rel_distance=rel_distance)
+                                        rel_distance=rel_distance, annotation_type=annotation_type)
         query += sub_query + ") as a "
         flask.current_app.logger.debug(query)
 
@@ -211,12 +226,12 @@ class QueryDownload(Resource):
 
         if 'order_col' in args:
             orderCol = args['order_col']
-        else :
+        else:
             orderCol = "null"
 
         if 'order_dir' in args:
             orderDir = args['order_dir']
-        else :
+        else:
             orderDir = "ASC"
 
         if orderCol == "null":
@@ -306,4 +321,3 @@ def merge_dicts(dict_args):
     for dictionary in dict_args:
         result.update(dictionary['data'])
     return result
-
