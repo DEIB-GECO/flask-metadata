@@ -51,72 +51,122 @@
                                 <h1 class="text-primary">Metadata curation</h1>
                                 Our first curation contribution is to provide a unique schema
                                 (see <a href="https://www.biorxiv.org/content/10.1101/2020.04.29.067637v3">Viral
-                                Conceptual Model</a>)
-                                for different data sources.
-                                Different ad-hoc importer modules here (the code is available <a
-                                    href="https://github.com/acanakoglu/virusurf_downloader">here</a>)
-                                have been built to load GenBank, RefSeq, COG-UK, and GISAID data.
+                                Conceptual Model</a>) for different data sources.
+                                Different ad-hoc importer modules have been built to load GenBank, RefSeq, COG-UK,
+                                and GISAID data; the code is available <a
+                                    href="https://github.com/acanakoglu/virusurf_downloader">here</a>.
                                 Each source comes with different terminological choices when describing the different
                                 metadata.
                                 We have surveyed the the terms used in many sources to come up with appropriate
                                 reconciling solutions.
-                                <br><br>
+                                <!--<br><br>
                                 <img src="./table.jpg" alt="table to compare terminology">
                                 <br><br>
-                                A complete mapping of our terms with the intergated sources can be found at...
-                                All results have been browsed and manually checked by the development team.
+                                A complete mapping of our terms with the integrated sources can be found at...-->
+                                All import results have been browsed and manually checked by the development team.
                                 <br><br>
                                 Specific curation efforts have been dedicated to:
                                 <br>
                                 <ul>
                                     <li>
-                                        Location information: when not available we add the GeoGroup (i.e., the
-                                        continent or sub-continent)
+                                        <b>Location</b> information.
+                                        GISAID provides the Location; we split the field according to the separator "/"
+                                        and save the first three levels
+                                        into the GeoGroup, the Country, and the Region.
+                                        GenBank provides always the Country, often the Region almost always, while
+                                        the GeoGroup is added from a maintained
+                                        <a href="https://github.com/acanakoglu/virusurf_downloader/blob/master/geo_groups.py">
+                                            map of continents-country</a>.
+                                        In COG-UK we retrieve relevant location information and complement Region and
+                                        GeoGroup.
                                     </li>
                                     <li>
-                                        Collection date: when the specific day is not available, we typically add 01
-                                        (the first day of the month)
-                                        to make the item more easily searchable through date filters
+                                        <b>Collection date</b>.
+                                        To make sequences more easily searchable through date filters,
+                                        for SARS-CoV2
+                                        when the specific day is not available, we typically add 01 (the first day of
+                                        the month)
+                                        when the specific month is not available, we use default date (01 day, 01
+                                        month).
+                                        If the date is missing in general, we check the referenced publication and use
+                                        the provided information.
                                     </li>
                                     <li>
-                                        Taxon name, ID, species: This is a critical field as it depends on the
-                                        information retrieved through the
-                                        authoritative NCBI Taxonomy. However, some viruses are described as "species"
+                                        <b>Submission date</b>.
+                                        In GenBank it is retrieved from the JOURNAL field for SARS-CoV2, while at times
+                                        from the PATENT field for SARS-CoV entries.
+                                        GISAID provides the field, while in COG-UK we set it to null.
+                                        Curation rules hold in the same way as for collection date.
+                                    </li>
+                                    <li>
+                                        <b>Virus taxon name</b>, <b>taxon ID</b>, and <b>species</b> are critical fields
+                                        as they depend on the
+                                        information retrieved through the authoritative NCBI Taxonomy.
+                                        We make a direct call to Entrez APIs:
+                                        <p style="font-family:courier;">
+                                            Entrez.fetch(db="taxonomy",id=taxon_id,rettype=None,retmode="xml")</p>
+                                        However, some viruses are described as "species"
                                         (such as SARS-CoV), some others as "sub-species" (such as SARS-CoV 2).
-                                        This may result in confusion when comparing SARS-CoV vs. SARS-CoV 2.
-                                        We have thus chosen a comprehensive approach.
-                                        The field Taxon name refers to the most specific term used to define the type of
-                                        virus under examination.
-                                        The field Taxon ID is the related numerical identifier withing NCBI Taxon.
-                                        Instead, Species indicates the ...
+                                        This may result in confusion, e.g., when comparing SARS-CoV vs. SARS-CoV 2.
+                                        <br>
+                                        We have thus chosen a comprehensive approach:
+                                        the field taxon name refers to the most specific term used to define the type of
+                                        virus under examination, while the field taxon ID is the related numerical
+                                        identifier withing NCBI Taxon.
+                                        Instead, Species indicates the direct parent (in the taxonomy graph) of the
+                                        taxon name (when this is not a "species" according to the taxonomy)
+                                        or the taxon name itself (when it is a "species").
                                     </li>
                                     <li>
-                                        For ease of introperability with other resources, we also add the Host Taxon ID
-                                        (which is added to the Host Taxon ID) manually.
+                                        As to the host organism information, we also add the <b>Host taxon ID</b> (which
+                                        complements the <b>Host taxon name</b>)
+                                        manually; in some cases we do not find exact match with NCBI Taxonomy entries so
+                                        we make our translation,
+                                        e.g., "canine" becomes "Canis lupus familiaris".
+                                        <br>
+                                        In some rare cases, sequences come with gender and age information, which is
+                                        parsed directly from the "host"-related string
+                                        (e.g., host="Homo sapiens; male; age 65").
                                     </li>
                                     <li>
+                                        From COG-UK and GISAID we only import SARS-CoV 2 data. For this kind of virus
+                                        the <b>reference sequence</b>
+                                        is clear.
                                         From GenBank, not all the species of virus have a clearly specified reference
-                                        sequence. In some cases we have defined the reference sequence
+                                        sequence. We thus define the reference sequence
                                         by previously cross-checking with several research papers to ascertain that the
-                                        typical reference
-                                        sequence used for variant calling is defined.
+                                        typical reference sequence used for variant calling is defined.
                                     </li>
                                     <li>
-                                        The field Is Complete is computed for COG-UK following the same rules: if the
-                                        sequence length is >= 95% of the reference length and if N% is lower than 5%,
-                                        then
+                                        It is not always clear how to define a sequence <b>complete</b> or
+                                        <b>partial</b>.
+                                        To set the "complete" value, in GenBank we look for the keyword "complete
+                                        genome" in the DEFINITION field.
+                                        For "partial" value, instead, we look for "partial CDS", "complete cds" or
+                                        "partial genome".
+                                        Otherwise (and alwaysin COG-UK), we compute this information according to
+                                        the following rule: if the
+                                        sequence length is >= 95% of the reference length then
                                         Is Complete = True, ele Is Complete = false.
                                     </li>
                                     <li>
-                                        Strand, as well as Molecule Type, Is Single Stranded and Is Positive Stranded
+                                        <b>Strand</b>, as well as <b>Molecule Type</b>, <b>Is Single Stranded</b> and
+                                        <b>Is Positive Stranded</b>
                                         are curated manually.
                                     </li>
                                     <li>
-                                        GC% and N% have been computed to provide users with an additional information on
+                                        <b>GC%</b> and <b>N%</b> have been computed to provide users with an additional
+                                        information on
                                         the quality of the sequence.
                                     </li>
                                     <li>
-                                        For the Coverage field, a series of curation steps were necessary, as the values gathered from GenBank were very heterogeneous in the notation.
+                                        The information on <b>sequencing technology</b>, <b>assembly method</b> and <b>coverage</b>
+                                        is only available from GenBank.
+                                        We look for a specific pattern in the COMMENT field (i.e.,
+                                        ##Assembly-Data-START## < content > ##Assembly-Data-END##
+                                        <br>
+                                        For the Coverage field, a series of curation steps were necessary,
+                                        as the values gathered from GenBank were very heterogeneous in the notation.
                                         <ul>
                                             <li>remove strings (possibly within parenthesis) that on the left/right of
                                                 the numbers (including x, X, reads/nt, >, <.....)
@@ -126,13 +176,17 @@
                                                 <ul>
                                                     <li>if they have three numbers on their right: remove</li>
                                                     <li>if they have less than three numbers on their right (so 1 or 2),
-                                                    treat those numbers as decimals and round the unit to the closest
-                                                        one (e.g. 112593.3 becomes 112593, whilst 70.8 becomes 71)</li>
+                                                        treat those numbers as decimals and round the unit to the
+                                                        closest
+                                                        one (e.g. 112593.3 becomes 112593, whilst 70.8 becomes 71)
+                                                    </li>
                                                 </ul>
                                             </li>
                                         </ul>
-                                        These rules were applied after carefully checking many examples in the originary research papers to
-                                        ascertain that our homogenization functions were consistent with the original semantics.
+                                        These rules were applied after carefully checking many examples in the originary
+                                        research papers to
+                                        ascertain that our homogenization functions were consistent with the original
+                                        semantics.
                                     </li>
                                 </ul>
                             </td>
@@ -140,32 +194,68 @@
                         <tr>
                             <td>
                                 <h1 class="text-primary">Data curation</h1>
-                                In ViruSurf Annotations are currently imported from GenBank (<a href="https://biopython.org/DIST/docs/api/Bio.Entrez-module.html">
-                                NCBI Nuccore APIs</a>).
+                                In ViruSurf, <b>annotations</b> are currently imported from GenBank
+                                (<a href="https://biopython.org/DIST/docs/api/Bio.Entrez-module.html">
+                                NCBI Nuccore APIs</a>) using a quite sophisticated algorithm and a structured schema
+                                to superpose information regarding same sub-sequences.
                                 <br>
-                                Nucleotide variants are computed...
+                                Nucleotide variants are computed using
+                                the well known dynamic programming algorithm of Needleman-Wunsch,
+                                that computes the optimal alignment between two sequences.
+                                From a technical point of view, we compute the pair-wise alignment of every sequence to
+                                the reference sequence of RefSeq (e.g., NC 045512 for SARS-CoV2);
+                                from such alignment
+                                we then extract all insertions, deletions, and substitutions that transform (i.e.,
+                                edit) the reference sequence into the considered sequence.
                                 <br>
                                 Moreover, we use SNPEff to annotate each variant with multiple impacts and effects (see
-                                <a href="http://snpeff.sourceforge.net/SnpEff_manual.html">SnpEff documentation</a> at "Effect prediction details" section)
+                                <a href="http://snpeff.sourceforge.net/SnpEff_manual.html">SnpEff documentation</a> at
+                                "Effect prediction details" section). The tool calculates the effect that the variant
+                                produces on known genes;
+                                a variant may, for example, be irrelevant, silent, produce small changes in the
+                                transcript or be deleterious for the transcript.
                                 <br>
-                                Amino acid variants are computed...
+                                Amino acid variants are computed in a similar way as nucleotide variants, yet the
+                                position units
+                                refer to amino acids (instead of nucleotides) and are relative to the start of the
+                                specific protein.
                                 <br>
                                 <br>
-                                Instead, for sequences coming from COG-UK, which come with much less metadata and no structural annotations,
-                                we compute these from scratch...
-                            </a>
+                                Instead, for sequences coming from COG-UK, which come with much less metadata and no
+                                structural annotations, we compute these from scratch using our annotation algorithm.
+                                <br>
+                                </a>
                             </td>
                         </tr>
                         <tr>
                             <td>
                                 <h1 class="text-primary">Planned developments</h1>
-                                In order to provide a homogeneous
+                                In order to provide homogeneous information of sequence annotations and variants,
+                                we are currently re-engineering our pipelines to provide a unique annotation procedure
+                                that will seamlessly process sequences that come with existing annotations as well as
+                                sequences that do not.
+                                <br>
+                                This process is highly critical for being able to supply users with comparable information.
+                                <br>
+                                <br>
+                                For the portion of already annotated sequences (i.e., from GenBank),
+                                our in-house algorithm compares its results with the existing annotations and, when
+                                different
+                                these spot cases are manually re-checked to ensure correctness.
                             </td>
                         </tr>
                         <tr>
                             <td>
                                 <h1 class="text-primary">Reference sequences</h1>
-                                aaa
+                                <ul>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2">NC_045512 (version
+                                        2)</a> for Severe acute respiratory syndrome coronavirus 2
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_004718.3">NC_004718 (version
+                                        3)</a> for
+                                        Severe acute respiratory syndrome-related coronavirus
+                                    </li>
+                                </ul>
                             </td>
                         </tr>
                         </tbody>
