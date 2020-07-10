@@ -126,7 +126,6 @@ class Query(Resource):
 
         numPage = args['page']
         numElems = args['num_elems']
-        numElems = 20
 
         if numPage and numElems:
             offset = (numPage - 1) * numElems
@@ -145,8 +144,13 @@ class Query(Resource):
 
         res = db.engine.execute(sqlalchemy.text(query)).fetchall()
         result = []
+
+        result_columns = query_result.keys()
+        if numElems > 20:
+            result_columns = ['accession_id']
+
         for row in res:
-            result.append({f'{x}': row[x] for x in query_result.keys()})
+            result.append({f'{x}': row[x] for x in result_columns})
 
         flask.current_app.logger.debug("QUERY: ")
         flask.current_app.logger.debug(query)
