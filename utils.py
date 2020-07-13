@@ -436,9 +436,9 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                              if value is not None]
         if col.is_numerical or col.is_date:
 
-            min = values['min_val']
-            max = values['max_val']
-            isNull = values['is_null']
+            min = values.get('min_val')
+            max = values.get('max_val')
+            isNull = values.get('is_null')
             a = "true"
 
             if min:
