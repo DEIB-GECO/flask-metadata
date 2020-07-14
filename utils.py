@@ -441,13 +441,13 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
             isNull = values.get('is_null')
             a = "true"
 
-            if min:
+            if min is not None:
                 if col.is_date:
                     a += f" and {col.column_name} >= '{min}' "
                 else:
                     a += f" and {col.column_name} >= {min} "
 
-            if max:
+            if max is not None:
                 if col.is_date:
                     a += f" and {col.column_name} <= '{max}' "
                 else:
