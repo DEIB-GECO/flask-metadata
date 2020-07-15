@@ -17,6 +17,7 @@ views = {
     'analytical_a': [center_table, 'Annotation', 'AminoacidVariant'],
     'analytical_v': [center_table, 'NucleotideVariant', 'NucleotideVariantAnnotation'],
     'analytical_impact': [center_table, 'NucleotideVariant', 'VariantImpact'],
+    'view_annotation': [center_table, 'AnnotationView'],
 
 }
 
@@ -144,6 +145,11 @@ columns_item = [
            "External reference to the NCBI BioProject database https://www.ncbi.nlm.nih.gov/bioproject/"),
     Column('SequencingProject', 'database_source', str, False, "Original database from which information is collected"),
 
+    Column('AnnotationView', 'annotation_view_aminoacid_sequence', str, False,
+           "Virus-is_positive_stranded description"),
+    Column('AnnotationView', 'annotation_view_nucleotide_sequence', str, False,
+           "Virus-is_positive_stranded description"),
+
 ]
 
 columns_others = [
@@ -178,6 +184,8 @@ columns_others = [
            "VariantImpact-putative_impact description"),
     Column('VariantImpact', 'impact_gene_name', str, False,
            "VariantImpact-impact_gene_name description"),
+
+    Column('AnnotationView', 'annotation_view_product', str, False, "annotation_view_product description"),
 ]
 
 columns_dict = {x.column_name: x for x in columns}
@@ -239,7 +247,8 @@ def pair_query_resolver(pair_query, pair_key):
 
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
-                        offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None):
+                        offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
+                        annotation_type=None):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -304,6 +313,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     nucleotide_variant_impact = " LEFT JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
 
+    annotation_view_join = " LEFT JOIN annotation_view as ann_view ON it.sequence_id = ann_view.sequence_id "
+
     view_join = {
         # TODO VIRUS
         'biological_h': [host_sample_join],
@@ -313,6 +324,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         'analytical_a': [annotation_join, aminoacid_variant_join],
         'analytical_v': [nucleotide_variant_join, nucleotide_variant_annotation_join],
         'analytical_impact': [nucleotide_variant_join, nucleotide_variant_impact],
+        'view_annotation': [annotation_view_join],
     }
 
     if field_selected != "":
@@ -331,18 +343,19 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         joins = list(OrderedDict.fromkeys(joins))
         from_part = item + " ".join(joins) + pair_join
     else:
-        # TODO VIRUS add all tables
         from_part = item + experiment_type_join + sequencing_project_join + host_sample_join + virus_join + pair_join
+        if annotation_type:
+            annotation_type = annotation_type.replace("'", "''")
+            from_part = from_part + annotation_view_join + f" AND lower(ann_view.annotation_view_product) = lower('{annotation_type}')"
 
     gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
 
-    # TODO update sub-part add where parts of sub part!!!!
     panel_where = ''
     if panel:
         panel_where = pair_query_resolver(panel, '')
 
     where_part = ""
-    where_list = [x for x in (gcm_where, pair_where, panel_where) if x]
+    where_list = [x for x in (gcm_where, pair_where, panel_where,) if x]
 
     if where_list:
         where_part = " WHERE " + " AND ".join(where_list)
@@ -355,7 +368,13 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     offset_part = ""
     order_by = ""
     if return_type == 'table':
-        select_part = "SELECT DISTINCT " + ','.join(columns_dict_item.keys()) + " "
+        if annotation_type:
+            select_columns = columns_dict_item.keys()
+        else:
+            select_columns = (key for key, value in columns_dict_item.items() if value.table_name != 'AnnotationView')
+
+        select_part = "SELECT DISTINCT " + ','.join(select_columns) + " "
+
         if limit:
             limit_part = f" LIMIT {limit} "
         if offset:
@@ -420,18 +439,18 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                              if value is not None]
         if col.is_numerical or col.is_date:
 
-            min = values['min_val']
-            max = values['max_val']
-            isNull = values['is_null']
+            min = values.get('min_val')
+            max = values.get('max_val')
+            isNull = values.get('is_null')
             a = "true"
 
-            if min:
+            if min is not None:
                 if col.is_date:
                     a += f" and {col.column_name} >= '{min}' "
                 else:
                     a += f" and {col.column_name} >= {min} "
 
-            if max:
+            if max is not None:
                 if col.is_date:
                     a += f" and {col.column_name} <= '{max}' "
                 else:
