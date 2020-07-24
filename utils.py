@@ -460,6 +460,9 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
                     a += ' or '
                 a += f" {col.column_name} is null "
 
+            if not a:
+                a += ' TRUE '
+
             sub_where.append(a)
 
         else:
