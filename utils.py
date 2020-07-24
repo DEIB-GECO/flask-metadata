@@ -439,22 +439,26 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
             min = values.get('min_val')
             max = values.get('max_val')
             isNull = values.get('is_null')
-            a = "true"
+            a = ""
 
             if min is not None:
                 if col.is_date:
-                    a += f" and {col.column_name} >= '{min}' "
+                    a += f" {col.column_name} >= '{min}' "
                 else:
-                    a += f" and {col.column_name} >= {min} "
+                    a += f" {col.column_name} >= {min} "
 
             if max is not None:
+                if a:
+                    a += ' and '
                 if col.is_date:
-                    a += f" and {col.column_name} <= '{max}' "
+                    a += f" {col.column_name} <= '{max}' "
                 else:
-                    a += f" and {col.column_name} <= {max} "
+                    a += f" {col.column_name} <= {max} "
 
             if isNull:
-                a += f" or {col.column_name} is null "
+                if a:
+                    a += ' or '
+                a += f" {col.column_name} is null "
 
             sub_where.append(a)
 
