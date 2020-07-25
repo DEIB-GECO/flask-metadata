@@ -21,6 +21,7 @@ count_parser.add_argument('agg', type=inputs.boolean, default=False)
 count_parser.add_argument('rel_distance', type=int, default=3)
 count_parser.add_argument('annotation_type', type=str)
 count_parser.add_argument('is_control', type=inputs.boolean, default=False)
+count_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
 
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
@@ -32,6 +33,7 @@ table_parser.add_argument('order_dir', type=str, default='asc')
 table_parser.add_argument('rel_distance', type=int, default=3)
 table_parser.add_argument('annotation_type', type=str)
 table_parser.add_argument('is_control', type=inputs.boolean, default=False)
+table_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
 
 ################################API IMPLEMENTATION###########################################
 
@@ -135,6 +137,7 @@ class Query(Resource):
         annotation_type = args.get('annotation_type')
 
         is_control = args.get('is_control')
+        gisaid_only = args.get('gisaid_only')
 
         if numPage and numElems:
             offset = (numPage - 1) * numElems
@@ -155,10 +158,15 @@ class Query(Resource):
             else:
                 exclude_accession_where = None
 
+            if gisaid_only:
+                exclude_gisaid_where = " gisaid_only "
+            else:
+                exclude_gisaid_where = None
+
             query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
                                         order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
                                         annotation_type=annotation_type,
-                                        external_where_conditions=[exclude_accession_where])
+                                        external_where_conditions=[exclude_accession_where, exclude_gisaid_where])
 
             pre_query = db.engine.execute(sqlalchemy.text(query))
             return_columns = set(pre_query._metadata.keys)
@@ -224,12 +232,19 @@ class QueryCountDataset(Resource):
         annotation_type = args.get('annotation_type')
 
         is_control = args.get('is_control')
+        gisaid_only = args.get('gisaid_only')
 
         def run_query():
+            if gisaid_only:
+                exclude_gisaid_where = " gisaid_only "
+            else:
+                exclude_gisaid_where = None
+
             query = "select count(*) "
             query += "from ("
             sub_query = sql_query_generator(filter_in, q_type, pairs, 'table', agg=agg, limit=None, offset=None,
-                                            rel_distance=rel_distance, annotation_type=annotation_type)
+                                            rel_distance=rel_distance, annotation_type=annotation_type,
+                                            external_where_conditions=[exclude_gisaid_where])
             query += sub_query + ") as a "
             flask.current_app.logger.debug(query)
 
