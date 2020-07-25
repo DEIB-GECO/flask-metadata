@@ -173,7 +173,7 @@ class Query(Resource):
             res = pre_query.fetchall()
             result = []
 
-            if numElems > 20:
+            if numElems is None or numElems > 20:
                 result_columns = ['accession_id']
 
             for row in res:
