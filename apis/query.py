@@ -157,7 +157,8 @@ class Query(Resource):
 
             query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
                                         order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
-                                        annotation_type=annotation_type, exclude_accession_where=exclude_accession_where)
+                                        annotation_type=annotation_type,
+                                        external_where_conditions=[exclude_accession_where])
 
             pre_query = db.engine.execute(sqlalchemy.text(query))
             return_columns = set(pre_query._metadata.keys)
@@ -223,7 +224,6 @@ class QueryCountDataset(Resource):
         annotation_type = args.get('annotation_type')
 
         is_control = args.get('is_control')
-
 
         def run_query():
             query = "select count(*) "
