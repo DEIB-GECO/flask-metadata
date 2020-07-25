@@ -245,7 +245,7 @@ def pair_query_resolver(pair_query, pair_key):
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
                         offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
-                        annotation_type=None, exclude_accession_where=None):
+                        annotation_type=None, external_where_conditions=[]):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -352,7 +352,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         panel_where = pair_query_resolver(panel, '')
 
     where_part = ""
-    where_list = [x for x in (gcm_where, pair_where, panel_where,exclude_accession_where) if x]
+    where_list = [x for x in [gcm_where, pair_where, panel_where] + external_where_conditions if x]
 
     if where_list:
         where_part = " WHERE " + " AND ".join(where_list)
