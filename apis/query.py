@@ -20,6 +20,8 @@ count_parser.add_argument('body', type="json", help='json ', location='json')
 count_parser.add_argument('agg', type=inputs.boolean, default=False)
 count_parser.add_argument('rel_distance', type=int, default=3)
 count_parser.add_argument('annotation_type', type=str)
+count_parser.add_argument('is_control', type=inputs.boolean, default=False)
+count_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
 
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
@@ -30,6 +32,8 @@ table_parser.add_argument('order_col', type=str, default='accession_id')
 table_parser.add_argument('order_dir', type=str, default='asc')
 table_parser.add_argument('rel_distance', type=int, default=3)
 table_parser.add_argument('annotation_type', type=str)
+table_parser.add_argument('is_control', type=inputs.boolean, default=False)
+table_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
 
 ################################API IMPLEMENTATION###########################################
 
@@ -132,6 +136,9 @@ class Query(Resource):
 
         annotation_type = args.get('annotation_type')
 
+        is_control = args.get('is_control')
+        gisaid_only = args.get('gisaid_only')
+
         if numPage and numElems:
             offset = (numPage - 1) * numElems
             limit = numElems
@@ -141,34 +148,60 @@ class Query(Resource):
 
         filter_in = payload.get("gcm")
 
-        type = payload.get("type")
+        q_type = payload.get("type")
         pairs = payload.get("kv")
 
-        query = sql_query_generator(filter_in, type, pairs, 'table', agg, limit=limit, offset=offset,
-                                    order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
-                                    annotation_type=annotation_type)
+        def run_query(limit_inner, offset_inner, exclude_accession_list=None):
+            if exclude_accession_list:
+                exclude_accession_list = (f"'{x}'" for x in exclude_accession_list)
+                exclude_accession_where = f" accession_id NOT IN ({','.join(exclude_accession_list)})"
+            else:
+                exclude_accession_where = None
 
-        pre_query = db.engine.execute(sqlalchemy.text(query))
-        return_columns = set(pre_query._metadata.keys)
-        res = pre_query.fetchall()
-        result = []
+            if gisaid_only:
+                exclude_gisaid_where = " gisaid_only "
+            else:
+                exclude_gisaid_where = None
 
-        if numElems > 20:
-            result_columns = ['accession_id']
+            query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
+                                        order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
+                                        annotation_type=annotation_type,
+                                        external_where_conditions=[exclude_accession_where, exclude_gisaid_where])
 
-        for row in res:
-            row_dict = {str(x): row[x] for x in return_columns}
-            if annotation_type:
-                row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
-                row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
-            result.append(row_dict)
+            pre_query = db.engine.execute(sqlalchemy.text(query))
+            return_columns = set(pre_query._metadata.keys)
+            res = pre_query.fetchall()
+            result = []
 
-        flask.current_app.logger.debug("QUERY: ")
-        flask.current_app.logger.debug(query)
+            if numElems is None or numElems > 20:
+                result_columns = ['accession_id']
 
-        flask.current_app.logger.debug('got results')
+            for row in res:
+                row_dict = {str(x): row[x] for x in return_columns}
+                if annotation_type:
+                    row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
+                    row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
+                result.append(row_dict)
+            flask.current_app.logger.debug("QUERY: ")
+            flask.current_app.logger.debug(query)
 
-        return result
+            flask.current_app.logger.debug('got results')
+            return result
+
+        if is_control and pairs:
+            result_inner = run_query(limit_inner=None, offset_inner=None)
+            # print("len(result_inner)", len(result_inner))
+            result_inner_accession = (x['accession_id'] for x in result_inner)
+            pairs = {}
+            result_inner2 = run_query(limit, offset, exclude_accession_list=result_inner_accession)
+            # print("len(result_inner2)", len(result_inner2))
+            return_result = result_inner2
+        else:
+            result_inner = run_query(limit_inner=limit, offset_inner=offset)
+            # print("len(result_inner)", len(result_inner))
+            return_result = result_inner
+
+        return return_result
 
 
 count_result = api.model('QueryResult', {
@@ -191,23 +224,44 @@ class QueryCountDataset(Resource):
         log_query('query/count', '', payload)
 
         filter_in = payload.get('gcm')
-        type = payload.get('type')
+        q_type = payload.get('type')
         pairs = payload.get('kv')
         args = count_parser.parse_args()
         agg = args['agg']
         rel_distance = args['rel_distance']
         annotation_type = args.get('annotation_type')
 
-        query = "select count(*) "
-        query += "from ("
-        sub_query = sql_query_generator(filter_in, type, pairs, 'table', agg=agg, limit=None, offset=None,
-                                        rel_distance=rel_distance, annotation_type=annotation_type)
-        query += sub_query + ") as a "
-        flask.current_app.logger.debug(query)
+        is_control = args.get('is_control')
+        gisaid_only = args.get('gisaid_only')
 
-        res = db.engine.execute(sqlalchemy.text(query)).fetchall()
-        flask.current_app.logger.debug('got results')
-        return res[0][0]
+        def run_query():
+            if gisaid_only:
+                exclude_gisaid_where = " gisaid_only "
+            else:
+                exclude_gisaid_where = None
+
+            query = "select count(*) "
+            query += "from ("
+            sub_query = sql_query_generator(filter_in, q_type, pairs, 'table', agg=agg, limit=None, offset=None,
+                                            rel_distance=rel_distance, annotation_type=annotation_type,
+                                            external_where_conditions=[exclude_gisaid_where])
+            query += sub_query + ") as a "
+            flask.current_app.logger.debug(query)
+
+            res = db.engine.execute(sqlalchemy.text(query)).fetchall()
+            flask.current_app.logger.debug('got results')
+            return res[0][0]
+
+        if is_control and pairs:
+            result_inner = run_query()
+            pairs = {}
+            result_inner2 = run_query()
+            return_result = result_inner2 - result_inner
+        else:
+            result_inner = run_query()
+            return_result = result_inner
+
+        return return_result
 
 
 # TODO check code repetition
