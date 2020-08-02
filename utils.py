@@ -81,7 +81,8 @@ columns = [
     Column('Sequence', 'is_reference', bool, False,
            "True when the sequence is the reference one for the virus species, False when the sequence is not the reference one"),
     Column('Sequence', 'is_complete', bool, False,
-           "True when the sequence is complete, False when the sequence is partial"),
+           "True when the sequence is complete, False when the sequence is partial. When not available from original source, "
+           "we set False if its length is less than 95% of the reference sequence length, otherwise we set N/D since completeness cannot be determined with needed accuracy."),
     Column('Sequence', 'strand', str, False, "Strand to which the sequence belongs to (either positive or negative)"),
     Column('Sequence', 'length', int, False, "Number of nucleotides of the sequence", "Sequence Length",is_numerical=True),
     Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", "GC%", is_numerical=True),
