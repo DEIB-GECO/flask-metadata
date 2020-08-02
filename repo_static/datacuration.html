@@ -51,7 +51,7 @@
                                 <h1 class="text-primary">Metadata curation</h1>
                                 Our first curation contribution is to provide a unique schema
                                 (see <a href="https://www.biorxiv.org/content/10.1101/2020.04.29.067637v3">Viral
-                                Conceptual Model</a>) for different data sources.
+                                Conceptual Model - VCM</a>) for different data sources.
                                 Different ad-hoc importer modules have been built to load GenBank, RefSeq, COG-UK,
                                 and GISAID data; the code is available <a
                                     href="https://github.com/acanakoglu/virusurf_downloader">here</a>.
@@ -64,6 +64,11 @@
                                 <br><br>
                                 A complete mapping of our terms with the integrated sources can be found at...-->
                                 All import results have been browsed and manually checked by the development team.
+                                <br><br>
+                                Note that for the <a href="http://gmql.eu/virusurf_gisaid">GISAID-specific interface of
+                                ViruSurf</a>
+                                we use attribute names as specifie din GISAID EpiCoV database. In case the reconciling
+                                terminology from VCM is different, it is reported within parentheses in second position.
                                 <br><br>
                                 Specific curation efforts have been dedicated to:
                                 <br>
@@ -82,8 +87,9 @@
                                     </li>
                                     <li>
                                         <b>Collection date</b>.
-                                        To make sequences more easily searchable through date filters,
-                                        for SARS-CoV2
+                                        GISAID is reported as communicated by GISAID team.
+                                        For other sources, to make sequences more easily searchable through date
+                                        filters,
                                         when the specific day is not available, we typically add 01 (the first day of
                                         the month)
                                         when the specific month is not available, we use default date (01 day, 01
@@ -93,9 +99,10 @@
                                     </li>
                                     <li>
                                         <b>Submission date</b>.
+                                        GISAID provides the field.
                                         In GenBank it is retrieved from the JOURNAL field for SARS-CoV2, while at times
                                         from the PATENT field for SARS-CoV entries.
-                                        GISAID provides the field, while in COG-UK we set it to null.
+                                        In COG-UK we set it to null.
                                         Curation rules hold in the same way as for collection date.
                                     </li>
                                     <li>
@@ -129,7 +136,7 @@
                                         (e.g., host="Homo sapiens; male; age 65").
                                     </li>
                                     <li>
-                                        From COG-UK and GISAID we only import SARS-CoV 2 data. For this kind of virus
+                                        From COG-UK and GISAID we only import SARS-CoV-2 data. For this kind of virus
                                         the <b>reference sequence</b>
                                         is clear.
                                         From GenBank, not all the species of virus have a clearly specified reference
@@ -140,14 +147,16 @@
                                     <li>
                                         It is not always clear how to define a sequence <b>complete</b> or
                                         <b>partial</b>.
-                                        To set the "complete" value, in GenBank we look for the keyword "complete
+                                        From GISAID this information is imported.
+                                        For others, to set the "complete" value, in GenBank we look for the keyword
+                                        "complete
                                         genome" in the DEFINITION field.
                                         For "partial" value, instead, we look for "partial CDS", "complete cds" or
                                         "partial genome".
                                         Otherwise (and alwaysin COG-UK), we compute this information according to
                                         the following rule: if the
                                         sequence length is >= 95% of the reference length then
-                                        Is Complete = True, ele Is Complete = false.
+                                        Is Complete = True, else Is Complete = false.
                                     </li>
                                     <li>
                                         <b>Strand</b>, as well as <b>Molecule Type</b>, <b>Is Single Stranded</b> and
@@ -155,7 +164,8 @@
                                         are curated manually.
                                     </li>
                                     <li>
-                                        <b>GC%</b> and <b>N%</b> have been computed to provide users with an additional
+                                        <b>GC%</b> and <b>N%</b> are provided by GISAID for their data, while
+                                        have been computed to provide users with an additional
                                         information on
                                         the quality of the sequence.
                                     </li>
@@ -194,66 +204,124 @@
                         <tr>
                             <td>
                                 <h1 class="text-primary">Data curation</h1>
-                                In ViruSurf, <b>annotations</b> are currently imported from GenBank
-                                (<a href="https://biopython.org/DIST/docs/api/Bio.Entrez-module.html">
-                                NCBI Nuccore APIs</a>) using a quite sophisticated algorithm and a structured schema
-                                to superpose information regarding same sub-sequences.
+                                Data curation is not performed for instances of GISAID, as we do not import sequences
+                                from this source.
+                                Amino acid level changes are imported from periodical exports from GISAID and simply
+                                parsed into
+                                our database.
+
+                                For other sources, we engineered our pipelines to provide a unique annotation procedure
+                                that will seamlessly process sequences that come with existing annotations as well as
+                                sequences that do not.
                                 <br>
-                                Nucleotide variants are computed using
-                                the well known dynamic programming algorithm of Needleman-Wunsch,
-                                that computes the optimal alignment between two sequences.
-                                From a technical point of view, we compute the pair-wise alignment of every sequence to
-                                the reference sequence of RefSeq (e.g., NC 045512 for SARS-CoV2);
-                                from such alignment
-                                we then extract all insertions, deletions, and substitutions that transform (i.e.,
-                                edit) the reference sequence into the considered sequence.
-                                <br>
-                                Moreover, we use SNPEff to annotate each variant with multiple impacts and effects (see
-                                <a href="http://snpeff.sourceforge.net/SnpEff_manual.html">SnpEff documentation</a> at
-                                "Effect prediction details" section). The tool calculates the effect that the variant
-                                produces on known genes;
-                                a variant may, for example, be irrelevant, silent, produce small changes in the
-                                transcript or be deleterious for the transcript.
-                                <br>
-                                Amino acid variants are computed in a similar way as nucleotide variants, yet the
-                                position units
-                                refer to amino acids (instead of nucleotides) and are relative to the start of the
-                                specific protein.
+                                This process is highly critical for being able to supply users with comparable
+                                information.
                                 <br>
                                 <br>
-                                Instead, for sequences coming from COG-UK, which come with much less metadata and no
-                                structural annotations, we compute these from scratch using our annotation algorithm.
+                                For the portion of already annotated sequences (i.e., from GenBank),
+                                our in-house algorithm compares its results with the existing annotations and, when
+                                different these spot cases are manually re-checked to ensure correctness.
+
+                                We extract:
+                                structural annotations (filling the \textsc{Annotation} table),
+                                nucleotide and amino acid sequences for each annotated segment,
+                                nucleotide variants and their impact,
+                                amino acid variants for the proteins,
+                                other information such as percentage of specific nucleotide bases.
+                                <br><br>
+                                In order to compute such pieces of information, for each virus we manually select a
+                                reference sequence and a set of annotations, comprising coordinates for codifying and
+                                structural regions, as well as the amino acid sequences of each protein. Usually, such
+                                data are taken from the RefSeq entry for the given virus (e.g., NC_045512 for
+                                SARS-CoV2), yet our import process is not bound to RefSeq and any source that can
+                                provide such information may be used.
+                                <br><br>
+                                For each imported sequence, the pipeline starts by computing the optimal global
+                                alignment to the reference by means of the <a
+                                    href="https://www.sciencedirect.com/science/article/abs/pii/0022283670900574">
+                                dynamic programming Needleman-Wunsch (NW)
+                                algorithm</a>.
+                                The time and space complexity of NW is quadratic
+                                in the length of the aligned sequences, which often hinders its adoption in real
+                                scenarios; however, in the virus case the sequences are relative small and we preferred
+                                to use NW rather than faster heuristic techniques to ensure that the optimal alignment
+                                is found for every sequence. Moreover, we configure the algorithm to use an affine gap
+                                penalty, so as to favor longer gaps which are very frequent at the ends of sequences.
+                                <br><br>
+                                Once the alignment is computed, all the differences (variants) with the reference
+                                sequence are collected in the form of nucleotide substitutions, insertions or deletions.
+                                Using the <a href="http://snpeff.sourceforge.net/">SnpEff tool</a> (see
+                                <a href="http://snpeff.sourceforge.net/SnpEff_manual.html">SnpEff documentation</a>)
+                                we annotate each variant and predict its impact
+                                on the codifying regions; indeed, a variant may, for example, be irrelevant (e.g, when
+                                the mutated codon codifies for the same amino acid of the original codon), produce small
+                                changes, or be deleterious.
+                                Based on the alignment result, the sub-sequences corresponding to the reference
+                                annotations are identified within the input sequence.
+                                <br>
+                                <br>
+                                Coding regions are translated into their equivalent amino acid sequences. The
+                                translation mechanism takes into consideration annotated ribosomial frameshifts events
+                                (e.g., within the ORF1ab gene of SARS-CoV2) to compute the correct amino acid sequence.
+                                When the translation fails (e.g., because the nucleotide sequence retrieved from the
+                                alignment is empty or its length is not a multiple of 3), we ignore such amino acid
+                                product; indeed, such events are mainly due to incompleteness and poor quality of the
+                                input sequence and further investigating these sequences for amino acid variants would
+                                lead to erroneous information. Otherwise, the translated amino acid sequence is further
+                                aligned -- again using NW -- with the corresponding amino acid sequence, annotated with
+                                the reference, and its eventual amino acid variants are inferred.
                                 <br>
                                 </a>
                             </td>
                         </tr>
                         <tr>
                             <td>
-                                <h1 class="text-primary">Planned developments</h1>
-                                In order to provide homogeneous information of sequence annotations and variants,
-                                we are currently re-engineering our pipelines to provide a unique annotation procedure
-                                that will seamlessly process sequences that come with existing annotations as well as
-                                sequences that do not.
-                                <br>
-                                This process is highly critical for being able to supply users with comparable information.
-                                <br>
-                                <br>
-                                For the portion of already annotated sequences (i.e., from GenBank),
-                                our in-house algorithm compares its results with the existing annotations and, when
-                                different
-                                these spot cases are manually re-checked to ensure correctness.
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
                                 <h1 class="text-primary">Reference sequences</h1>
                                 <ul>
-                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2">NC_045512 (version
-                                        2)</a> for Severe acute respiratory syndrome coronavirus 2
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2">NC_045512.2 </a> for
+                                        SARS-CoV-2
                                     </li>
-                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_004718.3">NC_004718 (version
-                                        3)</a> for
-                                        Severe acute respiratory syndrome-related coronavirus
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_004718.3">NC_004718.3 </a> for
+                                        SARS-CoV
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_019843.3">NC_019843.3 </a> for
+                                        MERS-CoV
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_000000.0">NC_000000.0 </a> for
+                                        Bat SARS-like coronavirus
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_038294.1">NC_038294.1 </a> for
+                                        Betacoronavirus England 1
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_039345.1">NC_039345.1 </a> for
+                                        Bombali ebolavirus
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_014373.1">NC_014373.1 </a> for
+                                        Bundibugyo ebolavirus
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_004161.1">NC_004161.1 </a> for
+                                        Reston ebolavirus
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_006432.1">NC_006432.1 </a> for
+                                        Sudan ebolavirus
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_014372.1">NC_014372.1 </a> for
+                                        Tai Forest ebolavirus
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_002549.1">NC_002549.1 </a> for
+                                        Zaire ebolavirus
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_001477.1">NC_001477.1 </a> for
+                                        Dengue virus 1
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_001474.2">NC_001474.2 </a> for
+                                        Dengue virus 2
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_001475.2">NC_001475.2 </a> for
+                                        Dengue virus 3
+                                    </li>
+                                    <li><a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_002640.1">NC_002640.1 </a> for
+                                        Dengue virus 4
                                     </li>
                                 </ul>
                             </td>
