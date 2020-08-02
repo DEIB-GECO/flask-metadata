@@ -271,7 +271,22 @@
                                 aligned -- again using NW -- with the corresponding amino acid sequence, annotated with
                                 the reference, and its eventual amino acid variants are inferred.
                                 <br>
+                                <br>
+                                Note that for protein names we use the typical terminology of GISAID, while we put
+                                within parentheses
+                                in second position the (possibly) alternative terminology adopted by NBI GenBank-related
+                                resources.
                                 </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <h1 class="text-primary">Overlap detection and management</h1>
+                                ViruSurf solves the problem of record redundancy among different databases by using
+                                different external references IDs that are either available from the origin sources or
+                                by computing in-house the matches between strain names and sequence length.
+                                We store this information and allow the possibility of performing queries on just
+                                ``GISAID only'' sequences, i.e., that are not present in GenBank, COG-UK or NMDC.
                             </td>
                         </tr>
                         <tr>
