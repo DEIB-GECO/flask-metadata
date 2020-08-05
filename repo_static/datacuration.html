@@ -267,16 +267,29 @@
                                 alignment is empty or its length is not a multiple of 3), we ignore such amino acid
                                 product; indeed, such events are mainly due to incompleteness and poor quality of the
                                 input sequence and further investigating these sequences for amino acid variants would
-                                lead to erroneous information. Otherwise, the translated amino acid sequence is further
+                                lead to erroneous information.
+                                Instead, when an aligned codon contains any IUPAC character ambiguously representing a
+                                set of bases <a href="https://genome.ucsc.edu/goldenPath/help/iupac.html">, it is
+                                translated into the X (unknown) amino acid, which automatically becomes a
+                                variant.
+                                Notice that queries selecting known amino acids work correctly independently from
+                                unknown ones (that in most cases will not be of interest).
+                                Otherwise, the translated amino acid sequence is further
                                 aligned -- again using NW -- with the corresponding amino acid sequence, annotated with
                                 the reference, and its eventual amino acid variants are inferred.
+                                <br>
+                                The sequences provided by COG-UK are already aligned to the reference genome. However,
+                                our pipeline firstly reverts the alignment (by simply removing the inserted gaps) and
+                                then recomputes it using the same reference sequence and alignment algorithm used for
+                                other sources. This choice has been done to ensure uniformity of the alignment among
+                                different data sources.
                                 <br>
                                 <br>
                                 Note that for protein names we use the typical terminology of GISAID, while we put
                                 within parentheses
                                 in second position the (possibly) alternative terminology adopted by NBI GenBank-related
                                 resources.
-                                </a>
+                            </a>
                             </td>
                         </tr>
                         <tr>
@@ -287,6 +300,18 @@
                                 by computing in-house the matches between strain names and sequence length.
                                 We store this information and allow the possibility of performing queries on just
                                 ``GISAID only'' sequences, i.e., that are not present in GenBank, COG-UK or NMDC.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <h1 class="text-primary">Case/control computation</h1>
+                                The `Show control' switch allows to visualize the sequences of the control group,
+                                defined by those sequences selected by the Metadata search filters for which the Variant
+                                filters are not satisfied. Note that, for some sequences amino acid sequences could not
+                                be
+                                computed (e.g., because the nucleotide sequence retrieved from the alignment is empty or
+                                its length is not a multiple of 3).
+                                The "controls" exclude such sequences.
                             </td>
                         </tr>
                         <tr>
