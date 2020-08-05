@@ -361,7 +361,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     if where_list:
         where_part = " WHERE " + " AND ".join(where_list)
 
-    print("where_part:", where_part)
+    # print("where_part:", where_part)
+    for i, wp in enumerate(where_list):
+        print(f"where_sub_part({i}):", wp)
 
     sub_where_part = ""
     group_by_part = ""
@@ -374,7 +376,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         else:
             select_columns = (key for key, value in columns_dict_item.items() if value.table_name != 'AnnotationView')
 
-        select_part = "SELECT DISTINCT " + ','.join(select_columns) + " "
+        select_part = "SELECT DISTINCT it.sequence_id, " + ', '.join(select_columns) + " "
 
         if limit:
             limit_part = f" LIMIT {limit} "
