@@ -93,8 +93,8 @@ columns = [
     Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
     Column('ExperimentType', 'assembly_method', str, False,
            "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
-    Column('ExperimentType', 'coverage', str, False,
-           "Number of unique reads that include a specific nucleotide in the reconstructed sequence"),
+    Column('ExperimentType', 'coverage', int, False,
+           "Number of unique reads that include a specific nucleotide in the reconstructed sequence",is_numerical=True),
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False,
@@ -358,7 +358,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     if where_list:
         where_part = " WHERE " + " AND ".join(where_list)
 
-    print("where_part:", where_part)
+    # print("where_part:", where_part)
+    for i, wp in enumerate(where_list):
+        print(f"where_sub_part({i}):", wp)
 
     sub_where_part = ""
     group_by_part = ""
@@ -371,7 +373,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         else:
             select_columns = (key for key, value in columns_dict_item.items() if value.table_name != 'AnnotationView')
 
-        select_part = "SELECT DISTINCT " + ','.join(select_columns) + " "
+        select_part = "SELECT DISTINCT it.sequence_id, " + ', '.join(select_columns) + " "
 
         if limit:
             limit_part = f" LIMIT {limit} "

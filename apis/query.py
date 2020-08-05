@@ -6,6 +6,8 @@ from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
 from utils import sql_query_generator, log_query
 
+is_gisaid = False
+
 api = Namespace('query', description='Operations to perform queries using metadata')
 
 query = api.model('Query', {
@@ -148,17 +150,22 @@ class Query(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
-        def run_query(limit_inner, offset_inner, exclude_accession_list=None):
+        def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
             if exclude_accession_list:
-                exclude_accession_list = (f"'{x}'" for x in exclude_accession_list)
-                exclude_accession_where = f" accession_id NOT IN ({','.join(exclude_accession_list)})"
+                exclude_accession_list = (f"{x}" for x in exclude_accession_list)
+                exclude_accession_where = f" sequence_id NOT IN ({','.join(exclude_accession_list)}) "
+                if is_aa and not is_gisaid:
+                    exclude_aa_seq_null = f" sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+                else:
+                    exclude_aa_seq_null = None
             else:
                 exclude_accession_where = None
+                exclude_aa_seq_null = None
 
             query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
                                         order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
                                         annotation_type=annotation_type,
-                                        external_where_conditions=[exclude_accession_where])
+                                        external_where_conditions=[exclude_accession_where, exclude_aa_seq_null])
 
             pre_query = db.engine.execute(sqlalchemy.text(query))
             return_columns = set(pre_query._metadata.keys)
@@ -179,9 +186,10 @@ class Query(Resource):
         if is_control and pairs:
             result_inner = run_query(limit_inner=None, offset_inner=None)
             # print("len(result_inner)", len(result_inner))
-            result_inner_accession = (x['accession_id'] for x in result_inner)
+            result_inner_accession = (x['sequence_id'] for x in result_inner)
+            is_aa = ('aa' in [pairs[p]['type_query'] for p in pairs])
             pairs = {}
-            result_inner2 = run_query(limit, offset, exclude_accession_list=result_inner_accession)
+            result_inner2 = run_query(limit, offset, exclude_accession_list=result_inner_accession, is_aa=is_aa)
             # print("len(result_inner2)", len(result_inner2))
             return_result = result_inner2
         else:
@@ -221,11 +229,16 @@ class QueryCountDataset(Resource):
 
         is_control = args.get('is_control')
 
-        def run_query():
+        def run_query(is_aa=False):
+            if is_aa and not is_gisaid:
+                exclude_aa_seq_null = f" sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+            else:
+                exclude_aa_seq_null = None
             query = "select count(*) "
             query += "from ("
             sub_query = sql_query_generator(filter_in, q_type, pairs, 'table', agg=agg, limit=None, offset=None,
-                                            rel_distance=rel_distance, annotation_type=annotation_type)
+                                            rel_distance=rel_distance, annotation_type=annotation_type,
+                                            external_where_conditions=[exclude_aa_seq_null])
             query += sub_query + ") as a "
             flask.current_app.logger.debug(query)
 
@@ -235,8 +248,10 @@ class QueryCountDataset(Resource):
 
         if is_control and pairs:
             result_inner = run_query()
+            is_aa = ('aa' in [pairs[p]['type_query'] for p in pairs])
+            # add is_aa to the count
             pairs = {}
-            result_inner2 = run_query()
+            result_inner2 = run_query(is_aa=is_aa)
             return_result = result_inner2 - result_inner
         else:
             result_inner = run_query()
