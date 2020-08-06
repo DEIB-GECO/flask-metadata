@@ -275,10 +275,10 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             pair_join += f" JOIN nucleotide_variant_limited as n_var{pair_key} ON n_var{pair_key}.sequence_id = it.sequence_id "
             if tables.intersection([x.column_name for x in columns_dict_all.values() if
                                     x.table_name == 'NucleotideVariantAnnotation']):
-                pair_join += f" LEFT JOIN nucleotide_variant_annotation as n_var_ann{pair_key} ON n_var_ann{pair_key}.nucleotide_variant_id = n_var{pair_key}.nucleotide_variant_id "
+                pair_join += f" JOIN nucleotide_variant_annotation as n_var_ann{pair_key} ON n_var_ann{pair_key}.nucleotide_variant_id = n_var{pair_key}.nucleotide_variant_id "
             if tables.intersection(
                     [x.column_name for x in columns_dict_all.values() if x.table_name == 'VariantImpact']):
-                pair_join += f" LEFT JOIN variant_impact as n_imp{pair_key} ON n_imp{pair_key}.nucleotide_variant_id = n_imp{pair_key}.nucleotide_variant_id "
+                pair_join += f" JOIN variant_impact as n_imp{pair_key} ON n_imp{pair_key}.nucleotide_variant_id = n_imp{pair_key}.nucleotide_variant_id "
 
         where_temp_outer_or = []
         for pair_query in pair_queries:
@@ -310,11 +310,11 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     nucleotide_variant_join = " JOIN nucleotide_variant_limited as n_var ON it.sequence_id = n_var.sequence_id "
 
-    nucleotide_variant_annotation_join = " LEFT JOIN nucleotide_variant_annotation as n_var_ann ON n_var.nucleotide_variant_id = n_var_ann.nucleotide_variant_id "
+    nucleotide_variant_annotation_join = " JOIN nucleotide_variant_annotation as n_var_ann ON n_var.nucleotide_variant_id = n_var_ann.nucleotide_variant_id "
 
-    nucleotide_variant_impact = " LEFT JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
+    nucleotide_variant_impact = " JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
 
-    annotation_view_join = " LEFT JOIN annotation_view as ann_view ON it.sequence_id = ann_view.sequence_id "
+    annotation_view_join = " JOIN annotation_view as ann_view ON it.sequence_id = ann_view.sequence_id "
 
     view_join = {
         # TODO VIRUS
