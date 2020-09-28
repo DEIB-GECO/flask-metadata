@@ -300,7 +300,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     sequencing_project_join = " join sequencing_project sp on it.sequencing_project_id = sp.sequencing_project_id"
 
-    host_sample_join = " join host_sample hs on it.host_sample_id = hs.host_sample_id"
+    host_sample_join = " join host_sample_view hs on it.host_sample_id = hs.host_sample_id"
 
     virus_join = " join virus v on it.virus_id = v.virus_id"
 
