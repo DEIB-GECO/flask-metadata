@@ -79,6 +79,7 @@ query_result = api.model('QueryResult', {
     'country': fields.String,
     'region': fields.String,
     'geo_group': fields.String,
+    '*_count': fields.Wildcard(fields.String),
 })
 
 ################################API DOCUMENTATION STRINGS###################################
@@ -197,6 +198,10 @@ class Query(Resource):
             # print("len(result_inner)", len(result_inner))
             return_result = result_inner
 
+        # return_result = [remove_date_in_dict(x) for x in return_result]
+        # query_result_dict = dict(query_result)
+        # print(type(query_result))
+        # return_result = jsonify(marshal(return_result, query_result_dict))
         return return_result
 
 

@@ -94,7 +94,8 @@ columns = [
     Column('ExperimentType', 'assembly_method', str, False,
            "Algorithms applied to obtain the final sequence (e.g., for reads assembly, reads alignment, variant calling)"),
     Column('ExperimentType', 'coverage', int, False,
-           "Number of unique reads that include a specific nucleotide in the reconstructed sequence",is_numerical=True),
+           "Number of unique reads that include a specific nucleotide in the reconstructed sequence",
+           is_numerical=True),
 
     # organizational
     Column('SequencingProject', 'sequencing_lab', str, False,
@@ -251,6 +252,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     # pairs = generate_where_pairs({})
     pair_join = ''
     pair_where = ''
+    pair_count = []
 
     where_temp_outer_and = []
     # if pairs_query:
@@ -264,10 +266,12 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
         tables = set(y for x in pair_value['query'] for y in x.keys())
         if type_query == 'aa':
+            pair_count.append(f" COUNT(DISTINCT aa_var{pair_key}.aminoacid_variant_id) {pair_key}_count ")
             pair_join += f" JOIN annotation as ann{pair_key} ON ann{pair_key}.sequence_id = it.sequence_id "
             # if tables.intersection([x.column_name for x in columns_dict_all.values() if x.table_name == 'AminoacidVariant']):
             pair_join += f" JOIN aminoacid_variant as aa_var{pair_key} ON aa_var{pair_key}.annotation_id = ann{pair_key}.annotation_id "
         if type_query == 'nuc':
+            pair_count.append(f" COUNT(DISTINCT n_var{pair_key}.nucleotide_variant_id) {pair_key}_count ")
             pair_join += f" JOIN nucleotide_variant_limited as n_var{pair_key} ON n_var{pair_key}.sequence_id = it.sequence_id "
             if tables.intersection([x.column_name for x in columns_dict_all.values() if
                                     x.table_name == 'NucleotideVariantAnnotation']):
@@ -372,7 +376,14 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         else:
             select_columns = (key for key, value in columns_dict_item.items() if value.table_name != 'AnnotationView')
 
-        select_part = "SELECT DISTINCT it.sequence_id, " + ', '.join(select_columns) + " "
+        all_columns = "it.sequence_id, " + ', '.join(select_columns) + " "
+        select_part = "SELECT " + all_columns
+        if pair_count:
+            select_part += ',' + ','.join(pair_count)
+
+
+        group_by_part = " GROUP BY " + all_columns
+        del all_columns
 
         if limit:
             limit_part = f" LIMIT {limit} "
