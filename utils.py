@@ -15,8 +15,7 @@ views = {
     'technological': [center_table, 'ExperimentType'],
     'organizational': [center_table, 'SequencingProject'],
     'analytical_a': [center_table, 'Annotation', 'AminoacidVariant'],
-    'analytical_v': [center_table, 'NucleotideVariant', 'NucleotideVariantAnnotation'],
-    'analytical_impact': [center_table, 'NucleotideVariant', 'VariantImpact'],
+    'analytical_impact': [center_table, 'NucleotideVariantAnnotated', 'VariantImpact'],
     'view_annotation': [center_table, 'AnnotationView'],
 
 }
@@ -163,20 +162,20 @@ columns_others = [
     # Column('AminoacidVariant', 'aa_position', int, False, "AminoacidVariant-aa_position"),
     Column('AminoacidVariant', 'start_aa_original', int, False, "AminoacidVariant-start_aa_original"),
 
-    Column('NucleotideVariant', 'sequence_original', str, False,
+    Column('NucleotideVariantAnnotated', 'sequence_original', str, False,
            "NucleotideVariant-sequence_original description"),
-    Column('NucleotideVariant', 'sequence_alternative', str, False,
+    Column('NucleotideVariantAnnotated', 'sequence_alternative', str, False,
            "NucleotideVariant-sequence_alternative description"),
-    Column('NucleotideVariant', 'variant_type', str, False,
+    Column('NucleotideVariantAnnotated', 'variant_type', str, False,
            "NucleotideVariant-variant_type description"),
     # Column('NucleotideVariant', 'var_position', int, False, "NucleotideVariant-var_position"),
-    Column('NucleotideVariant', 'start_original', int, False, "NucleotideVariant-var_position"),
+    Column('NucleotideVariantAnnotated', 'start_original', int, False, "NucleotideVariant-var_position"),
 
-    Column('NucleotideVariantAnnotation', 'n_feature_type', str, False,
+    Column('NucleotideVariantAnnotated', 'n_feature_type', str, False,
            "NucleotideVariantAnnotation-n_feature_type description"),
-    Column('NucleotideVariantAnnotation', 'n_gene_name', str, False,
+    Column('NucleotideVariantAnnotated', 'n_gene_name', str, False,
            "NucleotideVariantAnnotation-n_gene_name description"),
-    Column('NucleotideVariantAnnotation', 'n_product', str, False,
+    Column('NucleotideVariantAnnotated', 'n_product', str, False,
            "NucleotideVariantAnnotation-n_product description"),
 
     Column('VariantImpact', 'effect', str, False,
@@ -212,8 +211,7 @@ def pair_query_resolver(pair_query, pair_key):
         search_list = [
             ('Annotation', f"ann{pair_key}"),
             ('AminoacidVariant', f"aa_var{pair_key}"),
-            ('NucleotideVariant', f"n_var{pair_key}"),
-            ('NucleotideVariantAnnotation', f"n_var_ann{pair_key}"),
+            ('NucleotideVariantAnnotated', f"n_var{pair_key}"),
             ('VariantImpact', f"n_imp{pair_key}"),
         ]
         inner_table_name = ''
@@ -275,10 +273,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             pair_join += f" JOIN aminoacid_variant as aa_var{pair_key} ON aa_var{pair_key}.annotation_id = ann{pair_key}.annotation_id "
         if type_query == 'nuc':
             pair_count.append(f" COUNT(DISTINCT n_var{pair_key}.nucleotide_variant_id) {pair_key}_count ")
-            pair_join += f" JOIN nucleotide_variant_limited as n_var{pair_key} ON n_var{pair_key}.sequence_id = it.sequence_id "
-            if tables.intersection([x.column_name for x in columns_dict_all.values() if
-                                    x.table_name == 'NucleotideVariantAnnotation']):
-                pair_join += f" JOIN nucleotide_variant_annotation as n_var_ann{pair_key} ON n_var_ann{pair_key}.nucleotide_variant_id = n_var{pair_key}.nucleotide_variant_id "
+            pair_join += f" JOIN nucleotide_variant_annotated as n_var{pair_key} ON n_var{pair_key}.sequence_id = it.sequence_id "
             if tables.intersection(
                     [x.column_name for x in columns_dict_all.values() if x.table_name == 'VariantImpact']):
                 pair_join += f" JOIN variant_impact as n_imp{pair_key} ON n_imp{pair_key}.nucleotide_variant_id = n_imp{pair_key}.nucleotide_variant_id "
@@ -311,9 +306,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     aminoacid_variant_join = " JOIN aminoacid_variant as aa_var ON aa_var.annotation_id = ann.annotation_id "
 
-    nucleotide_variant_join = " JOIN nucleotide_variant_limited as n_var ON it.sequence_id = n_var.sequence_id "
-
-    nucleotide_variant_annotation_join = " JOIN nucleotide_variant_annotation as n_var_ann ON n_var.nucleotide_variant_id = n_var_ann.nucleotide_variant_id "
+    nucleotide_variant_join = " JOIN nucleotide_variant_annotated as n_var ON it.sequence_id = n_var.sequence_id "
 
     nucleotide_variant_impact = " JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
 
@@ -326,7 +319,6 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         'organizational': [sequencing_project_join],
         'technological': [experiment_type_join],
         'analytical_a': [annotation_join, aminoacid_variant_join],
-        'analytical_v': [nucleotide_variant_join, nucleotide_variant_annotation_join],
         'analytical_impact': [nucleotide_variant_join, nucleotide_variant_impact],
         'view_annotation': [annotation_view_join],
     }
@@ -400,10 +392,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             field_selected_new = "ann." + field_selected
         elif columns_dict_all[field_selected].table_name == 'AminoacidVariant':
             field_selected_new = "aa_var." + field_selected
-        elif columns_dict_all[field_selected].table_name == 'NucleotideVariant':
+        elif columns_dict_all[field_selected].table_name == 'NucleotideVariantAnnotated':
             field_selected_new = "n_var." + field_selected
-        elif columns_dict_all[field_selected].table_name == 'NucleotideVariantAnnotation':
-            field_selected_new = "n_var_ann." + field_selected
         elif columns_dict_all[field_selected].table_name == 'VariantImpact':
             field_selected_new = "n_imp." + field_selected
         else:
