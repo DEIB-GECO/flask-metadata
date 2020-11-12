@@ -7,6 +7,7 @@ from .item import api as item_api
 from .pair import api as pair_api
 from .query import api as query_api
 from .db_info import api as info_api
+from .poll import api as poll_api
 
 enable_doc = False
 
@@ -25,4 +26,5 @@ api.add_namespace(models_api)
 api.add_namespace(field_api)
 api.add_namespace(query_api)
 api.add_namespace(info_api)
+api.add_namespace(poll_api)
 

@@ -381,11 +381,3 @@ def merge_dicts(dict_args):
         result.update(dictionary['data'])
     return result
 
-
-@api.route('/poll/<poll_id>')
-class Poll(Resource):
-    def get(self, poll_id):
-        if poll_id in poll_dict:
-            return Response(json.dumps(poll_dict[poll_id]), mimetype='application/json')
-        else:
-            api.abort(404)
