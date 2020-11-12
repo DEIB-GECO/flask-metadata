@@ -3,6 +3,7 @@ from logging.config import dictConfig
 
 import flask
 from flask import Flask, render_template, redirect, Blueprint, url_for
+from flask_executor import Executor
 
 from apis import api_blueprint
 from model.models import db
@@ -75,10 +76,9 @@ my_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 my_app.config['SQLALCHEMY_POOL_SIZE'] = 1
 my_app.config['SQLALCHEMY_MAX_OVERFLOW'] = 30
 
-
-
-
 db.init_app(my_app)
+
+executor_inner = Executor(my_app)
 
 simple_page = Blueprint('root_pages', __name__,
                         static_folder='../vue-metadata/dist/static',

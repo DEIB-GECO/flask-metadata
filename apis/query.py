@@ -1,10 +1,10 @@
 import flask
 import sqlalchemy
-from flask import Response
+from flask import Response, json
 from flask_restplus import Namespace, Resource, fields, inputs
 
 from model.models import db
-from utils import sql_query_generator, log_query
+from utils import sql_query_generator, log_query, poll_dict
 
 is_gisaid = False
 
@@ -380,3 +380,12 @@ def merge_dicts(dict_args):
     for dictionary in dict_args:
         result.update(dictionary['data'])
     return result
+
+
+@api.route('/poll/<poll_id>')
+class Poll(Resource):
+    def get(self, poll_id):
+        if poll_id in poll_dict:
+            return Response(json.dumps(poll_dict[poll_id]), mimetype='application/json')
+        else:
+            api.abort(404)

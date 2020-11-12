@@ -2,12 +2,14 @@ import datetime
 
 import flask
 import sqlalchemy
+from flask import Response
+from flask import json
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
 from flask_restplus import inputs
 
 from model.models import db
-from utils import columns_dict, columns_dict_all, sql_query_generator
+from utils import columns_dict, columns_dict_all, sql_query_generator, generate_uuid, poll_dict
 from .flask_models import Info, info_field
 
 api = Namespace('field',
@@ -157,10 +159,12 @@ class FieldValue(Resource):
     @api.doc('post_value_list', params={'body': body_desc,
                                         'rel_distance': rel_distance_hyper_desc,
                                         'field_name': 'The requested GCM metadata field.'})
-    @api.marshal_with(values)
     @api.expect(parser_body)
     def post(self, field_name):
         """For a specified field, it lists all possible values"""
+        poll_id = generate_uuid()
+        poll_dict[poll_id] = {'ready': False, 'result': None}
+
         args = parser_body.parse_args()
         payload = api.payload
         filter_in = payload.get("gcm")
@@ -171,42 +175,52 @@ class FieldValue(Resource):
         panel = payload.get("panel")
 
         if field_name in columns_dict_all:
-            column = columns_dict_all[field_name]
-            column_name = column.column_name
-            has_tid = column.has_tid
-            if type == 'original':
-                query = gen_query_field(field_name, type, filter_in, pair_query, panel=panel)
-                res = db.engine.execute(query).fetchall()
-                flask.current_app.logger.debug(query)
-                item_count = sum(map(lambda row: row['item_count'], res))
 
-                if column.column_type == datetime:
-                    res = [{'value': str(row['label']), 'count': row['item_count']} for row in res]
-                else:
-                    res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+            def async_function():
+                try:
+                    column = columns_dict_all[field_name]
+                    column_name = column.column_name
+                    has_tid = column.has_tid
+                    if type == 'original':
+                        query = gen_query_field(field_name, type, filter_in, pair_query, panel=panel)
+                        res = db.engine.execute(query).fetchall()
+                        flask.current_app.logger.debug(query)
+                        item_count = sum(map(lambda row: row['item_count'], res))
 
-                length = len(res)
+                        if column.column_type == datetime:
+                            res = [{'value': str(row['label']), 'count': row['item_count']} for row in res]
+                        else:
+                            res = [{'value': row['label'], 'count': row['item_count']} for row in res]
 
-                info = Info(length, length, item_count)
+                        length = len(res)
 
-                res = {'values': res,
-                       'info': info
-                       }
-                return res
-            else:
-                query = gen_query_field(field_name, type, filter_in, pair_query, rel_distance)
-                flask.current_app.logger.debug(query)
-                res = db.engine.execute(query).fetchall()
-                item_count = sum(map(lambda row: row['item_count'], res))
-                res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+                        # info = Info(length, length, item_count)
 
-                length = len(res)
-                info = Info(length, length, item_count)
+                        res = {'values': res,
+                               # 'info': info
+                               }
+                    else:
+                        query = gen_query_field(field_name, type, filter_in, pair_query, rel_distance)
+                        flask.current_app.logger.debug(query)
+                        res = db.engine.execute(query).fetchall()
+                        item_count = sum(map(lambda row: row['item_count'], res))
+                        res = [{'value': row['label'], 'count': row['item_count']} for row in res]
 
-                res = {'values': res,
-                       'info': info
-                       }
-                return res
+                        length = len(res)
+                        info = Info(length, length, item_count)
+
+                        res = {'values': res,
+                               # 'info': info
+                               }
+                    poll_dict[poll_id] = {'ready': True, 'result': res}
+                except Exception as e:
+                    poll_dict[poll_id] = {'ready': True, 'result': None}
+                    raise e
+
+            from app import executor_inner
+
+            executor_inner.submit(async_function)
+            return Response(json.dumps({'result': poll_id}), mimetype='application/json')
         else:
             flask.current_app.logger.debug(f"404: field {field_name} not found")
             api.abort(404)

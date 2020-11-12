@@ -1,6 +1,7 @@
 import datetime
 import os
 import time
+import uuid
 from collections import OrderedDict
 
 from flask import request
@@ -124,7 +125,8 @@ columns = [
            "Tissue from which the infected biological sample was collected"),
     Column('HostSample', 'geo_group', str, False, "Continent where the biological sample was collected", "Continent"),
     Column('HostSample', 'country', str, False, "Country where the biological sample was collected"),
-    Column('HostSample', 'region', str, False, "Region (i.e., part of country) where the biological sample was collected"),
+    Column('HostSample', 'region', str, False,
+           "Region (i.e., part of country) where the biological sample was collected"),
     Column('HostSample', 'gender', str, False, "Host organism gender (when applicable)"),
     Column('HostSample', 'age', int, False, "Host organism age (in years, when applicable) ", is_numerical=True),
 ]
@@ -373,7 +375,6 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         if pair_count:
             select_part += ',' + ','.join(pair_count)
 
-
         group_by_part = " GROUP BY " + all_columns
         del all_columns
 
@@ -579,3 +580,10 @@ def ip_info(addr=''):
         # will print the data line by line
         print(attr, ' ' * 13 + '\t->\t', data[attr])
     print(data)
+
+
+poll_dict = {}
+
+
+def generate_uuid():
+    return uuid.uuid4().hex;
