@@ -9,7 +9,8 @@ from flask_restplus import fields
 from flask_restplus import inputs
 
 from model.models import db
-from utils import columns_dict, columns_dict_all, sql_query_generator, generate_uuid, poll_dict
+from utils import columns_dict, columns_dict_all, sql_query_generator
+from .poll import poll_cache
 from .flask_models import Info, info_field
 
 api = Namespace('field',
@@ -162,8 +163,6 @@ class FieldValue(Resource):
     @api.expect(parser_body)
     def post(self, field_name):
         """For a specified field, it lists all possible values"""
-        poll_id = generate_uuid()
-        poll_dict[poll_id] = {'ready': False, 'result': None}
 
         args = parser_body.parse_args()
         payload = api.payload
@@ -175,6 +174,7 @@ class FieldValue(Resource):
         panel = payload.get("panel")
 
         if field_name in columns_dict_all:
+            poll_id = poll_cache.create_dict_element()
 
             def async_function():
                 try:
@@ -212,13 +212,12 @@ class FieldValue(Resource):
                         res = {'values': res,
                                # 'info': info
                                }
-                    poll_dict[poll_id] = {'ready': True, 'result': res}
+                    poll_cache.set_result(poll_id, res)
                 except Exception as e:
-                    poll_dict[poll_id] = {'ready': True, 'result': None}
+                    poll_cache.set_result(poll_id, None)
                     raise e
 
             from app import executor_inner
-
             executor_inner.submit(async_function)
             return Response(json.dumps({'result': poll_id}), mimetype='application/json')
         else:

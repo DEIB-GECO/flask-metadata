@@ -582,8 +582,3 @@ def ip_info(addr=''):
     print(data)
 
 
-poll_dict = {}
-
-
-def generate_uuid():
-    return uuid.uuid4().hex;

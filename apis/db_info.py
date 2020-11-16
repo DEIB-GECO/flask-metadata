@@ -32,7 +32,6 @@ class DbInfo(Resource):
     @api.marshal_with(db_info, skip_none=True)
     def get(self):
         """List all available fields with description and the group they belong to"""
-        print("hello")
         query_text = "SELECT taxon_id, taxon_name, source as database_source, date_of_import as update_date FROM db_meta NATURAL JOIN virus"
         res = db.engine.execute(sqlalchemy.text(query_text))
         res = [dict(r) for r in res]

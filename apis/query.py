@@ -4,7 +4,7 @@ from flask import Response, json
 from flask_restplus import Namespace, Resource, fields, inputs
 
 from model.models import db
-from utils import sql_query_generator, log_query, poll_dict
+from utils import sql_query_generator, log_query
 
 is_gisaid = False
 

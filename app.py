@@ -30,7 +30,7 @@ def get_db_uri():
     postgres_user = "geco"
     postgres_pw = "geco78"
     # postgres_db = "vcm_dev_tom_5_f"
-    postgres_db = "vcm_12"
+    postgres_db = "vcm_11"
     # postgres_db = "vcm_dev_tom_mp"
     #
 
