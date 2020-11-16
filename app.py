@@ -132,7 +132,7 @@ def add_header(r):
     and also to cache the rendered page for 10 minutes.
     """
     if "Cache-Control" not in r.headers:
-        r.cache_control.max_age = 300  # 5 min
+        r.cache_control.max_age = 1  # 1 seconds # 5 min
         # r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         # r.headers["Pragma"] = "no-cache"
         # r.headers["Expires"] = "0"
