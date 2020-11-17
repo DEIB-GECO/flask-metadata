@@ -154,9 +154,9 @@ class Query(Resource):
         def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
             if exclude_accession_list:
                 exclude_accession_list = (f"{x}" for x in exclude_accession_list)
-                exclude_accession_where = f" sequence_id NOT IN ({','.join(exclude_accession_list)}) "
+                exclude_accession_where = f" it.sequence_id NOT IN ({','.join(exclude_accession_list)}) "
                 if is_aa and not is_gisaid:
-                    exclude_aa_seq_null = f" sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+                    exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
                 else:
                     exclude_aa_seq_null = None
             else:
@@ -236,7 +236,7 @@ class QueryCountDataset(Resource):
 
         def run_query(is_aa=False):
             if is_aa and not is_gisaid:
-                exclude_aa_seq_null = f" sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+                exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
             else:
                 exclude_aa_seq_null = None
             query = "select count(*) "
