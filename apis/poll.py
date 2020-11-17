@@ -62,9 +62,6 @@ class Cache(MutableMapping):
     def zip_result(result_dict):
         result_json = json.dumps(result_dict, separators=(',', ':'))
         result_json_zip = gzip.compress(result_json.encode('utf8'), 9)
-        print("SIZE CHECK: ", getsize(result_dict) / getsize(result_json_zip),
-              getsize(result_dict) / getsize(result_json),
-              getsize(result_json) / getsize(result_json_zip), )
         return result_json_zip
 
 
