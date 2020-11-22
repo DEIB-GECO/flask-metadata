@@ -149,6 +149,8 @@ class VizSubmit(Resource):
                 ))
                 # endregion
 
+
+
                 # region Amino acid variant part
                 # TODO remove "AND start_aa_original is not null"
                 query = f"""
@@ -206,10 +208,10 @@ class VizSubmit(Resource):
                     'sequencesCount': len(res),
                     "referenceSequence": reference_sequence,
                     "schema": schema,
-                    "products": [{
+                    "products": {
                         "A": a_products,
                         "N": n_products,
-                    }],
+                    },
                     "nc": [],
                     "sequences": sequences
                 }
