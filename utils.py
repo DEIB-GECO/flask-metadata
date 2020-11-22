@@ -1,9 +1,9 @@
 import datetime
 import os
 import time
-import uuid
 from collections import OrderedDict
 
+import sqlalchemy
 from flask import request
 
 center_table = 'Sequence'
@@ -582,3 +582,63 @@ def ip_info(addr=''):
     print(data)
 
 
+taxon_name_dict = {}
+taxon_id_dict = {}
+
+
+def load_viruses():
+    from app import my_app
+    from model.models import db
+    with my_app.app_context():
+        query = sql_query_generator({"is_reference": [True]}, "original", {}, 'table', limit=None)
+        pre_query = db.engine.execute(sqlalchemy.text(query))
+        # return_columns = pre_query._metadata.keys
+        # print(return_columns)
+        res = pre_query.fetchall()
+        for row in res:
+            row_dict = dict(row)
+            taxon_name = row_dict['taxon_name'].lower()
+            taxon_id = row_dict['taxon_id']
+
+            # for now we use only nucleotide_sequence, so keep only that:
+            row_dict = {k: v for k, v in row.items() if k in ["nucleotide_sequence"]}
+            # add two empty lists (AA and nuc) to use below
+            row_dict.update({"a_products": list(), "n_products": list()})
+            taxon_name_dict[taxon_name] = row_dict
+            taxon_id_dict[taxon_id] = row_dict
+
+        query = """
+            SELECT  *,
+                MIN(start) OVER(PARTITION BY gene_name) = start AND
+                MAX(stop) OVER(PARTITION BY gene_name) = stop as is_gene 
+            FROM virus 
+            NATURAL JOIN sequence
+            NATURAL JOIN annotation
+            WHERE is_reference
+            ORDER BY virus_id, gene_name
+        """
+        pre_query = db.engine.execute(sqlalchemy.text(query))
+        # return_columns = pre_query._metadata.keys
+        # print(return_columns)
+        res = pre_query.fetchall()
+        for row in res:
+            row_dict = dict(row)
+            taxon_id = row_dict['taxon_id']
+
+            a_new_product = {
+                "name": row_dict["product"],
+                "start": row_dict["start"],
+                "end": row_dict["stop"],
+                "row": 0,
+                "sequence": row_dict["aminoacid_sequence"],
+            }
+            taxon_id_dict[taxon_id]["a_products"].append(a_new_product)
+
+            if row_dict["is_gene"]:
+                n_new_product = {
+                    "name": row_dict["gene_name"],
+                    "start": row_dict["start"],
+                    "end": row_dict["stop"],
+                    "row": 0,
+                }
+                taxon_id_dict[taxon_id]["n_products"].append(n_new_product)

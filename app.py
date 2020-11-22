@@ -3,10 +3,12 @@ from logging.config import dictConfig
 
 import flask
 from flask import Flask, render_template, redirect, Blueprint, url_for
+from flask_cors import CORS
 from flask_executor import Executor
 
 from apis import api_blueprint
 from model.models import db
+from utils import load_viruses
 
 base_url = '/virusurf/'
 api_url = base_url + 'api'
@@ -29,10 +31,7 @@ def get_db_uri():
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = "geco78"
-    # postgres_db = "vcm_dev_tom_5_f"
     postgres_db = "vcm_11"
-    # postgres_db = "vcm_dev_tom_mp"
-    #
 
     application_name = []
 
@@ -70,6 +69,8 @@ dictConfig({
 })
 
 my_app = Flask(__name__)
+cors = CORS(my_app)
+
 
 my_app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 my_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -138,3 +139,6 @@ def add_header(r):
         # r.headers["Expires"] = "0"
         # r.headers['Cache-Control'] = 'public, max-age=0'
     return r
+
+
+load_viruses()

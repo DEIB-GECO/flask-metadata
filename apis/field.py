@@ -2,7 +2,6 @@ import datetime
 
 import flask
 import sqlalchemy
-from flask import Response
 from flask import json
 from flask_restplus import Namespace, Resource
 from flask_restplus import fields
@@ -219,7 +218,7 @@ class FieldValue(Resource):
 
             from app import executor_inner
             executor_inner.submit(async_function)
-            return Response(json.dumps({'result': poll_id}), mimetype='application/json')
+            return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
         else:
             flask.current_app.logger.debug(f"404: field {field_name} not found")
             api.abort(404)
