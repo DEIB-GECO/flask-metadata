@@ -142,7 +142,7 @@ class VizSubmit(Resource):
                     (sequence_id,
                      chain(*(
                          zip(range(pos, pos + length), orig, alt, [var_type] * length,
-                             [impacts] * length) if var_type != 'SUB' else
+                             [impacts] * length) if var_type != 'INS' else
                          [[pos, orig, alt, var_type, impacts]]
                          for _, pos, orig, alt, var_type, length, impacts in rows)))
                     for sequence_id, rows in res_nuc
