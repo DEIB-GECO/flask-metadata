@@ -600,8 +600,8 @@ def load_viruses():
             taxon_name = row_dict['taxon_name'].lower()
             taxon_id = row_dict['taxon_id']
 
-            # for now we use only nucleotide_sequence, so keep only that:
-            row_dict = {k: v for k, v in row.items() if k in ["nucleotide_sequence"]}
+            # # for now we use only nucleotide_sequence, so keep only that:
+            # row_dict = {k: v for k, v in row.items() if k in ["nucleotide_sequence"]}
             # add two empty lists (AA and nuc) to use below
             row_dict.update({"a_products": list(), "n_products": list()})
             taxon_name_dict[taxon_name] = row_dict
