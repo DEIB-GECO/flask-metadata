@@ -1,29 +1,15 @@
-import gzip
 import time
 import uuid
 from collections import namedtuple
 from collections.abc import MutableMapping
-from datetime import date
-from typing import Iterable
 
+import mgzip as gzip
+import ujson as json
 from DictTTL.DictTTL import DictTTL
-from flask import json, make_response
+from flask import make_response, request
 from flask_restplus import Namespace, Resource
-from sqlalchemy.engine import RowProxy
 
 api = Namespace('poll', description='Operations to perform polling')
-
-
-class MyJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Iterable):
-            return list(obj)
-        elif isinstance(obj, RowProxy):
-            return list(obj)
-        elif isinstance(obj, date):
-            return str(obj)
-        else:
-            return super(MyJSONEncoder, self).default(obj)
 
 
 class Cache(MutableMapping):
@@ -40,6 +26,7 @@ class Cache(MutableMapping):
     def __getitem__(self, key):
         # print([(x, self.poll_dict.get_ttl(x)) for x in self.poll_dict.keys()])
         self.poll_dict.set_ttl(key, self.time_to_live)
+        self._purge()
         return self.poll_dict[key]
 
     def __contains__(self, key):
@@ -96,8 +83,12 @@ class Cache(MutableMapping):
 
     @staticmethod
     def dump_and_zip_result(result_dict):
-        result_json = json.dumps(result_dict, separators=(',', ':'), cls=MyJSONEncoder, sort_keys=False)
-        result_json_zip = gzip.compress(result_json.encode('utf8'), 9)
+        result_json = json.dumps(result_dict, indent = 2)
+        # print("after dump")
+        result_json_zip = gzip.compress(result_json.encode('utf8'))
+        # print("after zip")
+        # print("  pre zip:", len(result_json))
+        # print("after zip:", len(result_json_zip))
         return result_json_zip
 
 
@@ -122,41 +113,18 @@ class Poll(Resource):
             result = poll_cache[poll_id]
             result_data = result.data
             if result.ready:
+                # print("DEL: ", poll_id, 'length: ', len(result_data))
                 del poll_cache[poll_id]
-            response = make_response(result_data)
-            response.headers['Content-length'] = len(result_data)
-            response.headers['Content-Encoding'] = 'gzip'
+            if 'gzip' in request.accept_encodings:
+                response = make_response(result_data)
+                response.headers['Content-length'] = len(result_data)
+                response.headers['Content-Encoding'] = 'gzip'
+            else:
+                result_data = gzip.decompress(result_data)
+                response = make_response(result_data)
+                response.headers['Content-length'] = len(result_data)
             response.headers['content-type'] = 'application/json'
             return response
         else:
             api.abort(404, f"Requested ID ({poll_id}) is not available")
 
-#
-# ################################################################################################
-# import sys
-# from types import ModuleType, FunctionType
-# from gc import get_referents
-#
-# # Custom objects know their class.
-# # Function objects seem to know way too much, including modules.
-# # Exclude modules as well.
-# BLACKLIST = type, ModuleType, FunctionType
-#
-#
-# def getsize(obj):
-#     """sum size of object & members."""
-#     if isinstance(obj, BLACKLIST):
-#         raise TypeError('getsize() does not take argument of type: ' + str(type(obj)))
-#     seen_ids = set()
-#     size = 0
-#     objects = [obj]
-#     while objects:
-#         need_referents = []
-#         for obj in objects:
-#             if not isinstance(obj, BLACKLIST) and id(obj) not in seen_ids:
-#                 seen_ids.add(id(obj))
-#                 size += sys.getsizeof(obj)
-#                 need_referents.append(obj)
-#         objects = get_referents(*need_referents)
-#     return size
-# ################################################################################################

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections import defaultdict
+from datetime import date
 from itertools import groupby, chain
 
 import flask
@@ -7,7 +7,7 @@ import sqlalchemy
 from flask import json
 from flask_restplus import Namespace, Resource, inputs
 
-from apis.poll import poll_cache, MyJSONEncoder
+from apis.poll import poll_cache
 from apis.query import full_query
 from model.models import db
 from utils import taxon_name_dict, taxon_id_dict
@@ -15,9 +15,6 @@ from utils import taxon_name_dict, taxon_id_dict
 is_gisaid = False
 
 api = Namespace('viz', description='Operations to perform viz using metadata')
-
-
-
 
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
@@ -105,6 +102,7 @@ class VizSubmit(Resource):
             api.abort(422, "Please select only one virus by using virus taxonomy name or taxonomy ID.")
         reference_sequence = the_virus["nucleotide_sequence"]
         taxon_id = the_virus["taxon_id"]
+        taxon_name = the_virus["taxon_name"]
         n_products = the_virus["n_products"]
         a_products = the_virus["a_products"]
 
@@ -141,16 +139,14 @@ class VizSubmit(Resource):
                 res_nuc = groupby(res_nuc, lambda x: x[0])
                 res_nuc = defaultdict(list, (
                     (sequence_id,
-                     chain(*(
+                     list(chain(*(
                          zip(range(pos, pos + length), orig, alt, [var_type] * length,
                              [impacts] * length) if var_type != 'INS' else
                          [[pos, orig, alt, var_type, impacts]]
-                         for _, pos, orig, alt, var_type, length, impacts in rows)))
+                         for _, pos, orig, alt, var_type, length, impacts in rows))))
                     for sequence_id, rows in res_nuc
                 ))
                 # endregion
-
-
 
                 # region Amino acid variant part
                 # TODO remove "AND start_aa_original is not null"
@@ -176,10 +172,10 @@ class VizSubmit(Resource):
 
                 res_aa = defaultdict(dict)
                 for (sequence_id, product), rows in res_aa_pre:
-                    res_aa[sequence_id][product] = chain(*(
-                        zip(range(pos, pos + length), orig, alt, [var_type] * length) if var_type != 'SUB'
+                    res_aa[sequence_id][product] = list(chain(*(
+                        zip(range(pos, pos + length), orig, alt, [var_type] * length) if var_type != 'INS'
                         else [[pos, orig, alt, var_type]]
-                        for _, _, pos, orig, alt, var_type, length in rows))
+                        for _, _, pos, orig, alt, var_type, length in rows)))
 
                 # print(res_aa)
                 # endregion
@@ -188,7 +184,8 @@ class VizSubmit(Resource):
                     row['accession_id']:
                         {
                             "id": row['accession_id'],
-                            "meta": {k: v for k, v in row.items() if k in schema_names},
+                            "meta": {k: (v if not isinstance(v, date) else str(v)) for k, v in row.items() if
+                                     k in schema_names},
                             "closestSequences": [],
                             "variants": {
                                 "N": {
@@ -208,6 +205,7 @@ class VizSubmit(Resource):
                 result = {
                     'sequencesCount': len(res),
                     'taxon_id': taxon_id,
+                    'taxon_name': taxon_name,
                     "referenceSequence": reference_sequence,
                     "schema": schema,
                     "products": {
@@ -221,20 +219,16 @@ class VizSubmit(Resource):
                 poll_cache.set_result(poll_id, result)
 
                 # region DEBUG_FILE_WRITE
-                if False:
-                    print("FILE WRITING")
-                    file_name = flask.request.args.get("file_name", "data_test_default")
-                    with open(f'{file_name}.json', 'w') as outfile:
-                        json.dump({"result": result}, outfile, cls=MyJSONEncoder, sort_keys=False)
-                    print("FILE WRITTEN")
+                # if False:
+                #     print("FILE WRITING")
+                #     file_name = flask.request.args.get("file_name", "data_test_default")
+                #     with open(f'{file_name}.json', 'w') as outfile:
+                #         json.dump({"result": result}, outfile, cls=MyJSONEncoder, sort_keys=False)
+                #     print("FILE WRITTEN")
                 # endregion
             except Exception as e:
                 print(e)
                 poll_cache.set_result(poll_id, None)
-
-
-
-
 
         from app import executor_inner
         executor_inner.submit(async_function)
