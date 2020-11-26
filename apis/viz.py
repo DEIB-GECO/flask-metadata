@@ -227,8 +227,9 @@ class VizSubmit(Resource):
                     "nc": [],
                     "sequences": sequences
                 }
-
+                print("PRE poll_cache.set_result(poll_id, result)")
                 poll_cache.set_result(poll_id, result)
+                print("POST poll_cache.set_result(poll_id, result)")
 
                 # region DEBUG_FILE_WRITE
                 # if False:

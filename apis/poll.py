@@ -3,7 +3,7 @@ import uuid
 from collections import namedtuple
 from collections.abc import MutableMapping
 
-import mgzip as gzip
+import gzip as gzip
 import ujson as json
 from DictTTL.DictTTL import DictTTL
 from flask import make_response, request
@@ -83,12 +83,15 @@ class Cache(MutableMapping):
 
     @staticmethod
     def dump_and_zip_result(result_dict):
-        result_json = json.dumps(result_dict, indent = 2)
-        # print("after dump")
-        result_json_zip = gzip.compress(result_json.encode('utf8'))
-        # print("after zip")
-        # print("  pre zip:", len(result_json))
-        # print("after zip:", len(result_json_zip))
+        result_json = json.dumps(result_dict)
+        print("after dump")
+        result_json_enc = result_json.encode('utf8')
+        print("after encode")
+        result_json_zip = gzip.compress(result_json_enc, compresslevel=2)
+        print("after zip")
+        print("  pre zip     :", len(result_json))
+        print("after zip     :", len(result_json_zip))
+        print("compression(%):", 100 * len(result_json_zip) / len(result_json))
         return result_json_zip
 
 
@@ -127,4 +130,3 @@ class Poll(Resource):
             return response
         else:
             api.abort(404, f"Requested ID ({poll_id}) is not available")
-
