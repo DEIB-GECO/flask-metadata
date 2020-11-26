@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import time
 from collections import OrderedDict
@@ -589,6 +590,12 @@ taxon_id_dict = {}
 def load_viruses():
     from app import my_app
     from model.models import db
+    try:
+        import json
+        with open("viz_color.json", "r") as f:
+            product_colors = json.load(f)
+    except:
+        product_colors = {}
     with my_app.app_context():
         query = sql_query_generator({"is_reference": [True]}, "original", {}, 'table', limit=None)
         pre_query = db.engine.execute(sqlalchemy.text(query))
@@ -597,11 +604,10 @@ def load_viruses():
         res = pre_query.fetchall()
         for row in res:
             row_dict = dict(row)
+            # for now we use only nucleotide_sequence, so keep only that:
+            row_dict = {k: v for k, v in row.items() if k in ["nucleotide_sequence", "taxon_id", "taxon_name", ]}
             taxon_name = row_dict['taxon_name'].lower()
             taxon_id = row_dict['taxon_id']
-
-            # # for now we use only nucleotide_sequence, so keep only that:
-            # row_dict = {k: v for k, v in row.items() if k in ["nucleotide_sequence"]}
             # add two empty lists (AA and nuc) to use below
             row_dict.update({"a_products": list(), "n_products": list()})
             taxon_name_dict[taxon_name] = row_dict
@@ -624,14 +630,18 @@ def load_viruses():
         for row in res:
             row_dict = dict(row)
             taxon_id = row_dict['taxon_id']
+            product = row_dict["product"]
 
             a_new_product = {
-                "name": row_dict["product"],
+                "name": product,
                 "start": row_dict["start"],
                 "end": row_dict["stop"],
                 "row": 0,
                 "sequence": row_dict["aminoacid_sequence"],
             }
+            if taxon_id in product_colors and product in product_colors[taxon_id]:
+                a_new_product.update({'color': product_colors[taxon_id][product]})
+
             taxon_id_dict[taxon_id]["a_products"].append(a_new_product)
 
             if row_dict["is_gene"]:
