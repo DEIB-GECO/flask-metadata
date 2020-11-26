@@ -46,6 +46,18 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 schema = [
     {
+        "name": "host_taxon_name",
+        "forPopulationDescription": True,
+        "forFiltering": True,
+        "type": "location"
+    },
+    {
+        "name": "geo_group",
+        "forPopulationDescription": True,
+        "forFiltering": True,
+        "type": "location"
+    },
+    {
         "name": "country",
         "forPopulationDescription": True,
         "forFiltering": True,
