@@ -594,6 +594,7 @@ def load_viruses():
         import json
         with open("viz_color.json", "r") as f:
             product_colors = json.load(f)
+            product_colors = {int(key): val for key, val in product_colors.items()}
     except:
         product_colors = {}
     with my_app.app_context():
@@ -604,12 +605,18 @@ def load_viruses():
         res = pre_query.fetchall()
         for row in res:
             row_dict = dict(row)
-            # for now we use only nucleotide_sequence, so keep only that:
-            row_dict = {k: v for k, v in row.items() if k in ["nucleotide_sequence", "taxon_id", "taxon_name", ]}
             taxon_name = row_dict['taxon_name'].lower()
             taxon_id = row_dict['taxon_id']
             # add two empty lists (AA and nuc) to use below
-            row_dict.update({"a_products": list(), "n_products": list()})
+            row_dict.update({'nucleotide_sequence_length': len(row_dict['nucleotide_sequence']),
+                             "a_products": list(),
+                             "n_products": list(), })
+
+            row_dict = {k: v for k, v in row_dict.items() if k in ["taxon_id",
+                                                                   "taxon_name",
+                                                                   "a_products",
+                                                                   "n_products",
+                                                                   "nucleotide_sequence_length", ]}
             taxon_name_dict[taxon_name] = row_dict
             taxon_id_dict[taxon_id] = row_dict
 
@@ -637,7 +644,7 @@ def load_viruses():
                 "start": row_dict["start"],
                 "end": row_dict["stop"],
                 "row": 0,
-                "sequence": row_dict["aminoacid_sequence"],
+                # "sequence": row_dict["aminoacid_sequence"],
             }
             if taxon_id in product_colors and product in product_colors[taxon_id]:
                 a_new_product.update({'color': product_colors[taxon_id][product]})

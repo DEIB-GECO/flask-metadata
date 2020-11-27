@@ -112,7 +112,7 @@ class VizSubmit(Resource):
             the_virus = None
             flask.current_app.logger.debug(f"SINGLE VIRUS PROBLEM")
             api.abort(422, "Please select only one virus by using virus taxonomy name or taxonomy ID.")
-        reference_sequence = the_virus["nucleotide_sequence"]
+        reference_sequence_length = the_virus["nucleotide_sequence_length"]
         taxon_id = the_virus["taxon_id"]
         taxon_name = the_virus["taxon_name"]
         n_products = the_virus["n_products"]
@@ -218,13 +218,12 @@ class VizSubmit(Resource):
                     'sequencesCount': len(res),
                     'taxon_id': taxon_id,
                     'taxon_name': taxon_name,
-                    "referenceSequence": reference_sequence,
+                    "referenceSequence": {"length": reference_sequence_length},
                     "schema": schema,
                     "products": {
                         "A": a_products,
                         "N": n_products,
                     },
-                    "nc": [],
                     "sequences": sequences
                 }
                 print("PRE poll_cache.set_result(poll_id, result)")
