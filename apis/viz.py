@@ -44,44 +44,8 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "## Please use */field/{field_name}* endpoint\n" + \
                   "------------------\n"
 
-schema = [
-    {
-        "name": "host_taxon_name",
-        "forPopulationDescription": True,
-        "forFiltering": True,
-        "type": "location"
-    },
-    {
-        "name": "geo_group",
-        "forPopulationDescription": True,
-        "forFiltering": True,
-        "type": "location"
-    },
-    {
-        "name": "country",
-        "forPopulationDescription": True,
-        "forFiltering": True,
-        "type": "location"
-    },
-    {
-        "name": "region",
-        "forPopulationDescription": True,
-        "forFiltering": True,
-        "type": "location"
-    },
-    {
-        "name": "submission_date",
-        "forPopulationDescription": False,
-        "forFiltering": True,
-        "type": "date"
-    },
-    {
-        "name": "lineage",
-        "forPopulationDescription": True,
-        "forFiltering": True,
-        "type": "lineage"
-    }
-]
+with open("viz_schema.json",'r') as f:
+    schema = json.load(f)
 schema_names = {x["name"] for x in schema}
 
 

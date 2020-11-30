@@ -1,0 +1,38 @@
+[
+    {
+        "name": "host_taxon_name",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "location"
+    },
+    {
+        "name": "geo_group",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "location"
+    },
+    {
+        "name": "country",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "location"
+    },
+    {
+        "name": "region",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "location"
+    },
+    {
+        "name": "submission_date",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "date"
+    },
+    {
+        "name": "lineage",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "lineage"
+    }
+]
