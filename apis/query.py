@@ -1,6 +1,6 @@
 import flask
 import sqlalchemy
-from flask import Response
+from flask import Response, json
 from flask_restplus import Namespace, Resource, fields, inputs
 
 from model.models import db
@@ -109,6 +109,72 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "------------------\n"
 
 
+#############################Query Function#############################################
+def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
+               limit, offset, is_control, gisaid_only, numElems):
+    def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
+        if exclude_accession_list:
+            exclude_accession_list = (f"{x}" for x in exclude_accession_list)
+            exclude_accession_where = f" it.sequence_id NOT IN ({','.join(exclude_accession_list)}) "
+            if is_aa and not is_gisaid:
+                exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+            else:
+                exclude_aa_seq_null = None
+        else:
+            exclude_accession_where = None
+            exclude_aa_seq_null = None
+
+            if gisaid_only:
+                exclude_gisaid_where = " gisaid_only "
+            else:
+                exclude_gisaid_where = None
+
+        query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
+                                    order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
+                                    annotation_type=annotation_type,
+                                        external_where_conditions=[exclude_accession_where, exclude_gisaid_where,exclude_aa_seq_null])
+
+        pre_query = db.engine.execute(sqlalchemy.text(query))
+        return_columns = set(pre_query._metadata.keys)
+        res = pre_query.fetchall()
+        result = []
+
+        if numElems is None or numElems > 20:
+            result_columns = ['accession_id']
+
+        for row in res:
+            row_dict = {str(x): row[x] for x in return_columns}
+            if annotation_type:
+                row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
+                row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
+            result.append(row_dict)
+        flask.current_app.logger.debug("QUERY: ")
+        flask.current_app.logger.debug(query)
+
+        flask.current_app.logger.debug('got results')
+        return result
+
+    if is_control and pairs:
+        result_inner = run_query(limit_inner=None, offset_inner=None)
+        # print("len(result_inner)", len(result_inner))
+        result_inner_accession = (x['sequence_id'] for x in result_inner)
+        is_aa = ('aa' in [pairs[p]['type_query'] for p in pairs])
+        pairs = {}
+        result_inner2 = run_query(limit, offset, exclude_accession_list=result_inner_accession, is_aa=is_aa)
+        # print("len(result_inner2)", len(result_inner2))
+        return_result = result_inner2
+    else:
+        result_inner = run_query(limit_inner=limit, offset_inner=offset)
+        # print("len(result_inner)", len(result_inner))
+        return_result = result_inner
+
+    # return_result = [remove_date_in_dict(x) for x in return_result]
+    # query_result_dict = dict(query_result)
+    # print(type(query_result))
+    # return_result = jsonify(marshal(return_result, query_result_dict))
+    return return_result
+
+
 #############################SERVICES IMPLEMENTATION#############################################
 @api.route('/table')
 @api.response(404, 'Results not found')  # TODO correct
@@ -154,66 +220,9 @@ class Query(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
-        def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
-            if exclude_accession_list:
-                exclude_accession_list = (f"{x}" for x in exclude_accession_list)
-                exclude_accession_where = f" sequence_id NOT IN ({','.join(exclude_accession_list)}) "
-                if is_aa and not is_gisaid:
-                    exclude_aa_seq_null = f" sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
-                else:
-                    exclude_aa_seq_null = None
-            else:
-                exclude_accession_where = None
-                exclude_aa_seq_null = None
+        return_result = full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
+                                   limit, offset, is_control, gisaid_only, numElems)
 
-            if gisaid_only:
-                exclude_gisaid_where = " gisaid_only "
-            else:
-                exclude_gisaid_where = None
-
-            query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
-                                        order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
-                                        annotation_type=annotation_type,
-                                        external_where_conditions=[exclude_accession_where, exclude_gisaid_where,exclude_aa_seq_null])
-
-            pre_query = db.engine.execute(sqlalchemy.text(query))
-            return_columns = set(pre_query._metadata.keys)
-            res = pre_query.fetchall()
-            result = []
-
-            if numElems is None or numElems > 20:
-                result_columns = ['accession_id']
-
-            for row in res:
-                row_dict = {str(x): row[x] for x in return_columns}
-                if annotation_type:
-                    row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
-                    row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
-                result.append(row_dict)
-            flask.current_app.logger.debug("QUERY: ")
-            flask.current_app.logger.debug(query)
-
-            flask.current_app.logger.debug('got results')
-            return result
-
-        if is_control and pairs:
-            result_inner = run_query(limit_inner=None, offset_inner=None)
-            # print("len(result_inner)", len(result_inner))
-            result_inner_accession = (x['sequence_id'] for x in result_inner)
-            is_aa = ('aa' in [pairs[p]['type_query'] for p in pairs])
-            pairs = {}
-            result_inner2 = run_query(limit, offset, exclude_accession_list=result_inner_accession, is_aa=is_aa)
-            # print("len(result_inner2)", len(result_inner2))
-            return_result = result_inner2
-        else:
-            result_inner = run_query(limit_inner=limit, offset_inner=offset)
-            # print("len(result_inner)", len(result_inner))
-            return_result = result_inner
-
-        # return_result = [remove_date_in_dict(x) for x in return_result]
-        # query_result_dict = dict(query_result)
-        # print(type(query_result))
-        # return_result = jsonify(marshal(return_result, query_result_dict))
         return return_result
 
 
@@ -249,7 +258,7 @@ class QueryCountDataset(Resource):
 
         def run_query(is_aa=False):
             if is_aa and not is_gisaid:
-                exclude_aa_seq_null = f" sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+                exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
             else:
                 exclude_aa_seq_null = None
             if gisaid_only:

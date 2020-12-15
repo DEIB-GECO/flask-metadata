@@ -3,9 +3,12 @@ from logging.config import dictConfig
 
 import flask
 from flask import Flask, render_template, redirect, Blueprint, url_for
+from flask_cors import CORS
+from flask_executor import Executor
 
 from apis import api_blueprint
 from model.models import db
+from utils import load_viruses
 
 base_url = '/virusurf_gisaid/'
 api_url = base_url + 'api'
@@ -66,16 +69,20 @@ dictConfig({
 })
 
 my_app = Flask(__name__)
+cors = CORS(my_app)
+
 
 my_app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 my_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 my_app.config['SQLALCHEMY_POOL_SIZE'] = 1
 my_app.config['SQLALCHEMY_MAX_OVERFLOW'] = 30
 
-
-
+my_app.config['EXECUTOR_PROPAGATE_EXCEPTIONS'] = True
+my_app.config['EXECUTOR_MAX_WORKERS'] = 20
 
 db.init_app(my_app)
+
+executor_inner = Executor(my_app)
 
 simple_page = Blueprint('root_pages', __name__,
                         static_folder='../vue-metadata/dist/static',
@@ -129,9 +136,12 @@ def add_header(r):
     and also to cache the rendered page for 10 minutes.
     """
     if "Cache-Control" not in r.headers:
-        r.cache_control.max_age = 300  # 5 min
+        r.cache_control.max_age = 1  # 1 seconds # 5 min
         # r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         # r.headers["Pragma"] = "no-cache"
         # r.headers["Expires"] = "0"
         # r.headers['Cache-Control'] = 'public, max-age=0'
     return r
+
+
+load_viruses()

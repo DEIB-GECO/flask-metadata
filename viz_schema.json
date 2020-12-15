@@ -1,0 +1,74 @@
+[
+    {
+        "name": "sequencing_technology",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "assembly_method",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "collection_date",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "date"
+    },
+    {
+        "name": "isolation_source",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "host_taxon_name",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "geo_group",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "country",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "region",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "age",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "numerical"
+    },
+    {
+        "name": "is_complete",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "categorical"
+    },
+    {
+        "name": "lineage",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "lineage"
+    },
+    {
+        "name": "submission_date",
+        "forPopulationDescription": false,
+        "forFiltering": true,
+        "type": "date"
+    }
+]
