@@ -111,11 +111,15 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 #############################Query Function#############################################
 def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-               limit, offset, is_control, gisaid_only, numElems):
+               limit, offset, is_control, gisaid_only, numElems=None):
     def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
         if exclude_accession_list:
-            exclude_accession_list = (f"{x}" for x in exclude_accession_list)
-            exclude_accession_where = f" it.sequence_id NOT IN ({','.join(exclude_accession_list)}) "
+            exclude_accession_list = list(f"{x}" for x in exclude_accession_list)
+            if exclude_accession_list:
+                exclude_accession_where = f" it.sequence_id NOT IN ({','.join(exclude_accession_list)}) "
+            else:
+                exclude_accession_where = None
+
             if is_aa and not is_gisaid:
                 exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
             else:
@@ -124,10 +128,10 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
             exclude_accession_where = None
             exclude_aa_seq_null = None
 
-            if gisaid_only:
-                exclude_gisaid_where = " gisaid_only "
-            else:
-                exclude_gisaid_where = None
+        if gisaid_only:
+            exclude_gisaid_where = " gisaid_only "
+        else:
+            exclude_gisaid_where = None
 
         query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
                                     order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,

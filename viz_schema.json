@@ -1,17 +1,5 @@
 [
     {
-        "name": "sequencing_technology",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "categorical"
-    },
-    {
-        "name": "assembly_method",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "categorical"
-    },
-    {
         "name": "collection_date",
         "forPopulationDescription": false,
         "forFiltering": true,
@@ -48,12 +36,6 @@
         "type": "categorical"
     },
     {
-        "name": "age",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "numerical"
-    },
-    {
         "name": "is_complete",
         "forPopulationDescription": false,
         "forFiltering": true,
@@ -64,6 +46,12 @@
         "forPopulationDescription": true,
         "forFiltering": true,
         "type": "lineage"
+    },
+    {
+        "name": "clade",
+        "forPopulationDescription": true,
+        "forFiltering": true,
+        "type": "clade"
     },
     {
         "name": "submission_date",

@@ -19,6 +19,7 @@ api = Namespace('viz', description='Operations to perform viz using metadata')
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
 table_parser.add_argument('is_control', type=inputs.boolean, default=False)
+table_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
 
 ################################API DOCUMENTATION STRINGS###################################
 body_desc = 'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{}}.\n ' \
@@ -44,9 +45,253 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "## Please use */field/{field_name}* endpoint\n" + \
                   "------------------\n"
 
-with open("viz_schema.json",'r') as f:
+with open("viz_schema.json", 'r') as f:
     schema = json.load(f)
 schema_names = {x["name"] for x in schema}
+
+sars_cov_2_products = {
+    "A": [
+        {
+            "name": "E (envelope protein)",
+            "start": 26245,
+            "end": 26472,
+            "row": 0,
+            "color": "#7c98b3"
+        },
+        {
+            "name": "M (membrane glycoprotein)",
+            "start": 26523,
+            "end": 27191,
+            "row": 0,
+            "color": "#536b78"
+        },
+        {
+            "name": "N (nucleocapsid phosphoprotein)",
+            "start": 28274,
+            "end": 29533,
+            "row": 0,
+            "color": "#f68e5f"
+        },
+        {
+            "name": "ORF10 protein",
+            "start": 29558,
+            "end": 29674,
+            "row": 0,
+            "color": "#f76c5e"
+        },
+        {
+            "name": "NSP16 (2'-O-ribose methyltransferase)",
+            "start": 20659,
+            "end": 21552,
+            "row": 0,
+            "color": "#22577a"
+        },
+        {
+            "name": "NSP3",
+            "start": 2720,
+            "end": 8554,
+            "row": 0,
+            "color": "#7209b7"
+        },
+        {
+            "name": "NSP4",
+            "start": 8555,
+            "end": 10054,
+            "row": 0,
+            "color": "#560bad"
+        },
+        {
+            "name": "NSP15 (endoRNAse)",
+            "start": 19621,
+            "end": 20658,
+            "row": 0,
+            "color": "#38a3a5"
+        },
+        {
+            "name": "NSP5 (3C-like proteinase)",
+            "start": 10055,
+            "end": 10972,
+            "row": 0,
+            "color": "#480ca8"
+        },
+        {
+            "name": "NSP14 (3'-to-5' exonuclease)",
+            "start": 18040,
+            "end": 19620,
+            "row": 0,
+            "color": "#57cc99"
+        },
+        {
+            "name": "NSP11",
+            "start": 13442,
+            "end": 13480,
+            "row": 0,
+            "color": "#65bc6e"
+        },
+        {
+            "name": "NSP13 (helicase)",
+            "start": 16237,
+            "end": 18039,
+            "row": 0,
+            "color": "#80ed99"
+        },
+        {
+            "name": "NSP6",
+            "start": 10973,
+            "end": 11842,
+            "row": 0,
+            "color": "#3a0ca3"
+        },
+        {
+            "name": "NSP7",
+            "start": 11843,
+            "end": 12091,
+            "row": 0,
+            "color": "#3f37c9"
+        },
+        {
+            "name": "NSP8",
+            "start": 12092,
+            "end": 12685,
+            "row": 0,
+            "color": "#4361ee"
+        },
+        {
+            "name": "NSP9",
+            "start": 12686,
+            "end": 13024,
+            "row": 0,
+            "color": "#4895ef"
+        },
+        {
+            "name": "NSP12 (RNA-dependent RNA polymerase)",
+            "start": 13442,
+            "end": 16236,
+            "row": 0,
+            "color": "#c7f9cc"
+        },
+        {
+            "name": "ORF1ab polyprotein",
+            "start": 266,
+            "end": 21555,
+            "row": 0,
+            "color": "#89c4be"
+        },
+        {
+            "name": "NSP10",
+            "start": 13025,
+            "end": 13441,
+            "row": 0,
+            "color": "#4cc9f0"
+        },
+        {
+            "name": "NSP1 (leader protein)",
+            "start": 266,
+            "end": 805,
+            "row": 0,
+            "color": "#f72585"
+        },
+        {
+            "name": "ORF1a polyprotein",
+            "start": 266,
+            "end": 13483,
+            "row": 0
+        },
+        {
+            "name": "NSP2",
+            "start": 806,
+            "end": 2719,
+            "row": 0,
+            "color": "#ccb7ae"
+        },
+        {
+            "name": "NS3 (ORF3a protein)",
+            "start": 25393,
+            "end": 26220,
+            "row": 0,
+            "color": "#a3a3a3"
+        },
+        {
+            "name": "NS6 (ORF6 protein)",
+            "start": 27202,
+            "end": 27387,
+            "row": 0,
+            "color": "#586ba4"
+        },
+        {
+            "name": "NS7a (ORF7a protein)",
+            "start": 27394,
+            "end": 27759,
+            "row": 0,
+            "color": "#324376"
+        },
+        {
+            "name": "NS7b (ORF7b)",
+            "start": 27756,
+            "end": 27887,
+            "row": 0,
+            "color": "#f5dd90"
+        },
+        {
+            "name": "NS8 (ORF8 protein)",
+            "start": 27894,
+            "end": 28259,
+            "row": 0,
+            "color": "#b79738"
+        },
+        {
+            "name": "Spike (surface glycoprotein)",
+            "start": 21563,
+            "end": 25384,
+            "row": 0,
+            "color": "#accbe1"
+        }
+    ],
+    "N": [
+        {
+            "name": "ORF10",
+            "start": 29558,
+            "end": 29674,
+            "row": 0
+        },
+        {
+            "name": "ORF1ab",
+            "start": 266,
+            "end": 21555,
+            "row": 0
+        },
+        {
+            "name": "ORF3a",
+            "start": 25393,
+            "end": 26220,
+            "row": 0
+        },
+        {
+            "name": "ORF6",
+            "start": 27202,
+            "end": 27387,
+            "row": 0
+        },
+        {
+            "name": "ORF7a",
+            "start": 27394,
+            "end": 27759,
+            "row": 0
+        },
+        {
+            "name": "ORF7b",
+            "start": 27756,
+            "end": 27887,
+            "row": 0
+        },
+        {
+            "name": "ORF8",
+            "start": 27894,
+            "end": 28259,
+            "row": 0
+        }
+    ]
+}
 
 
 #############################SERVICES IMPLEMENTATION#############################################
@@ -62,26 +307,31 @@ class VizSubmit(Resource):
         payload = api.payload
         args = table_parser.parse_args()
         is_control = args.get('is_control')
+        gisaid_only = args.get('gisaid_only')
 
         filter_in = payload.get("gcm")
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
-        # region Find virus information
-        if 'taxon_id' in filter_in and len(filter_in["taxon_id"]) == 1:
-            the_virus = taxon_id_dict[filter_in['taxon_id'][0]]
-        elif 'taxon_name' in filter_in and len(filter_in["taxon_name"]) == 1:
-            the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
-        else:
-            the_virus = None
-            flask.current_app.logger.debug(f"SINGLE VIRUS PROBLEM")
-            api.abort(422, "Please select only one virus by using virus taxonomy name or taxonomy ID.")
-        reference_sequence_length = the_virus["nucleotide_sequence_length"]
-        taxon_id = the_virus["taxon_id"]
-        taxon_name = the_virus["taxon_name"]
-        n_products = the_virus["n_products"]
-        a_products = the_virus["a_products"]
-
+        # # region Find virus information
+        # if 'taxon_id' in filter_in and len(filter_in["taxon_id"]) == 1:
+        #     the_virus = taxon_id_dict[filter_in['taxon_id'][0]]
+        # elif 'taxon_name' in filter_in and len(filter_in["taxon_name"]) == 1:
+        #     the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
+        # else:
+        #     the_virus = None
+        #     flask.current_app.logger.debug(f"SINGLE VIRUS PROBLEM")
+        #     api.abort(422, "Please select only one virus by using virus taxonomy name or taxonomy ID.")
+        # reference_sequence_length = the_virus["nucleotide_sequence_length"]
+        # taxon_id = the_virus["taxon_id"]
+        # taxon_name = the_virus["taxon_name"]
+        # n_products = the_virus["n_products"]
+        # a_products = the_virus["a_products"]
+        reference_sequence_length = 29903
+        taxon_id = 2697049
+        taxon_name = "severe acute respiratory syndrome coronavirus 2"
+        n_products = sars_cov_2_products["N"]
+        a_products = sars_cov_2_products["A"]
         # endregion
 
         poll_id = poll_cache.create_dict_element()
@@ -89,7 +339,8 @@ class VizSubmit(Resource):
         def async_function():
             try:
                 res = full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
-                                 agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0)
+                                 agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
+                                 gisaid_only=gisaid_only)
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
@@ -182,6 +433,8 @@ class VizSubmit(Resource):
                     'sequencesCount': len(res),
                     'taxon_id': taxon_id,
                     'taxon_name': taxon_name,
+                    "exclude_n": True,
+                    "exclude_a": False,
                     "referenceSequence": {"length": reference_sequence_length},
                     "schema": schema,
                     "products": {
