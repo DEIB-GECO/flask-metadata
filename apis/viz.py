@@ -181,13 +181,13 @@ class VizSubmit(Resource):
                 result = {
                     'sequencesCount': len(res),
                     'taxon_id': taxon_id,
-                    'taxon_name': taxon_name,
-                    "referenceSequence": {"length": reference_sequence_length},
+                    # 'taxon_name': taxon_name,
+                    # "referenceSequence": {"length": reference_sequence_length},
                     "schema": schema,
-                    "products": {
-                        "A": a_products,
-                        "N": n_products,
-                    },
+                    # "products": {
+                    #     "A": a_products,
+                    #     "N": n_products,
+                    # },
                     "sequences": sequences
                 }
                 print("PRE poll_cache.set_result(poll_id, result)")

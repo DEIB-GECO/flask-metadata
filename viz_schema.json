@@ -1,74 +1,38 @@
 [
     {
-        "name": "sequencing_technology",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "sequencing_technology"
     },
     {
-        "name": "assembly_method",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "assembly_method"
     },
     {
-        "name": "collection_date",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "date"
+        "name": "collection_date"
     },
     {
-        "name": "isolation_source",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "isolation_source"
     },
     {
-        "name": "host_taxon_name",
-        "forPopulationDescription": true,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "host_taxon_name"
     },
     {
-        "name": "geo_group",
-        "forPopulationDescription": true,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "geo_group"
     },
     {
-        "name": "country",
-        "forPopulationDescription": true,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "country"
     },
     {
-        "name": "region",
-        "forPopulationDescription": true,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "region"
     },
     {
-        "name": "age",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "numerical"
+        "name": "age"
     },
     {
-        "name": "is_complete",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "categorical"
+        "name": "is_complete"
     },
     {
-        "name": "lineage",
-        "forPopulationDescription": true,
-        "forFiltering": true,
-        "type": "lineage"
+        "name": "lineage"
     },
     {
-        "name": "submission_date",
-        "forPopulationDescription": false,
-        "forFiltering": true,
-        "type": "date"
+        "name": "submission_date"
     }
 ]
