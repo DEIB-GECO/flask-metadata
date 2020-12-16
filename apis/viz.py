@@ -1,3 +1,5 @@
+import base64
+import gzip
 from collections import defaultdict
 from datetime import date
 from itertools import groupby, chain
@@ -44,7 +46,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "## Please use */field/{field_name}* endpoint\n" + \
                   "------------------\n"
 
-with open("viz_schema.json",'r') as f:
+with open("viz_schema.json", 'r') as f:
     schema = json.load(f)
 schema_names = {x["name"] for x in schema}
 
@@ -85,6 +87,11 @@ class VizSubmit(Resource):
         # endregion
 
         poll_id = poll_cache.create_dict_element()
+
+        def compress_sequence(sequence):
+            seq_bytes = bytes(sequence, 'utf-8')
+            compressed_seq = gzip.compress(seq_bytes)
+            return base64.b64encode(compressed_seq).decode('utf-8')
 
         def async_function():
             try:
@@ -173,7 +180,8 @@ class VizSubmit(Resource):
                                     "variants": res_aa[row["sequence_id"]],
                                 }
                             },
-                            "sequence": row["nucleotide_sequence"]
+                            "sequenceFormat": "gzip",
+                            "sequence": compress_sequence(row["nucleotide_sequence"])
                         }
                     for row in res
                 }
@@ -205,6 +213,7 @@ class VizSubmit(Resource):
             except Exception as e:
                 print(e)
                 poll_cache.set_result(poll_id, None)
+                raise e
 
         from app import executor_inner
         executor_inner.submit(async_function)
