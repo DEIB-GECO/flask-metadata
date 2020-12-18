@@ -1,3 +1,5 @@
+import base64
+import gzip
 from collections import defaultdict
 from datetime import date
 from itertools import groupby, chain
@@ -336,6 +338,11 @@ class VizSubmit(Resource):
 
         poll_id = poll_cache.create_dict_element()
 
+        def compress_sequence(sequence):
+            seq_bytes = bytes(sequence, 'utf-8')
+            compressed_seq = gzip.compress(seq_bytes)
+            return base64.b64encode(compressed_seq).decode('utf-8')
+
         def async_function():
             try:
                 res = full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
@@ -432,15 +439,16 @@ class VizSubmit(Resource):
                 result = {
                     'sequencesCount': len(res),
                     'taxon_id': taxon_id,
-                    'taxon_name': taxon_name,
+                    # 'taxon_name': taxon_name,
+                    # "referenceSequence": {"length": reference_sequence_length},
                     "exclude_n": True,
                     "exclude_a": False,
-                    "referenceSequence": {"length": reference_sequence_length},
+                    # "referenceSequence": {"length": reference_sequence_length},
                     "schema": schema,
-                    "products": {
-                        "A": a_products,
-                        "N": n_products,
-                    },
+                    # "products": {
+                    #     "A": a_products,
+                    #     "N": n_products,
+                    # },
                     "sequences": sequences
                 }
                 print("PRE poll_cache.set_result(poll_id, result)")
@@ -458,6 +466,7 @@ class VizSubmit(Resource):
             except Exception as e:
                 print(e)
                 poll_cache.set_result(poll_id, None)
+                raise e
 
         from app import executor_inner
         executor_inner.submit(async_function)
