@@ -133,7 +133,7 @@ columns = [
 ]
 
 columns_item = [
-    Column('Sequence', 'nucleotide_sequence', str, False, ""),
+    # Column('Sequence', 'nucleotide_sequence', str, False, ""),
     Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
     Column('Sequence', 'clade', str, False, "Sequence-clade description"),
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
@@ -146,9 +146,9 @@ columns_item = [
     Column('Virus', 'is_single_stranded', str, False, "Virus-is_single_stranded description"),
     Column('Virus', 'is_positive_stranded', str, False, "Virus-is_positive_stranded description"),
 
-    Column('AnnotationView', 'annotation_view_aminoacid_sequence', str, False,
+    Column('AnnotationView', 'aminoacid_sequence', str, False,
            "Virus-is_positive_stranded description"),
-    Column('AnnotationView', 'annotation_view_nucleotide_sequence', str, False,
+    Column('AnnotationView', 'annotation_nucleotide_sequence', str, False,
            "Virus-is_positive_stranded description"),
 ]
 
@@ -170,6 +170,7 @@ columns_others = [
            "NucleotideVariant-variant_type description"),
     # Column('NucleotideVariant', 'var_position', int, False, "NucleotideVariant-var_position"),
     Column('NucleotideVariantAnnotated', 'start_original', int, False, "NucleotideVariant-var_position"),
+    Column('NucleotideVariantAnnotated', 'variant_length', int, False, "NucleotideVariant-variant_length"),
 
     Column('NucleotideVariantAnnotated', 'n_feature_type', str, False,
            "NucleotideVariantAnnotation-n_feature_type description"),
@@ -234,6 +235,13 @@ def pair_query_resolver(pair_query, pair_key):
             if 'max_val' in val:
                 position_sub.append(f" n_var{pair_key}.start_original <= {int(val['max_val'])} ")
             where_temp_inner.append(f" ({' AND '.join(position_sub)}) ")
+        elif name == 'variant_length':
+            variant_length_sub = []
+            if 'min_val' in val:
+                variant_length_sub.append(f" n_var{pair_key}.variant_length >= {int(val['min_val'])} ")
+            if 'max_val' in val:
+                variant_length_sub.append(f" n_var{pair_key}.variant_length <= {int(val['max_val'])} ")
+            where_temp_inner.append(f" ({' AND '.join(variant_length_sub)}) ")
         else:
             inner_text_list = []
             if None in val:
@@ -247,7 +255,7 @@ def pair_query_resolver(pair_query, pair_key):
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
                         offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
-                        annotation_type=None, external_where_conditions=[]):
+                        annotation_type=None, external_where_conditions=[], with_nuc_seq = False):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -294,6 +302,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     item = " FROM sequence it "
     # dataset_join = " join dataset da on it.dataset_id = da.dataset_id "
 
+    if with_nuc_seq:
+        item += " NATURAL JOIN nucleotide_sequence as nuc_seq"
+
     experiment_type_join = " join experiment_type ex on it.experiment_type_id = ex.experiment_type_id"
 
     sequencing_project_join = " join sequencing_project sp on it.sequencing_project_id = sp.sequencing_project_id"
@@ -310,7 +321,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     nucleotide_variant_impact = " JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
 
-    annotation_view_join = " JOIN annotation_view as ann_view ON it.sequence_id = ann_view.sequence_id "
+    annotation_view_join = " JOIN annotation_sequence as ann_view ON it.sequence_id = ann_view.sequence_id "
 
     view_join = {
         # TODO VIRUS
@@ -342,7 +353,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         from_part = item + experiment_type_join + sequencing_project_join + host_sample_join + virus_join + pair_join
         if annotation_type:
             annotation_type = annotation_type.replace("'", "''")
-            from_part = from_part + annotation_view_join + f" AND lower(ann_view.annotation_view_product) = lower('{annotation_type}')"
+            from_part = from_part + annotation_view_join + f" AND lower(ann_view.product) = lower('{annotation_type}')"
 
     gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
 
@@ -372,7 +383,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             select_columns = (key for key, value in columns_dict_item.items() if value.table_name != 'AnnotationView')
 
         all_columns = "it.sequence_id, " + ', '.join(select_columns) + " "
-        select_part = "SELECT " + all_columns
+        select_part = "SELECT " + ("max(nuc_seq.nucleotide_sequence) as nucleotide_sequence, " if with_nuc_seq else "") + all_columns
         if pair_count:
             select_part += ',' + ','.join(pair_count)
 
@@ -395,6 +406,8 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             field_selected_new = "n_var." + field_selected
         elif columns_dict_all[field_selected].table_name == 'VariantImpact':
             field_selected_new = "n_imp." + field_selected
+        elif field_selected == "annotation_view_product":
+             field_selected_new ="ann_view.product"
         else:
             field_selected_new = field_selected
 
@@ -608,7 +621,7 @@ def load_viruses():
             taxon_name = row_dict['taxon_name'].lower()
             taxon_id = row_dict['taxon_id']
             # add two empty lists (AA and nuc) to use below
-            row_dict.update({'nucleotide_sequence_length': len(row_dict['nucleotide_sequence']),
+            row_dict.update({#'nucleotide_sequence_length': len(row_dict['nucleotide_sequence']),
                              "a_products": list(),
                              "n_products": list(), })
 
@@ -616,7 +629,8 @@ def load_viruses():
                                                                    "taxon_name",
                                                                    "a_products",
                                                                    "n_products",
-                                                                   "nucleotide_sequence_length", ]}
+                                                                   # "nucleotide_sequence_length",
+                                                                   ]}
             taxon_name_dict[taxon_name] = row_dict
             taxon_id_dict[taxon_id] = row_dict
 

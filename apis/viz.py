@@ -78,7 +78,7 @@ class VizSubmit(Resource):
             the_virus = None
             flask.current_app.logger.debug(f"SINGLE VIRUS PROBLEM")
             api.abort(422, "Please select only one virus by using virus taxonomy name or taxonomy ID.")
-        reference_sequence_length = the_virus["nucleotide_sequence_length"]
+        # reference_sequence_length = the_virus["nucleotide_sequence_length"]
         taxon_id = the_virus["taxon_id"]
         taxon_name = the_virus["taxon_name"]
         n_products = the_virus["n_products"]
@@ -96,7 +96,8 @@ class VizSubmit(Resource):
         def async_function():
             try:
                 res = full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
-                                 agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0)
+                                 agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
+                                 with_nuc_seq=True)
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
@@ -211,7 +212,7 @@ class VizSubmit(Resource):
                 #     print("FILE WRITTEN")
                 # endregion
             except Exception as e:
-                print(e)
+                flask.current_app.logger.error(e)
                 poll_cache.set_result(poll_id, None)
                 raise e
 

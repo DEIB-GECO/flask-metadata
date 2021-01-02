@@ -1,7 +1,10 @@
+import datetime
+import itertools
+
 import flask
 import sqlalchemy
 from flask import Response, json
-from flask_restplus import Namespace, Resource, fields, inputs
+from flask_restplus import Namespace, Resource, fields, inputs, marshal
 
 from model.models import db
 from utils import sql_query_generator, log_query
@@ -34,6 +37,8 @@ table_parser.add_argument('order_dir', type=str, default='asc')
 table_parser.add_argument('rel_distance', type=int, default=3)
 table_parser.add_argument('annotation_type', type=str)
 table_parser.add_argument('is_control', type=inputs.boolean, default=False)
+table_parser.add_argument('download_file_format', type=str, default="fasta")
+table_parser.add_argument('download_type', type=str, default="nuc")
 
 ################################API IMPLEMENTATION###########################################
 
@@ -44,8 +49,8 @@ query_result = api.model('QueryResult', {
     'strain_name': fields.String,
     'is_reference': fields.String,
     'is_complete': fields.String,
-    'nucleotide_sequence': fields.String,
-    'amino_acid_sequence': fields.String,
+    # 'nucleotide_sequence': fields.String,
+    # 'amino_acid_sequence': fields.String,
     'strand': fields.String,
     'length': fields.String,
     'gc_percentage': fields.String,
@@ -109,13 +114,13 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 #############################Query Function#############################################
 def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-               limit, offset, is_control):
-    def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
+               limit, offset, is_control, with_nuc_seq=False):
+    def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None, with_nuc_seq=False):
         if exclude_accession_list:
             exclude_accession_list = (f"{x}" for x in exclude_accession_list)
             exclude_accession_where = f" it.sequence_id NOT IN ({','.join(exclude_accession_list)}) "
             if is_aa and not is_gisaid:
-                exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+                exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation_sequence) "
             else:
                 exclude_aa_seq_null = None
         else:
@@ -125,18 +130,20 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
         query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
                                     order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
                                     annotation_type=annotation_type,
-                                    external_where_conditions=[exclude_accession_where, exclude_aa_seq_null])
+                                    external_where_conditions=[exclude_accession_where, exclude_aa_seq_null],
+                                    with_nuc_seq=with_nuc_seq)
 
         pre_query = db.engine.execute(sqlalchemy.text(query))
-        return_columns = set(pre_query._metadata.keys)
-        res = pre_query.fetchall()
-        result = []
-        for row in res:
-            row_dict = {str(x): row[x] for x in return_columns}
-            if annotation_type:
-                row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
-                row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
-            result.append(row_dict)
+        # return_columns = set(pre_query._metadata.keys)
+        res = pre_query  # .fetchall()
+        result = (dict(x) for x in res)
+        result = ({k: str(v) if type(v) == datetime.date else v for k, v in x.items()} for x in result)
+        # for row in res:
+        #     row_dict = {str(x): row[x] for x in return_columns}
+        #     if annotation_type:
+        #         row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
+        #         row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
+        #     result.append(row_dict)
         flask.current_app.logger.debug("QUERY: ")
         flask.current_app.logger.debug(query)
 
@@ -149,11 +156,12 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
         result_inner_accession = (x['sequence_id'] for x in result_inner)
         is_aa = ('aa' in [pairs[p]['type_query'] for p in pairs])
         pairs = {}
-        result_inner2 = run_query(limit, offset, exclude_accession_list=result_inner_accession, is_aa=is_aa)
+        result_inner2 = run_query(limit, offset, exclude_accession_list=result_inner_accession, is_aa=is_aa,
+                                  with_nuc_seq=with_nuc_seq)
         # print("len(result_inner2)", len(result_inner2))
         return_result = result_inner2
     else:
-        result_inner = run_query(limit_inner=limit, offset_inner=offset)
+        result_inner = run_query(limit_inner=limit, offset_inner=offset, with_nuc_seq=with_nuc_seq)
         # print("len(result_inner)", len(result_inner))
         return_result = result_inner
 
@@ -161,7 +169,7 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
     # query_result_dict = dict(query_result)
     # print(type(query_result))
     # return_result = jsonify(marshal(return_result, query_result_dict))
-    return return_result
+    return list(return_result)
 
 
 #############################SERVICES IMPLEMENTATION#############################################
@@ -175,7 +183,7 @@ class Query(Resource):
                                             'order_col': order_col_desc,
                                             'order_dir': order_dir_desc,
                                             'rel_distance': rel_distance_desc})
-    @api.marshal_with(query_result)
+    # @api.marshal_with(query_result)
     @api.expect(table_parser)
     def post(self):
         '''For the posted query, it retrieves a list of items with the related GCM metadata'''
@@ -210,7 +218,6 @@ class Query(Resource):
 
         return_result = full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
                                    limit, offset, is_control)
-
         return return_result
 
 
@@ -245,7 +252,7 @@ class QueryCountDataset(Resource):
 
         def run_query(is_aa=False):
             if is_aa and not is_gisaid:
-                exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
+                exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation_sequence) "
             else:
                 exclude_aa_seq_null = None
             query = "select count(*) "
@@ -285,107 +292,64 @@ class QueryDownload(Resource):
     def post(self):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
-        json = api.payload
-        args = parser.parse_args()
+        '''For the posted query, it retrieves a list of items with the related GCM metadata'''
+
+        payload = api.payload
+        args = table_parser.parse_args()
         rel_distance = args['rel_distance']
-        filter_in = json.get('gcm')
-        type = json.get('type')
-        pairs = json.get('kv')
-
-        if 'order_col' in args:
-            orderCol = args['order_col']
-        else:
-            orderCol = "null"
-
-        if 'order_dir' in args:
-            orderDir = args['order_dir']
-        else:
-            orderDir = "ASC"
-
+        agg = args['agg']
+        orderCol = args['order_col']
+        orderDir = args['order_dir']
         if orderCol == "null":
             orderCol = "accession_id"
 
-        query = sql_query_generator(filter_in, type, pairs, 'download-links', rel_distance=rel_distance,
-                                    order_col=orderCol, order_dir=orderDir)
-        flask.current_app.logger.debug(query)
+        numPage = args['page']
+        numElems = args['num_elems']
 
-        flask.current_app.logger.debug('got results')
+        annotation_type = args.get('annotation_type')
 
-        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
+        is_control = args.get('is_control')
 
-        results = [x[0] for x in results]
-
-        # add meta files
-        results = [y for x in results for y in (x, x[::-1].replace("noiger", "atadatem", 1)[::-1])]
-
-        results = [x.replace("www.gmql.eu", "genomic.deib.polimi.it") for x in results]
-        results = [x + "?authToken=DOWNLOAD-TOKEN" for x in results]
-
-        results = '\n'.join(results)
-
-        return Response(results, mimetype='text/plain')
-
-
-@api.route('/gmql')
-@api.hide
-@api.response(404, 'Results not found')  # TODO correct
-class QueryGmql(Resource):
-    @api.doc('return_query_result5', params={'body': body_desc,
-                                             'rel_distance': rel_distance_desc})
-    @api.expect(parser)
-    def post(self):
-        '''Creates gmql query from GenoSurf query'''
-
-        json = api.payload
-        args = parser.parse_args()
-        rel_distance = args['rel_distance']
-
-        filter_in = json.get('gcm')
-        type = json.get('type')
-        pairs = json.get('kv')
-
-        query = sql_query_generator(filter_in, type, pairs, 'gmql', rel_distance=rel_distance)
-        flask.current_app.logger.debug(query)
-
-        flask.current_app.logger.debug('got results')
-
-        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
-        length = len(results)
-
-        if length:
-            gmql_query = []
-            for idx, (dataset_name, files) in enumerate(results):
-                files = map(lambda x: f'gcm_curated__file_name == "{x}"', files)
-                files = " OR ".join(files)
-                gmql_query.append(f"# Selection of items from {dataset_name} dataset")
-                gmql_query.append(f'D_{idx} = SELECT({files}) {dataset_name};')
-                gmql_query.append("")
-
-            if length > 1:
-                gmql_query.append("")
-                gmql_query.append("# Union of all datasets")
-                if length == 2:
-                    gmql_query.append(f'ALL_DS = UNION() D_0 D_1;')
-                else:
-                    gmql_query.append(f'U_0 = UNION() D_0 D_1;')
-                    for idx in range(2, length - 1):
-                        gmql_query.append(f'U_{idx - 1} = UNION() U_{idx - 2} D_{idx};')
-                    gmql_query.append(f'ALL_DS = UNION() U_{length - 3} D_{length - 1};')
-
-            gmql_query.append("")
-            gmql_query = "\n".join(gmql_query)
+        if numPage and numElems:
+            offset = (numPage - 1) * numElems
+            limit = numElems
         else:
-            gmql_query = "No result!!"
+            offset = None
+            limit = None
 
-        return Response(gmql_query, mimetype='text/plain')
+        filter_in = payload.get("gcm")
 
+        q_type = payload.get("type")
+        pairs = payload.get("kv")
 
-def merge_dicts(dict_args):
-    """
-    Given any number of dicts, shallow copy and merge into a new dict,
-    precedence goes to key value pairs in latter dicts.
-    """
-    result = {}
-    for dictionary in dict_args:
-        result.update(dictionary['data'])
-    return result
+        return_result = full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
+                                   limit, offset, is_control, with_nuc_seq=True)
+
+        downloadFileFormat = args['download_file_format']
+        downloadType = args['download_type']
+
+        if downloadType == "aa":
+            res = ((x["accession_id"], x["aminoacid_sequence"]) for x in return_result)
+        else:
+            if annotation_type:
+                res = ((x["accession_id"], x["annotation_nucleotide_sequence"]) for x in return_result)
+            else:
+                res = ((x["accession_id"], x["nucleotide_sequence"]) for x in return_result)
+
+        res = (x for x in res if x[1])
+
+        if downloadFileFormat == "fasta":
+            n = 60
+            res = (itertools.chain((f">{acc},",), (seq[i:i + n] for i in range(0, len(seq), n))) for acc, seq in res)
+            res = itertools.chain.from_iterable(res)
+        else:
+            res = itertools.chain([["accession_id", "sequence"]], res)
+            res = (",".join(x) for x in res)
+
+        res = (x + "\n" for x in res)
+
+        # res = "\n".join(",".join(x) for x in res)
+
+        # return return_result
+
+        return Response(res, mimetype='text/plain')

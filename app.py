@@ -31,7 +31,7 @@ def get_db_uri():
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = "geco78"
-    postgres_db = "vcm_11_1"
+    postgres_db = "vcm_13"
 
     application_name = []
 
@@ -70,6 +70,8 @@ dictConfig({
 
 my_app = Flask(__name__)
 cors = CORS(my_app)
+
+my_app.debug = False
 
 
 my_app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
