@@ -90,6 +90,7 @@ columns = [
            is_numerical=True),
     Column('Sequence', 'gc_percentage', float, False, "Percentage of read G and C bases", "GC%", is_numerical=True),
     Column('Sequence', 'n_percentage', float, False, "Percentage of unknown bases", "N%", is_numerical=True),
+    Column('Sequence', 'lineage', str, False, "Sequence lineage derived from source (for COG-UK) or calculated with the Pangolin software https://cov-lineages.org/pangolin.html (for other sources)"),
 
     Column('ExperimentType', 'sequencing_technology', str, False, "Platform used for the sequencing experiment"),
     Column('ExperimentType', 'assembly_method', str, False,
@@ -134,7 +135,6 @@ columns = [
 
 columns_item = [
     # Column('Sequence', 'nucleotide_sequence', str, False, ""),
-    Column('Sequence', 'lineage', str, False, "Sequence-lineage description"),
     Column('Sequence', 'clade', str, False, "Sequence-clade description"),
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
     Column('HostSample', 'originating_lab', str, False, "HostSample-originating_lab description"),
