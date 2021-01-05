@@ -340,7 +340,7 @@ class QueryDownload(Resource):
 
         if downloadFileFormat == "fasta":
             n = 60
-            res = (itertools.chain((f">{acc},",), (seq[i:i + n] for i in range(0, len(seq), n))) for acc, seq in res)
+            res = (itertools.chain((f">{acc}",), (seq[i:i + n] for i in range(0, len(seq), n))) for acc, seq in res)
             res = itertools.chain.from_iterable(res)
         else:
             res = itertools.chain([["accession_id", "sequence"]], res)
