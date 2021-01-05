@@ -34,5 +34,8 @@
     },
     {
         "name": "submission_date"
+    },
+    {
+        "name": "length"
     }
 ]
