@@ -169,7 +169,7 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
     # query_result_dict = dict(query_result)
     # print(type(query_result))
     # return_result = jsonify(marshal(return_result, query_result_dict))
-    return list(return_result)
+    return return_result
 
 
 #############################SERVICES IMPLEMENTATION#############################################
@@ -216,8 +216,8 @@ class Query(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
-        return_result = full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-                                   limit, offset, is_control)
+        return_result = list(full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
+                                   limit, offset, is_control))
         return return_result
 
 

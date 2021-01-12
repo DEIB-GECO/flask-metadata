@@ -95,9 +95,9 @@ class VizSubmit(Resource):
 
         def async_function():
             try:
-                res = full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
+                res = list(full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
                                  agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
-                                 with_nuc_seq=True)
+                                 with_nuc_seq=True))
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
@@ -188,7 +188,7 @@ class VizSubmit(Resource):
                 }
 
                 result = {
-                    'sequencesCount': len(res),
+                    'sequencesCount': len(sequences),
                     'taxon_id': taxon_id,
                     # 'taxon_name': taxon_name,
                     # "referenceSequence": {"length": reference_sequence_length},
