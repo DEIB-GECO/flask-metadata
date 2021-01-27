@@ -10,7 +10,7 @@ from apis import api_blueprint
 from model.models import db
 from utils import load_viruses
 
-base_url = '/virusurf/'
+base_url = '/virusurf_epitope/'
 api_url = base_url + 'api'
 repo_static_url = base_url + 'repo_static'
 
