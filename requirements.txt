@@ -10,7 +10,6 @@ itsdangerous==1.1.0
 Jinja2==2.10
 jsonschema==2.6.0
 MarkupSafe==1.1.0
-psycopg2==2.7.7
 pytz==2018.9
 requests==2.21.0
 six==1.12.0

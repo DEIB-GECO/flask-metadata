@@ -9,8 +9,9 @@ from .query import api as query_api
 from .db_info import api as info_api
 from .poll import api as poll_api
 from .viz import api as viz_api
+from .epitope import api as epitope_api
 
-enable_doc = False
+enable_doc = True
 
 api_blueprint = Blueprint('api', __name__)
 
@@ -31,3 +32,4 @@ api.add_namespace(poll_api)
 api.add_namespace(viz_api)
 api.add_namespace(viz_api)
 
+api.add_namespace(epitope_api)

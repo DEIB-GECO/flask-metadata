@@ -9,6 +9,7 @@ from flask import request
 
 center_table = 'Sequence'
 center_table_id = 'sequence_id'
+epitope_table = 'epitope_count_variant_arif'
 
 # the view order definitions
 views = {
@@ -255,7 +256,7 @@ def pair_query_resolver(pair_query, pair_key):
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
                         offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
-                        annotation_type=None, external_where_conditions=[], with_nuc_seq = False):
+                        annotation_type=None, external_where_conditions=[], with_nuc_seq = False, epitope_part=None):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -355,7 +356,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             annotation_type = annotation_type.replace("'", "''")
             from_part = from_part + annotation_view_join + f" AND lower(ann_view.product) = lower('{annotation_type}')"
 
-    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
+    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance, epitope_part=epitope_part)
 
     panel_where = ''
     if panel:
@@ -428,7 +429,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     return full_query
 
 
-def generate_where_sql(gcm_query, search_type, rel_distance=3):
+def generate_where_sql(gcm_query, search_type, rel_distance=3, epitope_part=None):
     sub_where = []
     where_part = ""
     if gcm_query:
@@ -492,6 +493,10 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
 
     if gcm_query:
         where_part += ") AND (".join(sub_where) + ")"
+
+    if epitope_part is not None:
+        where_part += f""" and it.sequence_id IN (SELECT distinct sequence_id 
+                        FROM {epitope_table}  {epitope_part}) """
     return where_part
 
 

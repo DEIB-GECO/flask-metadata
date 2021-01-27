@@ -8,6 +8,7 @@ from flask_restplus import Namespace, Resource, fields, inputs, marshal
 
 from model.models import db
 from utils import sql_query_generator, log_query
+from .epitope import gen_where_epi_query_field
 
 is_gisaid = False
 
@@ -114,7 +115,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 #############################Query Function#############################################
 def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-               limit, offset, is_control, with_nuc_seq=False):
+               limit, offset, is_control, with_nuc_seq=False, epitope_part=None):
     def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None, with_nuc_seq=False):
         if exclude_accession_list:
             exclude_accession_list = (f"{x}" for x in exclude_accession_list)
@@ -131,7 +132,7 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
                                     order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
                                     annotation_type=annotation_type,
                                     external_where_conditions=[exclude_accession_where, exclude_aa_seq_null],
-                                    with_nuc_seq=with_nuc_seq)
+                                    with_nuc_seq=with_nuc_seq, epitope_part=epitope_part)
 
         pre_query = db.engine.execute(sqlalchemy.text(query))
         # return_columns = set(pre_query._metadata.keys)
@@ -216,8 +217,13 @@ class Query(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
+        epitope_part = payload.get("epitope")
+        if epitope_part is not None:
+            field_name = "toTable"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+
         return_result = list(full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-                                   limit, offset, is_control))
+                                   limit, offset, is_control, epitope_part=epitope_part))
         return return_result
 
 
@@ -250,6 +256,11 @@ class QueryCountDataset(Resource):
 
         is_control = args.get('is_control')
 
+        epitope_part = payload.get("epitope")
+        if epitope_part is not None:
+            field_name = "toTable"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+
         def run_query(is_aa=False):
             if is_aa and not is_gisaid:
                 exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation_sequence) "
@@ -257,9 +268,11 @@ class QueryCountDataset(Resource):
                 exclude_aa_seq_null = None
             query = "select count(*) "
             query += "from ("
+
             sub_query = sql_query_generator(filter_in, q_type, pairs, 'table', agg=agg, limit=None, offset=None,
                                             rel_distance=rel_distance, annotation_type=annotation_type,
-                                            external_where_conditions=[exclude_aa_seq_null])
+                                            external_where_conditions=[exclude_aa_seq_null], epitope_part=epitope_part)
+
             query += sub_query + ") as a "
             flask.current_app.logger.debug(query)
 
@@ -322,8 +335,13 @@ class QueryDownload(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
+        epitope_part = payload.get("epitope")
+        if epitope_part is not None:
+            field_name = "toTable"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+
         return_result = full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-                                   limit, offset, is_control, with_nuc_seq=True)
+                                   limit, offset, is_control, with_nuc_seq=True, epitope_part=epitope_part)
 
         downloadFileFormat = args['download_file_format']
         downloadType = args['download_type']
