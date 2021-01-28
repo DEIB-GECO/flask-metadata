@@ -45,10 +45,10 @@ columns_epi_sel = [
 ]
 
 columns_epi_amino = [
-    ColumnEpi('Variant Type', 'variant_aa_type', 'a', 'str', False, False),
-    ColumnEpi('Original Aminoacid', 'sequence_aa_original', 'b', 'str', False, False),
-    ColumnEpi('Alternative Aminoacid', 'sequence_aa_alternative', 'c', 'str', False, False),
-    ColumnEpi('Variant Position Range', 'variant_position_range', 'd', 'num', True, False),
+    ColumnEpi('Variant Type', 'variant_aa_type', 'aa', 'str', False, False),
+    ColumnEpi('Original Aminoacid', 'sequence_aa_original', 'bb', 'str', False, False),
+    ColumnEpi('Alternative Aminoacid', 'sequence_aa_alternative', 'cc', 'str', False, False),
+    ColumnEpi('Variant Position Range', 'variant_position_range', 'dd', 'num', True, False),
 ]
 
 columns_dict_epi_sel = {x.field: x for x in columns_epi_sel}
