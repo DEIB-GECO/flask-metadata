@@ -285,6 +285,37 @@ class FieldValue(Resource):
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
 
+@api.route('/countSeq')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+        (payload_epi_query, payload_cmp_query, filter_in, type, pair_query, panel) = get_payload(payload)
+
+        poll_id = poll_cache.create_dict_element()
+        def async_function():
+            try:
+                query_count_table = f"SELECT count(distinct sequence_id) as count_seq FROM {epitope_table} "
+
+                query_count_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
+                                                   payload_epi_query, "all")
+
+                query = sqlalchemy.text(query_count_table)
+                res = db.engine.execute(query).fetchall()
+                flask.current_app.logger.debug(query)
+
+                res = [{'count': row['count_seq']} for row in res]
+
+                poll_cache.set_result(poll_id, res)
+            except Exception as e:
+                poll_cache.set_result(poll_id, None)
+                raise e
+
+        from app import executor_inner
+        executor_inner.submit(async_function)
+        return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
+
+
 ############
 
 
@@ -398,10 +429,11 @@ def add_where_epi_query(filter_in, pairs_query, search_type, return_type,
     where_part_final += query_seq_sel
 
     where_part_final += f") "
-    epi_query_len = len(payload_epi_query)
-    if epi_query_len != 0:
-        query_where_epi = gen_where_epi_query_field(payload_epi_query, field_name)
-        where_part_final += query_where_epi
+    if payload_epi_query is not None:
+        epi_query_len = len(payload_epi_query)
+        if epi_query_len != 0:
+            query_where_epi = gen_where_epi_query_field(payload_epi_query, field_name)
+            where_part_final += query_where_epi
 
     return where_part_final
 
