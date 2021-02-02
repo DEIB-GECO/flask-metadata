@@ -13,7 +13,7 @@ from apis.poll import poll_cache
 from apis.query import full_query
 from model.models import db
 from utils import taxon_name_dict, taxon_id_dict
-from .epitope import gen_where_epi_query_field
+from .epitope import gen_where_epi_query_field, gen_epitope_part_json_virusviz, gen_epitope_part_json_virusviz2
 
 is_gisaid = False
 
@@ -73,6 +73,7 @@ class VizSubmit(Resource):
         epitope_part = payload.get("epitope")
         if epitope_part is not None:
             field_name = "toTable"
+            epitope_json_part = gen_epitope_part_json_virusviz(epitope_part)
             epitope_part = gen_where_epi_query_field(epitope_part, field_name)
 
         # region Find virus information
@@ -193,22 +194,37 @@ class VizSubmit(Resource):
                     for row in res
                 }
 
-                result = {
-                    'sequencesCount': len(sequences),
-                    'taxon_id': taxon_id,
-                    # 'taxon_name': taxon_name,
-                    # "referenceSequence": {"length": reference_sequence_length},
-                    "schema": schema,
-                    # "products": {
-                    #     "A": a_products,
-                    #     "N": n_products,
-                    # },
-                    "sequences": sequences
-                }
+                if epitope_part is None:
+                    result = {
+                        'sequencesCount': len(sequences),
+                        'taxon_id': taxon_id,
+                        # 'taxon_name': taxon_name,
+                        # "referenceSequence": {"length": reference_sequence_length},
+                        "schema": schema,
+                        # "products": {
+                        #     "A": a_products,
+                        #     "N": n_products,
+                        # },
+                        "sequences": sequences
+                    }
+                else:
+                    result = {
+                        'epitopes': epitope_json_part,
+                        'sequencesCount': len(sequences),
+                        'taxon_id': taxon_id,
+                        # 'taxon_name': taxon_name,
+                        # "referenceSequence": {"length": reference_sequence_length},
+                        "schema": schema,
+                        # "products": {
+                        #     "A": a_products,
+                        #     "N": n_products,
+                        # },
+                        "sequences": sequences
+                    }
+
                 print("PRE poll_cache.set_result(poll_id, result)")
                 poll_cache.set_result(poll_id, result)
                 print("POST poll_cache.set_result(poll_id, result)")
-
                 # region DEBUG_FILE_WRITE
                 # if False:
                 #     print("FILE WRITING")

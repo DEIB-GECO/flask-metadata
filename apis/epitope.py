@@ -17,6 +17,12 @@ api = Namespace('epitope', description='epitope')
 query = api.model('epitope', {
 })
 
+table_parser = api.parser()
+table_parser.add_argument('page', type=int)
+table_parser.add_argument('num_elems', type=int)
+table_parser.add_argument('order_col', type=str, default='accession_id')
+table_parser.add_argument('order_dir', type=str, default='asc')
+
 
 class ColumnEpi:
 
@@ -215,6 +221,66 @@ class FieldValue(Resource):
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
 
+@api.route('/epiTableResLimit')
+@api.response(404, 'Field not found')
+@api.expect(table_parser)
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+        (payload_epi_query, payload_cmp_query, filter_in, type, pair_query, panel) = get_payload(payload)
+        payload_table_headers = payload.get("table_headers")
+
+        args = table_parser.parse_args()
+        orderCol = args['order_col']
+        orderDir = args['order_dir']
+        if orderCol == "null":
+            orderCol = "epitope_id"
+
+        numPage = args['page']
+        numElems = args['num_elems']
+
+        if numPage and numElems:
+            offset = (numPage - 1) * numElems
+            limit = numElems
+        else:
+            offset = None
+            limit = None
+
+        poll_id = poll_cache.create_dict_element()
+
+        def async_function():
+            try:
+                query_table = ""
+                query_table += gen_select_epi_query_table(payload_table_headers)
+
+                query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
+                                                   payload_epi_query, "all")
+
+                query_table += f""" GROUP BY epitope_id"""
+                query_table += f" ORDER BY {orderCol} {orderDir} "
+
+                if limit:
+                    query_table += f" LIMIT {limit} "
+                if offset:
+                    query_table += f" OFFSET {offset} "
+
+                query = sqlalchemy.text(query_table)
+                res = db.engine.execute(query).fetchall()
+                flask.current_app.logger.debug(query)
+
+                res = [{column: value for column, value in row.items()} for row in res]
+                res = {'values': res}
+
+                poll_cache.set_result(poll_id, res)
+            except Exception as e:
+                poll_cache.set_result(poll_id, None)
+                raise e
+
+        from app import executor_inner
+        executor_inner.submit(async_function)
+        return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
+
+
 @api.route('/epiTableRes')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
@@ -229,6 +295,82 @@ class FieldValue(Resource):
             try:
                 query_table = ""
                 query_table += gen_select_epi_query_table(payload_table_headers)
+
+                query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
+                                                   payload_epi_query, "all")
+
+                query_table += """ GROUP BY epitope_id
+                                ORDER BY epitope_id"""
+
+                query = sqlalchemy.text(query_table)
+                res = db.engine.execute(query).fetchall()
+                flask.current_app.logger.debug(query)
+
+                res = [{column: value for column, value in row.items()} for row in res]
+                res = {'values': res}
+
+                poll_cache.set_result(poll_id, res)
+            except Exception as e:
+                poll_cache.set_result(poll_id, None)
+                raise e
+
+        from app import executor_inner
+        executor_inner.submit(async_function)
+        return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
+
+
+@api.route('/epiTableRes1')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+        (payload_epi_query, payload_cmp_query, filter_in, type, pair_query, panel) = get_payload(payload)
+        payload_table_headers = payload.get("table_headers")
+
+        poll_id = poll_cache.create_dict_element()
+
+        def async_function():
+            try:
+                query_table = ""
+                query_table += gen_select_epi_query_table1(payload_table_headers)
+
+                query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
+                                                   payload_epi_query, "all")
+
+                query_table += """ GROUP BY epitope_id
+                                ORDER BY epitope_id) as a"""
+
+                query = sqlalchemy.text(query_table)
+                res = db.engine.execute(query).fetchall()
+                flask.current_app.logger.debug(query)
+
+                res = [{column: value for column, value in row.items()} for row in res]
+                res = {'values': res}
+
+                poll_cache.set_result(poll_id, res)
+            except Exception as e:
+                poll_cache.set_result(poll_id, None)
+                raise e
+
+        from app import executor_inner
+        executor_inner.submit(async_function)
+        return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
+
+
+@api.route('/epiTableRes2')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+        (payload_epi_query, payload_cmp_query, filter_in, type, pair_query, panel) = get_payload(payload)
+        payload_table_headers = payload.get("table_headers")
+
+        poll_id = poll_cache.create_dict_element()
+
+        def async_function():
+            try:
+                query_table = ""
+                query_table += gen_select_epi_query_table2(payload_table_headers)
 
                 query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
@@ -463,3 +605,187 @@ def gen_select_epi_query_table(payload_table_headers):
     table_select_part += f" FROM {epitope_table} "
 
     return table_select_part
+
+
+def gen_select_epi_query_table1(payload_table_headers):
+    table_select_part = f"SELECT "
+
+    count = len(payload_table_headers)
+    for header in payload_table_headers:
+        if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
+                or header == 'epi_frag_annotation_stop':
+                table_select_part += f"""(SELECT array_agg(distinct row(epi_fragment_id, {header}) 
+                                        order by (epi_fragment_id, {header})) as {header}
+                                    FROM epitope_count_variant as epi 
+                                    WHERE epi.epitope_id = a.epitope_id)"""
+        else:
+            table_select_part += f" {header} "
+
+        count = count - 1
+        if count > 0:
+            table_select_part += ', '
+
+    table_select_part += f" FROM ( SELECT "
+
+    count = len(payload_table_headers)
+    for header in payload_table_headers:
+        if header == 'epitope_id':
+            table_select_part += f"epitope_id "
+        elif header == 'num_seq':
+            table_select_part += f"count(distinct(sequence_id)) as {header}"
+        elif header == 'num_var':
+            table_select_part += f"sum(variant_aa_length ) as {header}"
+        elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
+                or header == 'epi_frag_annotation_stop':
+            table_select_part += ""
+        else:
+            table_select_part += f"array_agg(distinct {header}) as {header}"
+
+        count = count - 1
+        if count > 0:
+            if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
+                    or header == 'epi_frag_annotation_stop':
+                table_select_part += ''
+            else:
+                table_select_part += ', '
+
+    table_select_part += f" FROM {epitope_table} "
+
+    return table_select_part
+
+
+def gen_select_epi_query_table2(payload_table_headers):
+    table_select_part = f"SELECT "
+
+    count = len(payload_table_headers)
+    for header in payload_table_headers:
+        if header == 'epitope_id':
+            table_select_part += f"epitope_id "
+        elif header == 'num_seq':
+            table_select_part += f"count(distinct(sequence_id)) as {header}"
+        elif header == 'num_var':
+            table_select_part += f"sum(variant_aa_length ) as {header}"
+        elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
+                or header == 'epi_frag_annotation_stop':
+            table_select_part += ""
+        else:
+            table_select_part += f"array_agg(distinct {header}) as {header}"
+
+        count = count - 1
+        if count > 0:
+            if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
+                    or header == 'epi_frag_annotation_stop':
+                table_select_part += ''
+            else:
+                table_select_part += ', '
+
+    table_select_part += f" FROM {epitope_table} "
+
+    return table_select_part
+
+
+def gen_epitope_part_json_virusviz(epitope_part):
+    epitope_q_id = epitope_part['epitope_id']
+    epitope_query = f"""SELECT epitope_id,
+                        array_agg(distinct product) as product,
+                        array_agg(distinct row(epi_fragment_id, epi_frag_annotation_start) 
+                            order by (epi_fragment_id, epi_frag_annotation_start)) as epi_frag_annotation_start,
+                        array_agg(distinct row(epi_fragment_id, epi_frag_annotation_stop) 
+                            order by (epi_fragment_id, epi_frag_annotation_stop)) as epi_frag_annotation_stop
+                        FROM {epitope_table}
+                        WHERE epitope_id = {epitope_q_id}
+                        GROUP BY epitope_id"""
+
+                        #array_agg(distinct external_link) as external_link,    #TO ADD TO DATABASE
+
+    query = sqlalchemy.text(epitope_query)
+    res = db.engine.execute(query).fetchall()
+    flask.current_app.logger.debug(query)
+
+    for row in res:
+        id = row['epitope_id']
+        link = "link"           #TO ADD EXTERNAL LINK TO DATABASE
+        protein = row['product'][0]
+
+        start = row['epi_frag_annotation_start']
+        start = start.replace('{"', '')
+        start = start.replace('"}', '')
+        start = list(start.split('","'))
+        stop = row['epi_frag_annotation_stop']
+        stop = stop.replace('{"', '')
+        stop = stop.replace('"}', '')
+        stop = list(stop.split('","'))
+
+        length = len(start)
+
+        i = 0
+        position = ""
+
+        while i < length:
+
+            start_i = start[i]
+            start_i = start_i.replace('(', '')
+            start_i = start_i.replace(')', '')
+            start_i = list(start_i.split(','))
+            stop_i = stop[i]
+            stop_i = stop_i.replace('(', '')
+            stop_i = stop_i.replace(')', '')
+            stop_i = list(stop_i.split(','))
+
+            position += "[" + start_i[1] + "," + stop_i[1] + "]"
+
+            i = i + 1
+            if i != length:
+                position += ","
+
+    epitope_json = [{
+        "id": id,
+        "link": link,
+        "protein": protein,
+        "position": "[" + position + "]"
+    }]
+
+    return epitope_json
+
+
+def gen_epitope_part_json_virusviz2(epitope_part):
+    epitope_q_id = epitope_part['epitope_id']
+    epitope_query = f"""SELECT epitope_id,
+                        array_agg(distinct product) as product,
+                        array_agg(distinct all_fragment_position) as all_fragment_position
+                        FROM {epitope_table}
+                        WHERE epitope_id = {epitope_q_id}
+                        GROUP BY epitope_id"""
+
+                        #array_agg(distinct external_link) as external_link,    #TO ADD TO DATABASE
+
+    query = sqlalchemy.text(epitope_query)
+    res = db.engine.execute(query).fetchall()
+    flask.current_app.logger.debug(query)
+
+    for row in res:
+        id = row['epitope_id']
+        link = "link"           #TO ADD EXTERNAL LINK TO DATABASE
+        protein = row['product'][0]
+        position = ""
+        all_position = row['all_fragment_position'][0]
+        length = len(all_position)
+        i = 0
+        while i < length:
+            position_i = all_position[i]
+            position_i = position_i.replace('(', '')
+            position_i = position_i.replace(')', '')
+            position_i = list(position_i.split(','))
+            position += "[" + position_i[2] + "," + position_i[3] + "]"
+            i = i + 1
+            if i != length:
+                position += ","
+
+    epitope_json = [{
+        "id": id,
+        "link": link,
+        "protein": protein,
+        "position": "[" + position + "]"
+    }]
+
+    return epitope_json
