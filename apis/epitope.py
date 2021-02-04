@@ -340,6 +340,10 @@ class FieldValue(Resource):
                 query_table += """ GROUP BY epitope_id
                                 ORDER BY epitope_id) as a"""
 
+                query_table += """ JOIN epitope_fragment as epif ON epif.epitope_id = a.epitope_id """
+
+                query_table += group_by_epi_query_table1(payload_table_headers)
+
                 query = sqlalchemy.text(query_table)
                 res = db.engine.execute(query).fetchall()
                 flask.current_app.logger.debug(query)
@@ -607,23 +611,53 @@ def gen_select_epi_query_table(payload_table_headers):
     return table_select_part
 
 
+def group_by_epi_query_table1(payload_table_headers):
+    group_by_part = "GROUP BY "
+
+    count = len(payload_table_headers)
+    for header in payload_table_headers:
+        if header == 'epitope_id':
+            group_by_part += f"a.{header} "
+        elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
+                or header == 'epi_frag_annotation_stop':
+            group_by_part += ""
+        else:
+            group_by_part += f"{header}"
+
+        count = count - 1
+        if count > 0:
+            if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
+                    or header == 'epi_frag_annotation_stop':
+                group_by_part += ''
+            else:
+                group_by_part += ', '
+
+    return group_by_part
+
+
 def gen_select_epi_query_table1(payload_table_headers):
     table_select_part = f"SELECT "
 
     count = len(payload_table_headers)
     for header in payload_table_headers:
-        if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
-                or header == 'epi_frag_annotation_stop':
-                table_select_part += f"""(SELECT array_agg(distinct row(epi_fragment_id, {header}) 
-                                        order by (epi_fragment_id, {header})) as {header}
-                                    FROM epitope_count_variant as epi 
-                                    WHERE epi.epitope_id = a.epitope_id)"""
+        if header == 'epi_fragment_sequence':
+            table_select_part += f"""array_agg(distinct row(epi_frag_annotation_start,
+                                        epi_frag_annotation_stop, {header}) 
+                                        order by (epi_frag_annotation_start,
+                                        epi_frag_annotation_stop, {header})) as epi_fragment_all_information """
+        elif header == 'epi_frag_annotation_start' or header == 'epi_frag_annotation_stop':
+            table_select_part += ""
+        elif header == 'epitope_id':
+            table_select_part += f" a.{header} "
         else:
             table_select_part += f" {header} "
 
         count = count - 1
         if count > 0:
-            table_select_part += ', '
+            if header == 'epi_frag_annotation_start' or header == 'epi_frag_annotation_stop':
+                table_select_part += ""
+            else:
+                table_select_part += ', '
 
     table_select_part += f" FROM ( SELECT "
 
@@ -691,20 +725,22 @@ def gen_epitope_part_json_virusviz(epitope_part):
                         array_agg(distinct row(epi_fragment_id, epi_frag_annotation_start) 
                             order by (epi_fragment_id, epi_frag_annotation_start)) as epi_frag_annotation_start,
                         array_agg(distinct row(epi_fragment_id, epi_frag_annotation_stop) 
-                            order by (epi_fragment_id, epi_frag_annotation_stop)) as epi_frag_annotation_stop
+                            order by (epi_fragment_id, epi_frag_annotation_stop)) as epi_frag_annotation_stop,
+                        array_agg(distinct epitope_iri) as epitope_iri,
+                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
                         FROM {epitope_table}
                         WHERE epitope_id = {epitope_q_id}
                         GROUP BY epitope_id"""
-
-                        #array_agg(distinct external_link) as external_link,    #TO ADD TO DATABASE
 
     query = sqlalchemy.text(epitope_query)
     res = db.engine.execute(query).fetchall()
     flask.current_app.logger.debug(query)
 
     for row in res:
-        id = row['epitope_id']
-        link = "link"           #TO ADD EXTERNAL LINK TO DATABASE
+        id = row['iedb_epitope_id'][0]
+        link = row['epitope_iri'][0]
+        #id = row['epitope_id']
+        #link = "link"
         protein = row['product'][0]
 
         start = row['epi_frag_annotation_start']
@@ -752,20 +788,20 @@ def gen_epitope_part_json_virusviz2(epitope_part):
     epitope_q_id = epitope_part['epitope_id']
     epitope_query = f"""SELECT epitope_id,
                         array_agg(distinct product) as product,
-                        array_agg(distinct all_fragment_position) as all_fragment_position
+                        array_agg(distinct all_fragment_position) as all_fragment_position,
+                        array_agg(distinct epitope_iri) as epitope_iri,
+                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
                         FROM {epitope_table}
                         WHERE epitope_id = {epitope_q_id}
                         GROUP BY epitope_id"""
-
-                        #array_agg(distinct external_link) as external_link,    #TO ADD TO DATABASE
 
     query = sqlalchemy.text(epitope_query)
     res = db.engine.execute(query).fetchall()
     flask.current_app.logger.debug(query)
 
     for row in res:
-        id = row['epitope_id']
-        link = "link"           #TO ADD EXTERNAL LINK TO DATABASE
+        id = row['iedb_epitope_id'][0]
+        link = row['epitope_iri'][0]
         protein = row['product'][0]
         position = ""
         all_position = row['all_fragment_position'][0]

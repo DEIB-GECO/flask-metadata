@@ -31,7 +31,7 @@ def get_db_uri():
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = "geco78"
-    postgres_db = "vcm_13_1"
+    postgres_db = "vcm_14"
 
     application_name = []
 
