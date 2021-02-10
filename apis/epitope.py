@@ -8,9 +8,10 @@ from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
 from .poll import poll_cache
 
-from utils import sql_query_generator, epitope_table
+from utils import sql_query_generator, epitope_table, taxon_name_dict
 
 is_gisaid = False
+epitope_id = 'iedb_epitope_id'
 
 api = Namespace('epitope', description='epitope')
 
@@ -194,7 +195,7 @@ class FieldValue(Resource):
                                 SELECT distinct 
                                 ("""
                 query_ex += field_name
-                query_ex += f""") as label, epitope_id as item
+                query_ex += f""") as label, {epitope_id} as item
                             FROM {epitope_table}"""
 
                 query_ex += add_where_epi_query(filter_in, pair_query, type, 'item_id', "",
@@ -208,7 +209,31 @@ class FieldValue(Resource):
                 res = db.engine.execute(query_ex_2).fetchall()
                 flask.current_app.logger.debug(query_ex_2)
 
-                res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+                if field_name == 'mhc_allele':
+                    list_separated_mhc_allele = []
+                    for row in res:
+                        all_mhc_allele = row['label']
+                        count_mhc_allele = row['item_count']
+                        if all_mhc_allele is not None:
+                            list_mhc_allele = list(all_mhc_allele.split(','))
+                            for item in list_mhc_allele:
+                                row_dict = {'label': item, 'count': count_mhc_allele}
+                                if not any(allele['label'] == item for allele in list_separated_mhc_allele):
+                                    list_separated_mhc_allele.append(row_dict)
+                                else:
+                                    for allele in list_separated_mhc_allele:
+                                        if allele['label'] == item:
+                                            allele['count'] = allele['count'] + count_mhc_allele
+                        else:
+                            list_mhc_allele = None
+                            row_dict = {'label': list_mhc_allele, 'count': count_mhc_allele}
+                            list_separated_mhc_allele.append(row_dict)
+
+                    list_separated_mhc_allele.sort(key=lambda s: s['count'], reverse=True)
+
+                    res = [{'value': allele['label'], 'count': allele['count']} for allele in list_separated_mhc_allele]
+                else:
+                    res = [{'value': row['label'], 'count': row['item_count']} for row in res]
                 res = {'values': res}
 
                 poll_cache.set_result(poll_id, res)
@@ -234,7 +259,7 @@ class FieldValue(Resource):
         orderCol = args['order_col']
         orderDir = args['order_dir']
         if orderCol == "null":
-            orderCol = "epitope_id"
+            orderCol = f"{epitope_id}"
 
         numPage = args['page']
         numElems = args['num_elems']
@@ -256,7 +281,7 @@ class FieldValue(Resource):
                 query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
 
-                query_table += f""" GROUP BY epitope_id"""
+                query_table += f""" GROUP BY {epitope_id}"""
                 query_table += f" ORDER BY {orderCol} {orderDir} "
 
                 if limit:
@@ -299,8 +324,8 @@ class FieldValue(Resource):
                 query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
 
-                query_table += """ GROUP BY epitope_id
-                                ORDER BY epitope_id"""
+                query_table += f""" GROUP BY {epitope_id}
+                                ORDER BY {epitope_id}"""
 
                 query = sqlalchemy.text(query_table)
                 res = db.engine.execute(query).fetchall()
@@ -337,10 +362,14 @@ class FieldValue(Resource):
                 query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
 
-                query_table += """ GROUP BY epitope_id
-                                ORDER BY epitope_id) as a"""
+                query_table += f""" GROUP BY {epitope_id}
+                                ORDER BY {epitope_id}) as a"""
 
-                query_table += """ JOIN epitope_fragment as epif ON epif.epitope_id = a.epitope_id """
+                #query_table += """ JOIN epitope_fragment as epif ON epif.epitope_id = a.epitope_id """
+
+                query_table += """ JOIN epitope_fragment as epif ON epif.epitope_id = (SELECT min(epitope_id)
+												   FROM epitope as c
+													WHERE c.iedb_epitope_id = a.iedb_epitope_id)"""
 
                 query_table += group_by_epi_query_table1(payload_table_headers)
 
@@ -379,8 +408,8 @@ class FieldValue(Resource):
                 query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
 
-                query_table += """ GROUP BY epitope_id
-                                ORDER BY epitope_id"""
+                query_table += f""" GROUP BY {epitope_id}
+                                ORDER BY {epitope_id}"""
 
                 query = sqlalchemy.text(query_table)
                 res = db.engine.execute(query).fetchall()
@@ -410,7 +439,7 @@ class FieldValue(Resource):
 
         def async_function():
             try:
-                query_count_table = f"SELECT count(distinct epitope_id) as count_epi FROM {epitope_table} "
+                query_count_table = f"SELECT count(distinct {epitope_id}) as count_epi FROM {epitope_table} "
 
                 query_count_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
@@ -488,9 +517,9 @@ def gen_where_epi_query_field(payload_epi_query, field_name):
     i = 0;
 
     for (column, values) in payload_epi_query.items():
-        if column == "epitope_id":
+        if column == f"{epitope_id}":
             where_part += add_and(i, field_name)
-            where_part += f" epitope_id = {values} "
+            where_part += f" {epitope_id} = {values} "
         elif column == "startExt":
             if field_name != "position_range":
                 for value in values:
@@ -540,13 +569,16 @@ def gen_where_epi_query_field(payload_epi_query, field_name):
                 count = len(values)
                 for value in values:
                     if value is not None:
-                        where_part += f" {column} ="
-                        if column_type == 'str':
-                            where_part += f" '{value}' "
-                        elif column_type == 'num':
-                            where_part += f" {value} "
+                        if column == "mhc_allele":
+                            where_part += f"( mhc_allele LIKE '%{value},%' or mhc_allele LIKE '%{value}')"
                         else:
-                            where_part += ""
+                            where_part += f" {column} ="
+                            if column_type == 'str':
+                                where_part += f" '{value}' "
+                            elif column_type == 'num':
+                                where_part += f" {value} "
+                            else:
+                                where_part += ""
                     else:
                         where_part += f" {column} IS NULL "
                     count = count - 1
@@ -569,7 +601,19 @@ def add_and(i, field_name):
 def add_where_epi_query(filter_in, pairs_query, search_type, return_type,
                         field_selected, panel, payload_epi_query, field_name):
 
-    where_part_final = f" WHERE sequence_id IN ("
+    where_part_final = f" WHERE "
+
+
+    the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
+    taxon_id = the_virus["taxon_id"]
+    the_host = host_taxon_name_dict[filter_in['host_taxon_name'][0].lower()]
+    host_taxon_id = the_host["host_taxon_id"]
+
+    where_part_final += f""" taxon_id = '{taxon_id}' 
+                and host_taxon_id = '{host_taxon_id}' """
+
+    where_part_final += f" and sequence_id IN ( "
+
     query_seq_sel = sql_query_generator(filter_in, pairs_query=pairs_query, search_type=search_type,
                                         return_type=return_type, field_selected=field_selected, panel=panel)
     where_part_final += query_seq_sel
@@ -589,8 +633,8 @@ def gen_select_epi_query_table(payload_table_headers):
 
     count = len(payload_table_headers)
     for header in payload_table_headers:
-        if header == 'epitope_id':
-            table_select_part += f"epitope_id "
+        if header == f'{epitope_id}':
+            table_select_part += f"{epitope_id} "
         elif header == 'num_seq':
             table_select_part += f"count(distinct(sequence_id)) as {header}"
         elif header == 'num_var':
@@ -616,7 +660,7 @@ def group_by_epi_query_table1(payload_table_headers):
 
     count = len(payload_table_headers)
     for header in payload_table_headers:
-        if header == 'epitope_id':
+        if header == f'{epitope_id}':
             group_by_part += f"a.{header} "
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
@@ -647,7 +691,7 @@ def gen_select_epi_query_table1(payload_table_headers):
                                         epi_frag_annotation_stop, {header})) as epi_fragment_all_information """
         elif header == 'epi_frag_annotation_start' or header == 'epi_frag_annotation_stop':
             table_select_part += ""
-        elif header == 'epitope_id':
+        elif header == f'{epitope_id}':
             table_select_part += f" a.{header} "
         else:
             table_select_part += f" {header} "
@@ -663,8 +707,8 @@ def gen_select_epi_query_table1(payload_table_headers):
 
     count = len(payload_table_headers)
     for header in payload_table_headers:
-        if header == 'epitope_id':
-            table_select_part += f"epitope_id "
+        if header == f'{epitope_id}':
+            table_select_part += f"{epitope_id} "
         elif header == 'num_seq':
             table_select_part += f"count(distinct(sequence_id)) as {header}"
         elif header == 'num_var':
@@ -693,8 +737,8 @@ def gen_select_epi_query_table2(payload_table_headers):
 
     count = len(payload_table_headers)
     for header in payload_table_headers:
-        if header == 'epitope_id':
-            table_select_part += f"epitope_id "
+        if header == f'{epitope_id}':
+            table_select_part += f"{epitope_id} "
         elif header == 'num_seq':
             table_select_part += f"count(distinct(sequence_id)) as {header}"
         elif header == 'num_var':
@@ -719,81 +763,70 @@ def gen_select_epi_query_table2(payload_table_headers):
 
 
 def gen_epitope_part_json_virusviz(epitope_part):
-    epitope_q_id = epitope_part['epitope_id']
-    epitope_query = f"""SELECT epitope_id,
+    epitope_q_id = epitope_part[f'{epitope_id}']
+    epitope_query = f"""SELECT {epitope_id},
                         array_agg(distinct product) as product,
-                        array_agg(distinct row(epi_fragment_id, epi_frag_annotation_start) 
-                            order by (epi_fragment_id, epi_frag_annotation_start)) as epi_frag_annotation_start,
-                        array_agg(distinct row(epi_fragment_id, epi_frag_annotation_stop) 
-                            order by (epi_fragment_id, epi_frag_annotation_stop)) as epi_frag_annotation_stop,
-                        array_agg(distinct epitope_iri) as epitope_iri,
-                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
+                        array_agg(distinct row(epi_frag_annotation_start, epi_frag_annotation_stop) 
+                            order by (epi_frag_annotation_start, epi_frag_annotation_stop) ) as all_fragment_position,
+                        array_agg(distinct epitope_iri) as epitope_iri
                         FROM {epitope_table}
-                        WHERE epitope_id = {epitope_q_id}
-                        GROUP BY epitope_id"""
+                        WHERE {epitope_id} = {epitope_q_id}
+                        GROUP BY {epitope_id}"""
+
+    #                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
 
     query = sqlalchemy.text(epitope_query)
     res = db.engine.execute(query).fetchall()
     flask.current_app.logger.debug(query)
 
     for row in res:
-        id = row['iedb_epitope_id'][0]
+        id = row['iedb_epitope_id']
         link = row['epitope_iri'][0]
-        #id = row['epitope_id']
-        #link = "link"
         protein = row['product'][0]
+        position = []
 
-        start = row['epi_frag_annotation_start']
-        start = start.replace('{"', '')
-        start = start.replace('"}', '')
-        start = list(start.split('","'))
-        stop = row['epi_frag_annotation_stop']
-        stop = stop.replace('{"', '')
-        stop = stop.replace('"}', '')
-        stop = list(stop.split('","'))
-
-        length = len(start)
-
+        all_position = row['all_fragment_position']
+        all_position = all_position.replace('{"', '')
+        all_position = all_position.replace('"}', '')
+        all_position = list(all_position.split('","'))
+        length = len(all_position)
         i = 0
-        position = ""
-
         while i < length:
-
-            start_i = start[i]
-            start_i = start_i.replace('(', '')
-            start_i = start_i.replace(')', '')
-            start_i = list(start_i.split(','))
-            stop_i = stop[i]
-            stop_i = stop_i.replace('(', '')
-            stop_i = stop_i.replace(')', '')
-            stop_i = list(stop_i.split(','))
-
-            position += "[" + start_i[1] + "," + stop_i[1] + "]"
-
+            position_i = all_position[i]
+            position_i = position_i.replace('(', '')
+            position_i = position_i.replace(')', '')
+            position_i = list(position_i.split(','))
+            position_single = []
+            position_single.append(int(position_i[0]))
+            position_single.append(int(position_i[1]))
             i = i + 1
-            if i != length:
-                position += ","
+            #if i != length:
+            #    position += ","
+            position.append(position_single)
 
     epitope_json = [{
         "id": id,
         "link": link,
         "protein": protein,
-        "position": "[" + position + "]"
+        "position": position
     }]
+
+    print("QUI19", epitope_json)
 
     return epitope_json
 
 
 def gen_epitope_part_json_virusviz2(epitope_part):
-    epitope_q_id = epitope_part['epitope_id']
-    epitope_query = f"""SELECT epitope_id,
+    epitope_q_id = epitope_part[f'{epitope_id}']
+    epitope_query = f"""SELECT {epitope_id},
                         array_agg(distinct product) as product,
                         array_agg(distinct all_fragment_position) as all_fragment_position,
-                        array_agg(distinct epitope_iri) as epitope_iri,
-                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
+                        array_agg(distinct epitope_iri) as epitope_iri
                         FROM {epitope_table}
-                        WHERE epitope_id = {epitope_q_id}
-                        GROUP BY epitope_id"""
+                        WHERE {epitope_id} = {epitope_q_id}
+                        GROUP BY {epitope_id}"""
+
+    #                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
 
     query = sqlalchemy.text(epitope_query)
     res = db.engine.execute(query).fetchall()
@@ -825,3 +858,24 @@ def gen_epitope_part_json_virusviz2(epitope_part):
     }]
 
     return epitope_json
+
+
+host_taxon_name_dict = {}
+
+
+def load_hosts():
+    from model.models import db
+
+    query = """SELECT distinct host_taxon_name, host_taxon_id
+               FROM host_specie"""
+    query2 = sqlalchemy.text(query)
+    res = db.engine.execute(query2).fetchall()
+
+    for row in res:
+        row_dict = dict(row)
+        if row_dict['host_taxon_name'] is not None:
+            host_taxon_name = row_dict['host_taxon_name'].lower()
+        else:
+            host_taxon_name = None
+
+        host_taxon_name_dict[host_taxon_name] = row_dict
