@@ -811,8 +811,6 @@ def gen_epitope_part_json_virusviz(epitope_part):
         "position": position
     }]
 
-    print("QUI19", epitope_json)
-
     return epitope_json
 
 
