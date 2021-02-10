@@ -196,7 +196,7 @@ class FieldValue(Resource):
                                 ("""
                 query_ex += field_name
                 query_ex += f""") as label, {epitope_id} as item
-                            FROM {epitope_table}"""
+                            FROM {epitope_table} as epic"""
 
                 query_ex += add_where_epi_query(filter_in, pair_query, type, 'item_id', "",
                                                 panel, payload_epi_query, field_name)
@@ -439,7 +439,7 @@ class FieldValue(Resource):
 
         def async_function():
             try:
-                query_count_table = f"SELECT count(distinct {epitope_id}) as count_epi FROM {epitope_table} "
+                query_count_table = f"SELECT count(distinct {epitope_id}) as count_epi FROM {epitope_table} as epic"
 
                 query_count_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
@@ -470,7 +470,7 @@ class FieldValue(Resource):
         poll_id = poll_cache.create_dict_element()
         def async_function():
             try:
-                query_count_table = f"SELECT count(distinct sequence_id) as count_seq FROM {epitope_table} "
+                query_count_table = f"SELECT count(distinct sequence_id) as count_seq FROM {epitope_table} as epic"
 
                 query_count_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
@@ -600,8 +600,15 @@ def add_and(i, field_name):
 
 def add_where_epi_query(filter_in, pairs_query, search_type, return_type,
                         field_selected, panel, payload_epi_query, field_name):
+    where_part_final = ""
 
-    where_part_final = f" WHERE "
+    where_part_final += f""" LEFT JOIN ( """
+    query_seq_sel = sql_query_generator(filter_in, pairs_query=pairs_query, search_type=search_type,
+                                        return_type=return_type, field_selected=field_selected, panel=panel)
+    where_part_final += query_seq_sel
+    where_part_final += f""" ) as seqc ON epic.sequence_id = seqc.sequence_id """
+
+    where_part_final += f" WHERE "
 
 
     the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
@@ -612,13 +619,14 @@ def add_where_epi_query(filter_in, pairs_query, search_type, return_type,
     where_part_final += f""" taxon_id = '{taxon_id}' 
                 and host_taxon_id = '{host_taxon_id}' """
 
-    where_part_final += f" and sequence_id IN ( "
+    #where_part_final += f" and sequence_id IN ( "
 
-    query_seq_sel = sql_query_generator(filter_in, pairs_query=pairs_query, search_type=search_type,
-                                        return_type=return_type, field_selected=field_selected, panel=panel)
-    where_part_final += query_seq_sel
+    #query_seq_sel = sql_query_generator(filter_in, pairs_query=pairs_query, search_type=search_type,
+    #                                    return_type=return_type, field_selected=field_selected, panel=panel)
+    #where_part_final += query_seq_sel
 
-    where_part_final += f") "
+    #where_part_final += f") "
+
     if payload_epi_query is not None:
         epi_query_len = len(payload_epi_query)
         if epi_query_len != 0:
@@ -636,9 +644,12 @@ def gen_select_epi_query_table(payload_table_headers):
         if header == f'{epitope_id}':
             table_select_part += f"{epitope_id} "
         elif header == 'num_seq':
-            table_select_part += f"count(distinct(sequence_id)) as {header}"
+            table_select_part += f"count(distinct(seqc.sequence_id)) as {header}"
         elif header == 'num_var':
-            table_select_part += f"sum(variant_aa_length ) as {header}"
+            table_select_part += f"""sum(CASE
+                                         WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
+                                         ELSE 0
+                                    END) as {header}"""
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
             table_select_part += f"array_agg(distinct row(epi_fragment_id, " \
@@ -650,7 +661,7 @@ def gen_select_epi_query_table(payload_table_headers):
         if count > 0:
             table_select_part += ', '
 
-    table_select_part += f" FROM {epitope_table} "
+    table_select_part += f" FROM {epitope_table} as epic"
 
     return table_select_part
 
@@ -710,9 +721,12 @@ def gen_select_epi_query_table1(payload_table_headers):
         if header == f'{epitope_id}':
             table_select_part += f"{epitope_id} "
         elif header == 'num_seq':
-            table_select_part += f"count(distinct(sequence_id)) as {header}"
+            table_select_part += f"count(distinct(seqc.sequence_id)) as {header}"
         elif header == 'num_var':
-            table_select_part += f"sum(variant_aa_length ) as {header}"
+            table_select_part += f"""sum(CASE
+                                         WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
+                                         ELSE 0
+                                    END) as {header}"""
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
             table_select_part += ""
@@ -727,7 +741,7 @@ def gen_select_epi_query_table1(payload_table_headers):
             else:
                 table_select_part += ', '
 
-    table_select_part += f" FROM {epitope_table} "
+    table_select_part += f" FROM {epitope_table} as epic "
 
     return table_select_part
 
@@ -757,7 +771,7 @@ def gen_select_epi_query_table2(payload_table_headers):
             else:
                 table_select_part += ', '
 
-    table_select_part += f" FROM {epitope_table} "
+    table_select_part += f" FROM {epitope_table} as epic"
 
     return table_select_part
 
