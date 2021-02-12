@@ -616,8 +616,8 @@ def add_where_epi_query(filter_in, pairs_query, search_type, return_type,
     the_host = host_taxon_name_dict[filter_in['host_taxon_name'][0].lower()]
     host_taxon_id = the_host["host_taxon_id"]
 
-    where_part_final += f""" taxon_id = '{taxon_id}' 
-                and host_taxon_id = '{host_taxon_id}' """
+    where_part_final += f""" taxon_id = {taxon_id} 
+                and host_taxon_id = {host_taxon_id} """
 
     #where_part_final += f" and sequence_id IN ( "
 
