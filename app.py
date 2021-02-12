@@ -71,6 +71,8 @@ dictConfig({
 my_app = Flask(__name__)
 cors = CORS(my_app)
 
+my_app.debug = False
+
 
 my_app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 my_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

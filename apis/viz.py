@@ -464,7 +464,7 @@ class VizSubmit(Resource):
                 #     print("FILE WRITTEN")
                 # endregion
             except Exception as e:
-                print(e)
+                flask.current_app.logger.error(e)
                 poll_cache.set_result(poll_id, None)
                 raise e
 
