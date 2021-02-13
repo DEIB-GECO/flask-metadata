@@ -345,9 +345,9 @@ class VizSubmit(Resource):
 
         def async_function():
             try:
-                res = full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
+                res = list(full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
                                  agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
-                                 gisaid_only=gisaid_only)
+                                 gisaid_only=gisaid_only))
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
