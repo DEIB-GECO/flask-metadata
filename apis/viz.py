@@ -70,6 +70,10 @@ class VizSubmit(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
+        user_epitope_part = payload.get("userEpitope")
+        if user_epitope_part is not None:
+            epitope_json_part = gen_epitope_part_json_virusviz(user_epitope_part)
+
         epitope_part = payload.get("epitope")
         if epitope_part is not None:
             field_name = "toTable"
@@ -194,7 +198,7 @@ class VizSubmit(Resource):
                     for row in res
                 }
 
-                if epitope_part is None:
+                if epitope_part is None and user_epitope_part is None:
                     result = {
                         'sequencesCount': len(sequences),
                         'taxon_id': taxon_id,

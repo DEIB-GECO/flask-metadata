@@ -58,9 +58,27 @@ columns_epi_amino = [
     ColumnEpi('Variant Position Range', 'variant_position_range', 'dd', 'num', True, False),
 ]
 
+columns_user_new_epi_sel = [
+    ColumnEpi('Epitope Name', 'epitope_name', 'aaa', 'str', False, False),
+    ColumnEpi('Protein Name', 'product', 'bbb', 'str', False, False),
+    ColumnEpi('Position Range', 'position_range', 'ccc', 'num', True, False),
+]
+
+columns_user_new_epi_amino = [
+    ColumnEpi('Protein Name', 'product', 'aaaa', 'str', False, False),
+    ColumnEpi('Variant Type', 'variant_aa_type', 'bbbb', 'str', False, False),
+    ColumnEpi('Original Aminoacid', 'sequence_aa_original', 'cccc', 'str', False, False),
+    ColumnEpi('Alternative Aminoacid', 'sequence_aa_alternative', 'dddd', 'str', False, False),
+    ColumnEpi('Position Range', 'position_range', 'eeee', 'num', True, False),
+]
+
 columns_dict_epi_sel = {x.field: x for x in columns_epi_sel}
 
+columns_dict_user_new_epi_sel = {x.field: x for x in columns_user_new_epi_sel}
+
 columns_dict_epi_amino = {x.field: x for x in columns_epi_amino}
+
+columns_dict_user_new_epi_amino = {x.field: x for x in columns_user_new_epi_amino}
 
 columns_dict_epi_all = {x.field: x for x in columns_epi_sel + columns_epi_amino}
 
@@ -94,12 +112,34 @@ class FieldList(Resource):
         return res
 
 
+@api.route('/newEpitopeFields')
+class FieldList(Resource):
+    @api.doc('get_field_list')
+    @api.marshal_with(field_list, skip_none=True)
+    def get(self):
+        res = columns_dict_user_new_epi_sel.values()
+        res = list(res)
+        res = {'fields': res}
+        return res
+
+
 @api.route('/fieldAminoEpi')
 class FieldList(Resource):
     @api.doc('get_field_list')
     @api.marshal_with(field_list, skip_none=True)
     def get(self):
         res = columns_dict_epi_amino.values()
+        res = list(res)
+        res = {'fields': res}
+        return res
+
+
+@api.route('/fieldAminoNewEpiUser')
+class FieldList(Resource):
+    @api.doc('get_field_list')
+    @api.marshal_with(field_list, skip_none=True)
+    def get(self):
+        res = columns_dict_user_new_epi_amino.values()
         res = list(res)
         res = {'fields': res}
         return res
@@ -127,6 +167,45 @@ class FieldValue(Resource):
 
                 query_ex += add_where_epi_query(filter_in, pair_query, type, 'item_id', "",
                                                 panel, payload_epi_query, field_name)
+
+                query_ex_2 = sqlalchemy.text(query_ex)
+                res = db.engine.execute(query_ex_2).fetchall()
+                flask.current_app.logger.debug(query_ex_2)
+
+                res = [{'start': row['min'], 'stop': row['max']} for row in res]
+                res = {'values': res}
+
+                poll_cache.set_result(poll_id, res)
+            except Exception as e:
+                poll_cache.set_result(poll_id, None)
+                raise e
+
+        from app import executor_inner
+        executor_inner.submit(async_function)
+        return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
+
+
+@api.route('/extremesPositionNewEpitope')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+        product =payload.get('product')
+        panel = payload.get('panel')
+
+        poll_id = poll_cache.create_dict_element()
+        def async_function():
+            try:
+                query_ex = f"""select min(start_aa_original) as min, max(start_aa_original) as max
+                        from annotation as ann JOIN aminoacid_variant as amin ON ann.annotation_id = amin.annotation_id"""
+
+                if product is not None:
+                    query_ex += f""" WHERE LOWER(ann.product) = '{product}' """
+
+                if panel is not None:
+                    query_ex += add_where_panel_amino(panel, product)
+
+                print("QUI40", query_ex)
 
                 query_ex_2 = sqlalchemy.text(query_ex)
                 res = db.engine.execute(query_ex_2).fetchall()
@@ -491,6 +570,29 @@ class FieldValue(Resource):
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
 
+@api.route('/countVariantsEpitopeUser')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+        filter_in = payload.get("gcm")
+        type = payload.get("type")
+        pair_query = payload.get("kv")
+        panel = payload.get("panel")
+
+        query_count_variant = sql_query_generator(filter_in, pairs_query=pair_query, search_type=type,
+                                return_type="count_variants", field_selected="", panel=panel)
+
+        query = sqlalchemy.text(query_count_variant)
+        res = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+        res = [{'count': row['num_var']} for row in res]
+
+        #res =[{'count': 0}]
+
+        return res
+
+
 ############
 
 
@@ -505,6 +607,31 @@ def get_payload(payload):
     pair_query = payload_cmp_query.get("kv")
     panel = payload_cmp_query.get("panel")
     return payload_epi_query, payload_cmp_query, filter_in, type, pair_query, panel
+
+
+def add_where_panel_amino(panel, product):
+
+    where_part = ''
+
+    length = len(panel)
+    add_where_initial = False
+    add_and_initial = False
+    i = 0
+
+    for key_panel in panel:
+        if product is None and add_where_initial is False:
+            where_part += ' WHERE '
+            add_where_initial = True
+        if product is not None and add_and_initial is False:
+            where_part += ' AND '
+            add_and_initial = True
+        where_part += f""" LOWER({key_panel}) = '{panel.get(key_panel)}' """
+        i = i + 1
+        if i < length:
+            where_part += """ AND """
+
+    return where_part
+
 
 
 def gen_where_epi_query_field(payload_epi_query, field_name):
@@ -777,53 +904,113 @@ def gen_select_epi_query_table2(payload_table_headers):
 
 
 def gen_epitope_part_json_virusviz(epitope_part):
-    epitope_q_id = epitope_part[f'{epitope_id}']
-    epitope_query = f"""SELECT {epitope_id},
-                        array_agg(distinct product) as product,
-                        array_agg(distinct row(epi_frag_annotation_start, epi_frag_annotation_stop) 
-                            order by (epi_frag_annotation_start, epi_frag_annotation_stop) ) as all_fragment_position,
-                        array_agg(distinct epitope_iri) as epitope_iri
-                        FROM {epitope_table}
-                        WHERE {epitope_id} = {epitope_q_id}
-                        GROUP BY {epitope_id}"""
 
-    #                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
+    check = epitope_part.get('epitope_name')
 
-    query = sqlalchemy.text(epitope_query)
-    res = db.engine.execute(query).fetchall()
-    flask.current_app.logger.debug(query)
+    if check is None:
 
-    for row in res:
-        id = row['iedb_epitope_id']
-        link = row['epitope_iri'][0]
-        protein = row['product'][0]
+        epitope_q_id = epitope_part[f'{epitope_id}']
+        epitope_query = f"""SELECT {epitope_id},
+                                    array_agg(distinct product) as product,
+                                    array_agg(distinct row(epi_frag_annotation_start, epi_frag_annotation_stop) 
+                                        order by (epi_frag_annotation_start, epi_frag_annotation_stop) ) as all_fragment_position,
+                                    array_agg(distinct epitope_iri) as epitope_iri
+                                    FROM {epitope_table}
+                                    WHERE {epitope_id} = {epitope_q_id}
+                                    GROUP BY {epitope_id}"""
+
+        # WITHOUT epi_fragments but takes tooo long
+
+        #epitope_query = f"""SELECT {epitope_id},
+        #                    array_agg(distinct product) as product,
+        #                    array_agg(distinct row(epif.epi_frag_annotation_start, epif.epi_frag_annotation_stop)
+        #                        order by (epif.epi_frag_annotation_start, epif.epi_frag_annotation_stop) ) as all_fragment_position,
+        #                    array_agg(distinct epitope_iri) as epitope_iri
+        #                    FROM {epitope_table} as epi JOIN epitope_fragment as epif
+        #                            ON epif.epitope_id = (SELECT min(epitope_id)
+        #                              FROM epitope as c
+        #                            WHERE c.iedb_epitope_id = epi.iedb_epitope_id)
+        #                    WHERE {epitope_id} = {epitope_q_id}
+        #                    GROUP BY {epitope_id}"""
+
+        #                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
+
+        query = sqlalchemy.text(epitope_query)
+        res = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+
+        for row in res:
+            id = row['iedb_epitope_id']
+            link = row['epitope_iri'][0]
+            protein = row['product'][0]
+            position = []
+
+            all_position = row['all_fragment_position']
+            all_position = all_position.replace('{"', '')
+            all_position = all_position.replace('"}', '')
+            all_position = list(all_position.split('","'))
+            length = len(all_position)
+            i = 0
+            while i < length:
+                position_i = all_position[i]
+                position_i = position_i.replace('(', '')
+                position_i = position_i.replace(')', '')
+                position_i = list(position_i.split(','))
+                position_single = []
+                position_single.append(int(position_i[0]))
+                position_single.append(int(position_i[1]))
+                i = i + 1
+                #if i != length:
+                #    position += ","
+                position.append(position_single)
+
+        epitope_json = [{
+            "id": id,
+            "link": link,
+            "protein": protein,
+            "position": position
+        }]
+
+    else:
+
+        name = epitope_part['epitope_name']
+        link = epitope_part['link']
+        protein_to_query = epitope_part['protein']
+
+        query_protein_name = f"""SELECT distinct product
+                                    FROM annotation
+                                    WHERE LOWER(product) = '{protein_to_query}'"""
+
+        #                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
+
+        query_protein = sqlalchemy.text(query_protein_name)
+        protein = db.engine.execute(query_protein).fetchall()
+        flask.current_app.logger.debug(query_protein)
+
+        all_position = epitope_part['position_range']
         position = []
 
-        all_position = row['all_fragment_position']
-        all_position = all_position.replace('{"', '')
-        all_position = all_position.replace('"}', '')
-        all_position = list(all_position.split('","'))
+
+        all_position = all_position.replace('\n', '')
+        all_position = all_position.replace(' ', '')
+        all_position = list(all_position.split(','))
         length = len(all_position)
         i = 0
         while i < length:
             position_i = all_position[i]
-            position_i = position_i.replace('(', '')
-            position_i = position_i.replace(')', '')
-            position_i = list(position_i.split(','))
+            position_i = list(position_i.split('-'))
             position_single = []
             position_single.append(int(position_i[0]))
             position_single.append(int(position_i[1]))
             i = i + 1
-            #if i != length:
-            #    position += ","
             position.append(position_single)
 
-    epitope_json = [{
-        "id": id,
-        "link": link,
-        "protein": protein,
-        "position": position
-    }]
+        epitope_json = [{
+            "id": name,
+            "link": link,
+            "protein": protein[0][0],
+            "position": position
+        }]
 
     return epitope_json
 
