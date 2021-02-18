@@ -580,8 +580,13 @@ class FieldValue(Resource):
         pair_query = payload.get("kv")
         panel = payload.get("panel")
 
-        query_count_variant = sql_query_generator(filter_in, pairs_query=pair_query, search_type=type,
+        query_count_variant = """SELECT sum(variant_aa_length) as num_var
+                                    FROM ( """
+
+        query_count_variant += sql_query_generator(filter_in, pairs_query=pair_query, search_type=type,
                                 return_type="count_variants", field_selected="", panel=panel)
+
+        query_count_variant += """ ) as a"""
 
         query = sqlalchemy.text(query_count_variant)
         res = db.engine.execute(query).fetchall()

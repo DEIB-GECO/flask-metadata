@@ -425,7 +425,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         select_part = f"SELECT DISTINCT it.{center_table_id} "
 
     elif return_type == 'count_variants':
-        select_part = f"SELECT sum(aa_varaa_0.variant_aa_length) as num_var "
+        select_part = f"SELECT distinct aa_varaa_0.aminoacid_variant_id, aa_varaa_0.variant_aa_length "
 
     full_query = select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
     print(full_query)
