@@ -315,6 +315,10 @@ class VizSubmit(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
+        aa_only = True
+        print("aa_only", aa_only)
+
+
         # # region Find virus information
         # if 'taxon_id' in filter_in and len(filter_in["taxon_id"]) == 1:
         #     the_virus = taxon_id_dict[filter_in['taxon_id'][0]]
@@ -351,36 +355,37 @@ class VizSubmit(Resource):
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
-                # region Nucleotide variant part
-                query = f"""
-                    SELECT  sequence_id,
-                            start_original,   
-                            sequence_original,   
-                            sequence_alternative,   
-                            variant_type,
-                            variant_length,
-                            array_agg(DISTINCT ARRAY[effect, putative_impact, impact_gene_name])
-                    FROM nucleotide_variant
-                    NATURAL JOIN variant_impact
-                    WHERE sequence_id IN ({','.join(res_sequence_id)}) 
-                    GROUP BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
-                    ORDER BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
-                """
+                if not aa_only:
+                    # region Nucleotide variant part
+                    query = f"""
+                        SELECT  sequence_id,
+                                start_original,   
+                                sequence_original,   
+                                sequence_alternative,   
+                                variant_type,
+                                variant_length,
+                                array_agg(DISTINCT ARRAY[effect, putative_impact, impact_gene_name])
+                        FROM nucleotide_variant
+                        NATURAL JOIN variant_impact
+                        WHERE sequence_id IN ({','.join(res_sequence_id)}) 
+                        GROUP BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
+                        ORDER BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
+                    """
 
-                print(query)
-                pre_query = db.engine.execute(sqlalchemy.text(query))
-                res_nuc = pre_query  # .fetchall()
-                res_nuc = groupby(res_nuc, lambda x: x[0])
-                res_nuc = defaultdict(list, (
-                    (sequence_id,
-                     list(chain(*(
-                         zip(range(pos, pos + length), orig, alt, [var_type] * length,
-                             [impacts] * length) if var_type != 'INS' else
-                         [[pos, orig, alt, var_type, impacts]]
-                         for _, pos, orig, alt, var_type, length, impacts in rows))))
-                    for sequence_id, rows in res_nuc
-                ))
-                # endregion
+                    print(query)
+                    pre_query = db.engine.execute(sqlalchemy.text(query))
+                    res_nuc = pre_query  # .fetchall()
+                    res_nuc = groupby(res_nuc, lambda x: x[0])
+                    res_nuc = defaultdict(list, (
+                        (sequence_id,
+                         list(chain(*(
+                             zip(range(pos, pos + length), orig, alt, [var_type] * length,
+                                 [impacts] * length) if var_type != 'INS' else
+                             [[pos, orig, alt, var_type, impacts]]
+                             for _, pos, orig, alt, var_type, length, impacts in rows))))
+                        for sequence_id, rows in res_nuc
+                    ))
+                    # endregion
 
                 # region Amino acid variant part
                 # TODO remove "AND start_aa_original is not null"
@@ -423,15 +428,16 @@ class VizSubmit(Resource):
                             "closestSequences": [],
                             "variants": {
                                 "N": {
-                                    "schema": ["position", "from", "to", "type", ["effect", "putative_impact", "gene"]],
-                                    "variants": res_nuc[row["sequence_id"]],
+                                    "schema": [] if aa_only else ["position", "from", "to", "type", ["effect", "putative_impact", "gene"]],
+                                    "variants": [] if aa_only else res_nuc[row["sequence_id"]],
                                 },
                                 "A": {
                                     "schema": ["position", "from", "to", "type"],
                                     "variants": res_aa[row["sequence_id"]],
                                 }
                             },
-                            "sequence": row["nucleotide_sequence"]
+                            "sequenceFormat": "plain" if aa_only else "gzip",
+                            "sequence": None if aa_only else compress_sequence(row["nucleotide_sequence"])
                         }
                     for row in res
                 }
@@ -439,10 +445,9 @@ class VizSubmit(Resource):
                 result = {
                     'sequencesCount': len(res),
                     'taxon_id': taxon_id,
-                    # 'taxon_name': taxon_name,
-                    # "referenceSequence": {"length": reference_sequence_length},
-                    "exclude_n": True,
+                    "exclude_n": aa_only,
                     "exclude_a": False,
+                    # 'taxon_name': taxon_name,
                     # "referenceSequence": {"length": reference_sequence_length},
                     "schema": schema,
                     # "products": {
