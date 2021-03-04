@@ -9,7 +9,7 @@ from flask import request
 
 center_table = 'Sequence'
 center_table_id = 'sequence_id'
-epitope_table = 'epitope_variants_and_info'
+epitope_table = 'epitope_variants_and_info_all'
 
 # the view order definitions
 views = {
