@@ -1,10 +1,14 @@
+import datetime
+import itertools
+
 import flask
 import sqlalchemy
 from flask import Response, json
-from flask_restplus import Namespace, Resource, fields, inputs
+from flask_restplus import Namespace, Resource, fields, inputs, marshal
 
 from model.models import db
 from utils import sql_query_generator, log_query
+from .epitope import gen_where_epi_query_field
 
 is_gisaid = True
 
@@ -35,6 +39,8 @@ table_parser.add_argument('order_dir', type=str, default='asc')
 table_parser.add_argument('rel_distance', type=int, default=3)
 table_parser.add_argument('annotation_type', type=str)
 table_parser.add_argument('is_control', type=inputs.boolean, default=False)
+table_parser.add_argument('download_file_format', type=str, default="fasta")
+table_parser.add_argument('download_type', type=str, default="nuc")
 table_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
 
 ################################API IMPLEMENTATION###########################################
@@ -46,8 +52,8 @@ query_result = api.model('QueryResult', {
     'strain_name': fields.String,
     'is_reference': fields.String,
     'is_complete': fields.String,
-    'nucleotide_sequence': fields.String,
-    'amino_acid_sequence': fields.String,
+    # 'nucleotide_sequence': fields.String,
+    # 'amino_acid_sequence': fields.String,
     'strand': fields.String,
     'length': fields.String,
     'gc_percentage': fields.String,
@@ -111,7 +117,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 #############################Query Function#############################################
 def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-               limit, offset, is_control, gisaid_only, numElems=None):
+               limit, offset, is_control, gisaid_only, numElems=None, epitope_part=None):
     def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
         if exclude_accession_list:
             exclude_accession_list = list(f"{x}" for x in exclude_accession_list)
@@ -136,7 +142,8 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
         query = sql_query_generator(filter_in, q_type, pairs, 'table', agg, limit=limit_inner, offset=offset_inner,
                                     order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
                                     annotation_type=annotation_type,
-                                        external_where_conditions=[exclude_accession_where, exclude_gisaid_where,exclude_aa_seq_null])
+                                    external_where_conditions=[exclude_accession_where, exclude_gisaid_where, exclude_aa_seq_null],
+                                    epitope_part=epitope_part)
 
         pre_query = db.engine.execute(sqlalchemy.text(query))
         return_columns = set(pre_query._metadata.keys)
@@ -190,7 +197,7 @@ class Query(Resource):
                                             'order_col': order_col_desc,
                                             'order_dir': order_dir_desc,
                                             'rel_distance': rel_distance_desc})
-    @api.marshal_with(query_result)
+    # @api.marshal_with(query_result)
     @api.expect(table_parser)
     def post(self):
         '''For the posted query, it retrieves a list of items with the related GCM metadata'''
@@ -224,9 +231,13 @@ class Query(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
-        return_result = full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-                                   limit, offset, is_control, gisaid_only, numElems)
+        epitope_part = payload.get("epitope")
+        if epitope_part is not None:
+            field_name = "toTable"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
 
+        return_result = list(full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
+                                   limit, offset, is_control, gisaid_only, numElems, epitope_part=epitope_part))
         return return_result
 
 
@@ -260,6 +271,11 @@ class QueryCountDataset(Resource):
         is_control = args.get('is_control')
         gisaid_only = args.get('gisaid_only')
 
+        epitope_part = payload.get("epitope")
+        if epitope_part is not None:
+            field_name = "toTable"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+
         def run_query(is_aa=False):
             if is_aa and not is_gisaid:
                 exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation WHERE aminoacid_sequence is not null) "
@@ -272,9 +288,10 @@ class QueryCountDataset(Resource):
 
             query = "select count(*) "
             query += "from ("
+
             sub_query = sql_query_generator(filter_in, q_type, pairs, 'table', agg=agg, limit=None, offset=None,
                                             rel_distance=rel_distance, annotation_type=annotation_type,
-                                            external_where_conditions=[exclude_gisaid_where,exclude_aa_seq_null])
+                                            external_where_conditions=[exclude_gisaid_where,exclude_aa_seq_null], epitope_part=epitope_part)
             query += sub_query + ") as a "
             flask.current_app.logger.debug(query)
 

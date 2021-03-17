@@ -9,6 +9,7 @@ from flask import request
 
 center_table = 'Sequence'
 center_table_id = 'sequence_id'
+epitope_table = 'epitope_variants_and_info_all'
 
 # the view order definitions
 views = {
@@ -249,7 +250,7 @@ def pair_query_resolver(pair_query, pair_key):
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
                         offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
-                        annotation_type=None, external_where_conditions=[]):
+                        annotation_type=None, external_where_conditions=[], epitope_part=None):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -312,7 +313,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
 
     nucleotide_variant_impact = " JOIN variant_impact as n_imp ON n_var.nucleotide_variant_id = n_imp.nucleotide_variant_id "
 
-    annotation_view_join = " JOIN annotation_view as ann_view ON it.sequence_id = ann_view.sequence_id "
+    annotation_view_join = " JOIN annotation_sequence as ann_view ON it.sequence_id = ann_view.sequence_id "
 
     view_join = {
         # TODO VIRUS
@@ -344,9 +345,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         from_part = item + experiment_type_join + sequencing_project_join + host_sample_join + virus_join + pair_join
         if annotation_type:
             annotation_type = annotation_type.replace("'", "''")
-            from_part = from_part + annotation_view_join + f" AND lower(ann_view.annotation_view_product) = lower('{annotation_type}')"
+            from_part = from_part + annotation_view_join + f" AND lower(ann_view.product) = lower('{annotation_type}')"
 
-    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance)
+    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance, epitope_part=epitope_part)
 
     panel_where = ''
     if panel:
@@ -412,12 +413,15 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     elif return_type == 'item_id':
         select_part = f"SELECT DISTINCT it.{center_table_id} "
 
+    elif return_type == 'count_variants':
+        select_part = f"SELECT distinct aa_varaa_0.aminoacid_variant_id, aa_varaa_0.variant_aa_length "
+
     full_query = select_part + from_part + where_part + sub_where_part + group_by_part + order_by + limit_part + offset_part
     print(full_query)
     return full_query
 
 
-def generate_where_sql(gcm_query, search_type, rel_distance=3):
+def generate_where_sql(gcm_query, search_type, rel_distance=3, epitope_part=None):
     sub_where = []
     where_part = ""
     if gcm_query:
@@ -481,6 +485,10 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3):
 
     if gcm_query:
         where_part += ") AND (".join(sub_where) + ")"
+
+    if epitope_part is not None:
+        where_part += f""" and it.sequence_id IN (SELECT distinct sequence_id 
+                        FROM {epitope_table}  {epitope_part}) """
     return where_part
 
 
@@ -610,7 +618,7 @@ def load_viruses():
             taxon_name = row_dict['taxon_name'].lower()
             taxon_id = row_dict['taxon_id']
             # add two empty lists (AA and nuc) to use below
-            row_dict.update({'nucleotide_sequence_length': len(row_dict['nucleotide_sequence']),
+            row_dict.update({#'nucleotide_sequence_length': len(row_dict['nucleotide_sequence']),
                              "a_products": list(),
                              "n_products": list(), })
 
@@ -618,7 +626,8 @@ def load_viruses():
                                                                    "taxon_name",
                                                                    "a_products",
                                                                    "n_products",
-                                                                   "nucleotide_sequence_length", ]}
+                                                                   # "nucleotide_sequence_length",
+                                                                   ]}
             taxon_name_dict[taxon_name] = row_dict
             taxon_id_dict[taxon_id] = row_dict
 

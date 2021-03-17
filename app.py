@@ -9,6 +9,7 @@ from flask_executor import Executor
 from apis import api_blueprint
 from model.models import db
 from utils import load_viruses
+from apis import epitope
 
 base_url = '/virusurf_gisaid/'
 api_url = base_url + 'api'
@@ -163,3 +164,4 @@ def add_header(r):
 
 
 # load_viruses()
+epitope.load_hosts()

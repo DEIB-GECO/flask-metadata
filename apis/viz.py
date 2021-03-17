@@ -13,6 +13,7 @@ from apis.poll import poll_cache
 from apis.query import full_query
 from model.models import db
 from utils import taxon_name_dict, taxon_id_dict
+from .epitope import gen_where_epi_query_field, gen_epitope_part_json_virusviz, gen_epitope_part_json_virusviz2
 
 is_gisaid = False
 
@@ -21,6 +22,7 @@ api = Namespace('viz', description='Operations to perform viz using metadata')
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
 table_parser.add_argument('is_control', type=inputs.boolean, default=False)
+table_parser.add_argument('aa_only', type=inputs.boolean, default=False)
 table_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
 
 ################################API DOCUMENTATION STRINGS###################################
@@ -318,6 +320,16 @@ class VizSubmit(Resource):
         aa_only = True
         print("aa_only", aa_only)
 
+        user_epitope_part = payload.get("userEpitope")
+        if user_epitope_part is not None:
+            epitope_json_part = gen_epitope_part_json_virusviz(user_epitope_part)
+
+        epitope_part = payload.get("epitope")
+        if epitope_part is not None:
+            field_name = "toTable"
+            epitope_json_part = gen_epitope_part_json_virusviz(epitope_part)
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+
 
         # # region Find virus information
         # if 'taxon_id' in filter_in and len(filter_in["taxon_id"]) == 1:
@@ -351,7 +363,7 @@ class VizSubmit(Resource):
             try:
                 res = list(full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
                                  agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
-                                 gisaid_only=gisaid_only))
+                                 gisaid_only=gisaid_only, epitope_part=epitope_part))
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
@@ -443,7 +455,7 @@ class VizSubmit(Resource):
                 }
 
                 result = {
-                    'sequencesCount': len(res),
+                    'sequencesCount': len(sequences),
                     'taxon_id': taxon_id,
                     "exclude_n": aa_only,
                     "exclude_a": False,
@@ -456,6 +468,9 @@ class VizSubmit(Resource):
                     # },
                     "sequences": sequences
                 }
+                if not ( epitope_part is None and user_epitope_part is None):
+                    result['epitopes'] = epitope_json_part
+
                 print("PRE poll_cache.set_result(poll_id, result)")
                 poll_cache.set_result(poll_id, result)
                 print("POST poll_cache.set_result(poll_id, result)")
