@@ -163,5 +163,5 @@ def add_header(r):
     return r
 
 
-# load_viruses()
+load_viruses()
 epitope.load_hosts()

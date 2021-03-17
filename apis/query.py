@@ -146,19 +146,16 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
                                     epitope_part=epitope_part)
 
         pre_query = db.engine.execute(sqlalchemy.text(query))
-        return_columns = set(pre_query._metadata.keys)
-        res = pre_query.fetchall()
-        result = []
-
-        if numElems is None or numElems > 20:
-            result_columns = ['accession_id']
-
-        for row in res:
-            row_dict = {str(x): row[x] for x in return_columns}
-            if annotation_type:
-                row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
-                row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
-            result.append(row_dict)
+        # return_columns = set(pre_query._metadata.keys)
+        res = pre_query  # .fetchall()
+        result = (dict(x) for x in res)
+        result = ({k: str(v) if type(v) == datetime.date else v for k, v in x.items()} for x in result)
+        # for row in res:
+        #     row_dict = {str(x): row[x] for x in return_columns}
+        #     if annotation_type:
+        #         row_dict['nucleotide_sequence'] = row_dict['annotation_view_nucleotide_sequence']
+        #         row_dict['amino_acid_sequence'] = row_dict['annotation_view_aminoacid_sequence']
+        #     result.append(row_dict)
         flask.current_app.logger.debug("QUERY: ")
         flask.current_app.logger.debug(query)
 
