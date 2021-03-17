@@ -25,6 +25,20 @@ def get_env_variable(name):
 
 
 def get_db_uri():
+    from apis.query import is_gisaid
+    database_name = "vcm_du_1"
+
+    try:
+        # /home/metadata/virusurf_active_databases.txt
+        with open("/home/metadata/virusurf_active_databases.txt") as f:
+            lines = f.readlines()
+            if is_gisaid:
+                database_name = [x for x in lines if 'gisaid' in x][0]
+            else:
+                database_name = [x for x in lines if 'gisaid' not in x][0]
+    except IOError:
+        pass
+
     # postgres_url = get_env_variable("POSTGRES_URL")
     # postgres_user = get_env_variable("POSTGRES_USER")
     # postgres_pw = get_env_variable("POSTGRES_PW")
@@ -32,7 +46,7 @@ def get_db_uri():
     postgres_url = "localhost"
     postgres_user = "geco"
     postgres_pw = "geco78"
-    postgres_db = "vcm_du_1"
+    postgres_db = database_name.strip()
 
     application_name = []
 
@@ -45,12 +59,14 @@ def get_db_uri():
 
     application_name = ", ".join(application_name)
 
-    return 'postgresql+psycopg2://{user}:{pw}@{url}/{db}?application_name={application_name}'.format(
+    result = 'postgresql+psycopg2://{user}:{pw}@{url}/{db}?application_name="{application_name}"'.format(
         user=postgres_user,
         pw=postgres_pw,
         url=postgres_url,
         db=postgres_db,
         application_name=application_name, )
+    print(result)
+    return result
 
 
 dictConfig({

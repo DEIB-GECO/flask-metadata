@@ -22,6 +22,7 @@ api = Namespace('viz', description='Operations to perform viz using metadata')
 table_parser = api.parser()
 table_parser.add_argument('body', type="json", help='json ', location='json')
 table_parser.add_argument('is_control', type=inputs.boolean, default=False)
+table_parser.add_argument('aa_only', type=inputs.boolean, default=False)
 
 ################################API DOCUMENTATION STRINGS###################################
 body_desc = 'It must be in the format {\"gcm\":{},\"type\":\"original\",\"kv\":{}}.\n ' \
@@ -70,6 +71,9 @@ class VizSubmit(Resource):
         q_type = payload.get("type")
         pairs = payload.get("kv")
 
+        aa_only = args.get("aa_only")
+        print("aa_only", aa_only)
+
         user_epitope_part = payload.get("userEpitope")
         if user_epitope_part is not None:
             epitope_json_part = gen_epitope_part_json_virusviz(user_epitope_part)
@@ -112,36 +116,37 @@ class VizSubmit(Resource):
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
-                # region Nucleotide variant part
-                query = f"""
-                    SELECT  sequence_id,
-                            start_original,   
-                            sequence_original,   
-                            sequence_alternative,   
-                            variant_type,
-                            variant_length,
-                            array_agg(DISTINCT ARRAY[effect, putative_impact, impact_gene_name])
-                    FROM nucleotide_variant
-                    NATURAL JOIN variant_impact
-                    WHERE sequence_id IN ({','.join(res_sequence_id)}) 
-                    GROUP BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
-                    ORDER BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
-                """
+                if not aa_only:
+                    # region Nucleotide variant part
+                    query = f"""
+                        SELECT  sequence_id,
+                                start_original,   
+                                sequence_original,   
+                                sequence_alternative,   
+                                variant_type,
+                                variant_length,
+                                array_agg(DISTINCT ARRAY[effect, putative_impact, impact_gene_name])
+                        FROM nucleotide_variant
+                        NATURAL JOIN variant_impact
+                        WHERE sequence_id IN ({','.join(res_sequence_id)}) 
+                        GROUP BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
+                        ORDER BY sequence_id, start_original, sequence_original, sequence_alternative, variant_type, variant_length
+                    """
 
-                print(query)
-                pre_query = db.engine.execute(sqlalchemy.text(query))
-                res_nuc = pre_query  # .fetchall()
-                res_nuc = groupby(res_nuc, lambda x: x[0])
-                res_nuc = defaultdict(list, (
-                    (sequence_id,
-                     list(chain(*(
-                         zip(range(pos, pos + length), orig, alt, [var_type] * length,
-                             [impacts] * length) if var_type != 'INS' else
-                         [[pos, orig, alt, var_type, impacts]]
-                         for _, pos, orig, alt, var_type, length, impacts in rows))))
-                    for sequence_id, rows in res_nuc
-                ))
-                # endregion
+                    print(query)
+                    pre_query = db.engine.execute(sqlalchemy.text(query))
+                    res_nuc = pre_query  # .fetchall()
+                    res_nuc = groupby(res_nuc, lambda x: x[0])
+                    res_nuc = defaultdict(list, (
+                        (sequence_id,
+                         list(chain(*(
+                             zip(range(pos, pos + length), orig, alt, [var_type] * length,
+                                 [impacts] * length) if var_type != 'INS' else
+                             [[pos, orig, alt, var_type, impacts]]
+                             for _, pos, orig, alt, var_type, length, impacts in rows))))
+                        for sequence_id, rows in res_nuc
+                    ))
+                    # endregion
 
                 # region Amino acid variant part
                 # TODO remove "AND start_aa_original is not null"
@@ -184,51 +189,41 @@ class VizSubmit(Resource):
                             "closestSequences": [],
                             "variants": {
                                 "N": {
-                                    "schema": ["position", "from", "to", "type", ["effect", "putative_impact", "gene"]],
-                                    "variants": res_nuc[row["sequence_id"]],
+                                    "schema": [] if aa_only else ["position", "from", "to", "type", ["effect", "putative_impact", "gene"]],
+                                    "variants": [] if aa_only else res_nuc[row["sequence_id"]],
                                 },
                                 "A": {
                                     "schema": ["position", "from", "to", "type"],
                                     "variants": res_aa[row["sequence_id"]],
                                 }
                             },
-                            "sequenceFormat": "gzip",
-                            "sequence": compress_sequence(row["nucleotide_sequence"])
+                            "sequenceFormat": "plain" if aa_only else "gzip",
+                            "sequence": None if aa_only else compress_sequence(row["nucleotide_sequence"])
                         }
                     for row in res
                 }
 
-                if epitope_part is None and user_epitope_part is None:
-                    result = {
-                        'sequencesCount': len(sequences),
-                        'taxon_id': taxon_id,
-                        # 'taxon_name': taxon_name,
-                        # "referenceSequence": {"length": reference_sequence_length},
-                        "schema": schema,
-                        # "products": {
-                        #     "A": a_products,
-                        #     "N": n_products,
-                        # },
-                        "sequences": sequences
-                    }
-                else:
-                    result = {
-                        'epitopes': epitope_json_part,
-                        'sequencesCount': len(sequences),
-                        'taxon_id': taxon_id,
-                        # 'taxon_name': taxon_name,
-                        # "referenceSequence": {"length": reference_sequence_length},
-                        "schema": schema,
-                        # "products": {
-                        #     "A": a_products,
-                        #     "N": n_products,
-                        # },
-                        "sequences": sequences
-                    }
+                result = {
+                    'sequencesCount': len(sequences),
+                    'taxon_id': taxon_id,
+                    "exclude_n": aa_only,
+                    "exclude_a": False,
+                    # 'taxon_name': taxon_name,
+                    # "referenceSequence": {"length": reference_sequence_length},
+                    "schema": schema,
+                    # "products": {
+                    #     "A": a_products,
+                    #     "N": n_products,
+                    # },
+                    "sequences": sequences
+                }
+                if not ( epitope_part is None and user_epitope_part is None):
+                    result['epitopes'] = epitope_json_part
 
                 print("PRE poll_cache.set_result(poll_id, result)")
                 poll_cache.set_result(poll_id, result)
                 print("POST poll_cache.set_result(poll_id, result)")
+
                 # region DEBUG_FILE_WRITE
                 # if False:
                 #     print("FILE WRITING")
