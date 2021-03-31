@@ -76,11 +76,6 @@ def calc_distance(view_name, pre_table, table_name):
 
 columns = [
     # technological
-    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database",
-           "Accession ID"),
-
-    Column('Sequence', 'strain_name', str, False,
-           "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)"),
     Column('Sequence', 'is_reference', bool, False,
            "True when the sequence is the reference one (from RefSeq) for the virus species, False when the sequence is not the reference one"),
     Column('Sequence', 'is_complete', bool, False,
@@ -135,6 +130,11 @@ columns = [
 ]
 
 columns_item = [
+    Column('Sequence', 'accession_id', str, False, "Sequence unique identifier, from original source database",
+           "Accession ID"),
+    Column('Sequence', 'strain_name', str, False,
+           "Virus strain name (sometimes hard-coding relevant information such as the species, collection location and date)"),
+
     # Column('Sequence', 'nucleotide_sequence', str, False, ""),
     Column('Sequence', 'clade', str, False, "Sequence-clade description"),
     Column('HostSample', 'host_taxon_id', int, False, "HostSample-host_taxon_id description"),
