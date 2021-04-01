@@ -335,9 +335,10 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         'view_annotation': [annotation_view_join],
     }
 
-    if field_selected != "":
+    if field_selected != "" or return_type == 'item_id':
         columns = [x for x in gcm_query.keys()]
-        columns.append(field_selected)
+        if field_selected != "":
+            columns.append(field_selected)
         if panel:
             for key_panel in panel:
                 columns.append(key_panel)
@@ -681,3 +682,40 @@ def load_viruses():
                     "row": 0,
                 }
                 taxon_id_dict[taxon_id]["n_products"].append(n_new_product)
+
+
+connection_dict = {}
+
+
+def custom_db_execution(query, poll_id):
+    from threading import Timer
+    from app import my_app
+    from model.models import db
+
+    with db.engine.connect() as connection:
+
+        def drop():
+            forget_connection(poll_id, connection)
+
+        save_connection(poll_id, connection)
+        t = Timer(5.0, drop)
+        t.start()
+        pre_query = connection.execute(query)
+        results = pre_query.fetchall()
+        connection.close()
+        #forget_connection(poll_id, connection)
+        return results
+
+
+def save_connection(poll_id, connection):
+    new_connection = {
+        "poll_id": poll_id,
+        "connection": connection
+    }
+    new_connection_line = dict(new_connection)
+    connection_dict[poll_id] = new_connection_line
+
+
+def forget_connection(poll_id, conn):
+    conn.close()
+    connection_dict.pop(poll_id)

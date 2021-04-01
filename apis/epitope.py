@@ -8,7 +8,7 @@ from flask_restplus import Namespace, Resource, fields, inputs
 from model.models import db
 from .poll import poll_cache
 
-from utils import sql_query_generator, epitope_table, taxon_name_dict
+from utils import sql_query_generator, epitope_table, taxon_name_dict, custom_db_execution
 
 is_gisaid = False
 epitope_id = 'iedb_epitope_id'
@@ -285,6 +285,9 @@ class FieldValue(Resource):
                 order by item_count desc, label asc"""
 
                 query_ex_2 = sqlalchemy.text(query_ex)
+
+                print("qui20", query_ex_2)
+
                 res = db.engine.execute(query_ex_2).fetchall()
                 flask.current_app.logger.debug(query_ex_2)
 
@@ -453,6 +456,9 @@ class FieldValue(Resource):
                 query_table += group_by_epi_query_table1(payload_table_headers)
 
                 query = sqlalchemy.text(query_table)
+
+                print("qui18", query)
+                #res = custom_db_execution(query, poll_id)
                 res = db.engine.execute(query).fetchall()
                 flask.current_app.logger.debug(query)
 
@@ -461,6 +467,7 @@ class FieldValue(Resource):
 
                 poll_cache.set_result(poll_id, res)
             except Exception as e:
+                print("qui19", e)
                 poll_cache.set_result(poll_id, None)
                 raise e
 
@@ -734,11 +741,12 @@ def add_where_epi_query(filter_in, pairs_query, search_type, return_type,
                         field_selected, panel, payload_epi_query, field_name):
     where_part_final = ""
 
-    where_part_final += f""" LEFT JOIN ( """
-    query_seq_sel = sql_query_generator(filter_in, pairs_query=pairs_query, search_type=search_type,
-                                        return_type=return_type, field_selected=field_selected, panel=panel)
-    where_part_final += query_seq_sel
-    where_part_final += f""" ) as seqc ON epic.sequence_id = seqc.sequence_id """
+    if field_name == "all":
+        where_part_final += f""" LEFT JOIN ( """
+        query_seq_sel = sql_query_generator(filter_in, pairs_query=pairs_query, search_type=search_type,
+                                            return_type=return_type, field_selected=field_selected, panel=panel)
+        where_part_final += query_seq_sel
+        where_part_final += f""" ) as seqc ON epic.sequence_id = seqc.sequence_id """
 
     where_part_final += f" WHERE "
 
@@ -787,7 +795,7 @@ def gen_select_epi_query_table(payload_table_headers):
             table_select_part += f"array_agg(distinct row(epi_fragment_id, " \
                                  f"{header}) order by (epi_fragment_id, {header})) as {header}"
         else:
-            table_select_part += f"array_agg(distinct {header}) as {header}"
+            table_select_part += f"max({header}) as {header}"
 
         count = count - 1
         if count > 0:
@@ -863,7 +871,10 @@ def gen_select_epi_query_table1(payload_table_headers):
                 or header == 'epi_frag_annotation_stop':
             table_select_part += ""
         else:
-            table_select_part += f"array_agg(distinct {header}) as {header}"
+            if header == "is_linear":
+                table_select_part += f"bool_and({header}) as {header}"
+            else:
+                table_select_part += f"max({header}) as {header}"
 
         count = count - 1
         if count > 0:
@@ -893,7 +904,7 @@ def gen_select_epi_query_table2(payload_table_headers):
                 or header == 'epi_frag_annotation_stop':
             table_select_part += ""
         else:
-            table_select_part += f"array_agg(distinct {header}) as {header}"
+            table_select_part += f"max({header}) as {header}"
 
         count = count - 1
         if count > 0:
