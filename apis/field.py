@@ -155,8 +155,8 @@ class FieldValue(Resource):
                     if type == 'original':
                         query = gen_query_field(field_name, type, filter_in, pair_query, panel=panel)
 
-                        if field_name == "product":
-                            print("qui22", query)
+                        #if field_name == "product":
+                        #    print("qui22", query)
 
                         res = db.engine.execute(query).fetchall()
                         flask.current_app.logger.debug(query)
