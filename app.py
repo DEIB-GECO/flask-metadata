@@ -39,6 +39,7 @@ def get_db_uri():
     except IOError:
         pass
 
+    database_name = "vcm_du_1"
     # postgres_url = get_env_variable("POSTGRES_URL")
     # postgres_user = get_env_variable("POSTGRES_USER")
     # postgres_pw = get_env_variable("POSTGRES_PW")
