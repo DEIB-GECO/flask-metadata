@@ -8,7 +8,7 @@ from flask_restplus import Namespace, Resource, fields, inputs, marshal
 
 from model.models import db
 from utils import sql_query_generator, log_query
-from .epitope import gen_where_epi_query_field
+from .epitope import gen_where_epi_query_field, getMatView
 
 is_gisaid = True
 
@@ -117,7 +117,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 #############################Query Function#############################################
 def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-               limit, offset, is_control, gisaid_only, numElems=None, epitope_part=None):
+               limit, offset, is_control, gisaid_only, numElems=None, epitope_part=None, epitope_table=None):
     def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
         if exclude_accession_list:
             exclude_accession_list = list(f"{x}" for x in exclude_accession_list)
@@ -143,7 +143,7 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
                                     order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
                                     annotation_type=annotation_type,
                                     external_where_conditions=[exclude_accession_where, exclude_gisaid_where, exclude_aa_seq_null],
-                                    epitope_part=epitope_part)
+                                    epitope_part=epitope_part, epitope_table=epitope_table)
 
         pre_query = db.engine.execute(sqlalchemy.text(query))
         # return_columns = set(pre_query._metadata.keys)
@@ -230,11 +230,15 @@ class Query(Resource):
 
         epitope_part = payload.get("epitope")
         if epitope_part is not None:
+            epitope_table = getMatView(filter_in['taxon_name'], epitope_part['product'])
             field_name = "toTable"
-            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+            epitope_part = f" WHERE iedb_epitope_id = {epitope_part['iedb_epitope_id']}"
+            #epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+        else:
+            epitope_table = None
 
         return_result = list(full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-                                   limit, offset, is_control, gisaid_only, numElems, epitope_part=epitope_part))
+                                   limit, offset, is_control, gisaid_only, numElems, epitope_part=epitope_part, epitope_table=epitope_table))
         return return_result
 
 
@@ -269,9 +273,13 @@ class QueryCountDataset(Resource):
         gisaid_only = args.get('gisaid_only')
 
         epitope_part = payload.get("epitope")
+
         if epitope_part is not None:
+            epitope_table = getMatView(filter_in['taxon_name'], epitope_part['product'])
             field_name = "toTable"
             epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+        else:
+            epitope_table = None
 
         def run_query(is_aa=False):
             if is_aa and not is_gisaid:
@@ -288,7 +296,7 @@ class QueryCountDataset(Resource):
 
             sub_query = sql_query_generator(filter_in, q_type, pairs, 'table', agg=agg, limit=None, offset=None,
                                             rel_distance=rel_distance, annotation_type=annotation_type,
-                                            external_where_conditions=[exclude_gisaid_where,exclude_aa_seq_null], epitope_part=epitope_part)
+                                            external_where_conditions=[exclude_gisaid_where,exclude_aa_seq_null], epitope_part=epitope_part, epitope_table=epitope_table)
             query += sub_query + ") as a "
             flask.current_app.logger.debug(query)
 
@@ -321,107 +329,72 @@ class QueryDownload(Resource):
     def post(self):
         '''For the items selected by the posted query, it retrieves URIs for download from our system'''
 
-        json = api.payload
-        args = parser.parse_args()
+        '''For the posted query, it retrieves a list of items with the related GCM metadata'''
+
+        payload = api.payload
+        args = table_parser.parse_args()
         rel_distance = args['rel_distance']
-        filter_in = json.get('gcm')
-        type = json.get('type')
-        pairs = json.get('kv')
-
-        if 'order_col' in args:
-            orderCol = args['order_col']
-        else:
-            orderCol = "null"
-
-        if 'order_dir' in args:
-            orderDir = args['order_dir']
-        else:
-            orderDir = "ASC"
-
+        agg = args['agg']
+        orderCol = args['order_col']
+        orderDir = args['order_dir']
         if orderCol == "null":
             orderCol = "accession_id"
 
-        query = sql_query_generator(filter_in, type, pairs, 'download-links', rel_distance=rel_distance,
-                                    order_col=orderCol, order_dir=orderDir)
-        flask.current_app.logger.debug(query)
+        numPage = args['page']
+        numElems = args['num_elems']
 
-        flask.current_app.logger.debug('got results')
+        annotation_type = args.get('annotation_type')
 
-        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
+        is_control = args.get('is_control')
 
-        results = [x[0] for x in results]
-
-        # add meta files
-        results = [y for x in results for y in (x, x[::-1].replace("noiger", "atadatem", 1)[::-1])]
-
-        results = [x.replace("www.gmql.eu", "genomic.deib.polimi.it") for x in results]
-        results = [x + "?authToken=DOWNLOAD-TOKEN" for x in results]
-
-        results = '\n'.join(results)
-
-        return Response(results, mimetype='text/plain')
-
-
-@api.route('/gmql')
-@api.hide
-@api.response(404, 'Results not found')  # TODO correct
-class QueryGmql(Resource):
-    @api.doc('return_query_result5', params={'body': body_desc,
-                                             'rel_distance': rel_distance_desc})
-    @api.expect(parser)
-    def post(self):
-        '''Creates gmql query from GenoSurf query'''
-
-        json = api.payload
-        args = parser.parse_args()
-        rel_distance = args['rel_distance']
-
-        filter_in = json.get('gcm')
-        type = json.get('type')
-        pairs = json.get('kv')
-
-        query = sql_query_generator(filter_in, type, pairs, 'gmql', rel_distance=rel_distance)
-        flask.current_app.logger.debug(query)
-
-        flask.current_app.logger.debug('got results')
-
-        results = db.engine.execute(sqlalchemy.text(query)).fetchall()
-        length = len(results)
-
-        if length:
-            gmql_query = []
-            for idx, (dataset_name, files) in enumerate(results):
-                files = map(lambda x: f'gcm_curated__file_name == "{x}"', files)
-                files = " OR ".join(files)
-                gmql_query.append(f"# Selection of items from {dataset_name} dataset")
-                gmql_query.append(f'D_{idx} = SELECT({files}) {dataset_name};')
-                gmql_query.append("")
-
-            if length > 1:
-                gmql_query.append("")
-                gmql_query.append("# Union of all datasets")
-                if length == 2:
-                    gmql_query.append(f'ALL_DS = UNION() D_0 D_1;')
-                else:
-                    gmql_query.append(f'U_0 = UNION() D_0 D_1;')
-                    for idx in range(2, length - 1):
-                        gmql_query.append(f'U_{idx - 1} = UNION() U_{idx - 2} D_{idx};')
-                    gmql_query.append(f'ALL_DS = UNION() U_{length - 3} D_{length - 1};')
-
-            gmql_query.append("")
-            gmql_query = "\n".join(gmql_query)
+        if numPage and numElems:
+            offset = (numPage - 1) * numElems
+            limit = numElems
         else:
-            gmql_query = "No result!!"
+            offset = None
+            limit = None
 
-        return Response(gmql_query, mimetype='text/plain')
+        filter_in = payload.get("gcm")
 
+        q_type = payload.get("type")
+        pairs = payload.get("kv")
 
-def merge_dicts(dict_args):
-    """
-    Given any number of dicts, shallow copy and merge into a new dict,
-    precedence goes to key value pairs in latter dicts.
-    """
-    result = {}
-    for dictionary in dict_args:
-        result.update(dictionary['data'])
-    return result
+        epitope_part = payload.get("epitope")
+        if epitope_part is not None:
+            epitope_table = getMatView(filter_in['taxon_name'], epitope_part['product'])
+            field_name = "toTable"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+        else:
+            epitope_table = None
+
+        return_result = full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
+                                   limit, offset, is_control, with_nuc_seq=True, epitope_part=epitope_part, epitope_table=epitope_table)
+
+        downloadFileFormat = args['download_file_format']
+        downloadType = args['download_type']
+
+        if downloadType == "aa":
+            res = ((x["accession_id"], x["aminoacid_sequence"]) for x in return_result)
+        else:
+            if annotation_type:
+                res = ((x["accession_id"], x["annotation_nucleotide_sequence"]) for x in return_result)
+            else:
+                res = ((x["accession_id"], x["nucleotide_sequence"]) for x in return_result)
+
+        res = (x for x in res if x[1])
+
+        if downloadFileFormat == "fasta":
+            n = 60
+            res = (itertools.chain((f">{acc}",), (seq[i:i + n] for i in range(0, len(seq), n))) for acc, seq in res)
+            res = itertools.chain.from_iterable(res)
+        else:
+            res = itertools.chain([["accession_id", "sequence"]], res)
+            res = (",".join(x) for x in res)
+
+        res = (x + "\n" for x in res)
+
+        # res = "\n".join(",".join(x) for x in res)
+
+        # return return_result
+
+        return Response(res, mimetype='text/plain')

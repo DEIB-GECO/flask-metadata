@@ -13,7 +13,8 @@ from apis.poll import poll_cache
 from apis.query import full_query
 from model.models import db
 from utils import taxon_name_dict, taxon_id_dict
-from .epitope import gen_where_epi_query_field, gen_epitope_part_json_virusviz, gen_epitope_part_json_virusviz2
+from .epitope import gen_where_epi_query_field, gen_epitope_part_json_virusviz, gen_epitope_part_json_virusviz2, \
+    getMatView
 
 is_gisaid = False
 
@@ -324,11 +325,24 @@ class VizSubmit(Resource):
         if user_epitope_part is not None:
             epitope_json_part = gen_epitope_part_json_virusviz(user_epitope_part)
 
+        epitope_without_variants_part = payload.get("epitope_without_variants")
+        if epitope_without_variants_part is not None:
+            epitope_json_part = gen_epitope_part_json_virusviz(epitope_without_variants_part, without_variants=True,
+                                                               filter_in=filter_in)
+
+        epitope_without_variants_part_all_population = payload.get("epitope_without_variants_all_population")
+        if epitope_without_variants_part_all_population is not None:
+            epitope_json_part = gen_epitope_part_json_virusviz(epitope_without_variants_part_all_population,
+                                                               without_variants=True, all_population=True)
+
         epitope_part = payload.get("epitope")
         if epitope_part is not None:
+            epitope_table = getMatView(filter_in['taxon_name'], epitope_part['product'])
             field_name = "toTable"
-            epitope_json_part = gen_epitope_part_json_virusviz(epitope_part)
+            epitope_json_part = gen_epitope_part_json_virusviz(epitope_part, filter_in=filter_in)
             epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+        else:
+            epitope_table = None
 
 
         # # region Find virus information
@@ -363,7 +377,7 @@ class VizSubmit(Resource):
             try:
                 res = list(full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
                                  agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
-                                 gisaid_only=gisaid_only, epitope_part=epitope_part))
+                                 gisaid_only=gisaid_only, epitope_part=epitope_part, epitope_table=epitope_table))
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
@@ -468,7 +482,9 @@ class VizSubmit(Resource):
                     # },
                     "sequences": sequences
                 }
-                if not ( epitope_part is None and user_epitope_part is None):
+                if not (epitope_part is None and user_epitope_part is None and epitope_without_variants_part is None
+                        and epitope_without_variants_part_all_population is None):
+
                     result['epitopes'] = epitope_json_part
 
                 print("PRE poll_cache.set_result(poll_id, result)")

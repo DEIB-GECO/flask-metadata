@@ -165,3 +165,5 @@ def add_header(r):
 
 load_viruses()
 epitope.load_hosts()
+epitope.load_virus_id()
+epitope.load_host_id()

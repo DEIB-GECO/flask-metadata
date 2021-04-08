@@ -9,7 +9,6 @@ from flask import request
 
 center_table = 'Sequence'
 center_table_id = 'sequence_id'
-epitope_table = 'epitope_variants_and_info_all'
 
 # the view order definitions
 views = {
@@ -253,7 +252,7 @@ def pair_query_resolver(pair_query, pair_key):
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
                         offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
-                        annotation_type=None, external_where_conditions=[], epitope_part=None):
+                        annotation_type=None, external_where_conditions=[], epitope_part=None, epitope_table=None):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -329,9 +328,10 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
         'view_annotation': [annotation_view_join],
     }
 
-    if field_selected != "":
+    if field_selected != "" or return_type == 'item_id':
         columns = [x for x in gcm_query.keys()]
-        columns.append(field_selected)
+        if field_selected != "":
+            columns.append(field_selected)
         if panel:
             for key_panel in panel:
                 columns.append(key_panel)
@@ -350,7 +350,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             annotation_type = annotation_type.replace("'", "''")
             from_part = from_part + annotation_view_join + f" AND lower(ann_view.product) = lower('{annotation_type}')"
 
-    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance, epitope_part=epitope_part)
+    gcm_where = generate_where_sql(gcm_query, search_type, rel_distance=rel_distance, epitope_part=epitope_part, epitope_table=epitope_table)
 
     panel_where = ''
     if panel:
@@ -424,7 +424,7 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     return full_query
 
 
-def generate_where_sql(gcm_query, search_type, rel_distance=3, epitope_part=None):
+def generate_where_sql(gcm_query, search_type, rel_distance=3, epitope_part=None, epitope_table=None):
     sub_where = []
     where_part = ""
     if gcm_query:
@@ -673,3 +673,40 @@ def load_viruses():
                     "row": 0,
                 }
                 taxon_id_dict[taxon_id]["n_products"].append(n_new_product)
+
+
+connection_dict = {}
+
+
+def custom_db_execution(query, poll_id):
+    from threading import Timer
+    from app import my_app
+    from model.models import db
+
+    with db.engine.connect() as connection:
+
+        def drop():
+            forget_connection(poll_id, connection)
+
+        save_connection(poll_id, connection)
+        t = Timer(5.0, drop)
+        t.start()
+        pre_query = connection.execute(query)
+        results = pre_query.fetchall()
+        connection.close()
+        #forget_connection(poll_id, connection)
+        return results
+
+
+def save_connection(poll_id, connection):
+    new_connection = {
+        "poll_id": poll_id,
+        "connection": connection
+    }
+    new_connection_line = dict(new_connection)
+    connection_dict[poll_id] = new_connection_line
+
+
+def forget_connection(poll_id, conn):
+    #conn.close()
+    connection_dict.pop(poll_id)
