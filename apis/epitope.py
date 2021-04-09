@@ -54,9 +54,9 @@ columns_epi_sel = [
 
 columns_epi_amino = [
     ColumnEpi('Variant Type', 'variant_aa_type', 'Type of amino acid change that must appear in the epitopes (SUB = substitution, INS = insertion, DEL = deletion)', 'str', False, False),
+    ColumnEpi('Variant Position Range', 'variant_position_range', 'Range of positions within the amino acid sequence of the gene, based on the reference sequence', 'num', True, False),
     ColumnEpi('Original Aminoacid', 'sequence_aa_original', 'Affected amino acid sequence from the corresponding reference sequence of the chosen Virus', 'str', False, False),
     ColumnEpi('Alternative Aminoacid', 'sequence_aa_alternative', 'Changed amino acid sequence (in the target sequence) with respect to the reference one', 'str', False, False),
-    ColumnEpi('Variant Position Range', 'variant_position_range', 'Range of positions within the amino acid sequence of the gene, based on the reference sequence', 'num', True, False),
 ]
 
 columns_user_new_epi_sel = [
@@ -67,10 +67,10 @@ columns_user_new_epi_sel = [
 
 columns_user_new_epi_amino = [
     ColumnEpi('Protein Name', 'product', 'Protein produced by the sub-sequence within which the amino acid change occurs', 'str', False, False),
+    ColumnEpi('Position Range', 'position_range', 'Range of positions within the amino acid sequence of the gene, based on the reference sequence', 'num', True, False),
     ColumnEpi('Variant Type', 'variant_aa_type', 'Type of amino acid change (SUB = substitution, INS = insertion, DEL = deletion)', 'str', False, False),
     ColumnEpi('Original Aminoacid', 'sequence_aa_original', 'Affected amino acid sequence from the corresponding reference sequence of the chosen Virus', 'str', False, False),
     ColumnEpi('Alternative Aminoacid', 'sequence_aa_alternative', 'Changed amino acid sequence (in the target sequence) with respect to the reference one', 'str', False, False),
-    ColumnEpi('Position Range', 'position_range', 'Range of positions within the amino acid sequence of the gene, based on the reference sequence', 'num', True, False),
 ]
 
 columns_dict_epi_sel = {x.field: x for x in columns_epi_sel}
