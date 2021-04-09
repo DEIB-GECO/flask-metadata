@@ -1053,12 +1053,12 @@ def gen_where_epi_query_field_without_variants(payload_epi_query, field_name):
             if field_name != "position_range":
                 for value in values:
                     where_part += add_and( i, field_name)
-                    where_part += f" epi_frag_annotation_stop >= {value} "
+                    where_part += f" epif.epi_frag_annotation_stop >= {value} "
         elif column == "stopExt":
             if field_name != "position_range":
                 for value in values:
                     where_part += add_and( i, field_name)
-                    where_part += f" epi_frag_annotation_start <= {value} "
+                    where_part += f" epif.epi_frag_annotation_start <= {value} "
         elif column == "startFreqExt" or column == "stopFreqExt":
             if column == "startFreqExt":
                 if field_name != "response_frequency":
@@ -1305,10 +1305,10 @@ def gen_select_epi_query_table_without_variants(payload_table_headers):
     count = len(payload_table_headers)
     for header in payload_table_headers:
         if header == 'epi_fragment_sequence':
-            table_select_part += f"""array_agg(distinct row(epi_frag_annotation_start,
-                                        epi_frag_annotation_stop, {header}) 
-                                        order by (epi_frag_annotation_start,
-                                        epi_frag_annotation_stop, {header})) as epi_fragment_all_information """
+            table_select_part += f"""array_agg(distinct row(epif2.epi_frag_annotation_start,
+                                        epif2.epi_frag_annotation_stop, epif2.{header}) 
+                                        order by (epif2.epi_frag_annotation_start,
+                                        epif2.epi_frag_annotation_stop, epif2.{header})) as epi_fragment_all_information """
         elif header == f'{epitope_id}':
             table_select_part += f" {header} as {header} "
         elif header == f'is_linear':
@@ -1322,7 +1322,7 @@ def gen_select_epi_query_table_without_variants(payload_table_headers):
         if count > 0:
             table_select_part += ', '
 
-    table_select_part += f" FROM epitope as epi join epitope_fragment as epif on epi.epitope_id = epif.epitope_id "
+    table_select_part += f" FROM epitope as epi join epitope_fragment as epif on epi.epitope_id = epif.epitope_id join epitope_fragment as epif2 on epi.epitope_id = epif2.epitope_id "
 
     return table_select_part
 
