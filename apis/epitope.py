@@ -642,6 +642,9 @@ class FieldValue(Resource):
 
                 query_ex += add_where_epi_query_without_variants(filter_in, payload_epi_query, field_name)
 
+                if field_name == 'product':
+                    query_ex += " and protein_name != 'ORF1ab polyprotein' "
+
                 query_ex += """ group by label
                 order by item_count desc, label asc"""
 
@@ -868,9 +871,9 @@ class FieldValue(Resource):
                                     from annotation as ann 
                                     join sequence as seq on ann.sequence_id = seq.sequence_id
                                     where virus_id = {taxon_id}
-                                    and is_reference
                                     and product is not null 
                                     order by product desc"""
+                #and is_reference
 
                 query = sqlalchemy.text(query_protein)
                 res = db.engine.execute(query).fetchall()
