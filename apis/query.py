@@ -232,8 +232,8 @@ class Query(Resource):
         if epitope_part is not None:
             epitope_table = getMatView(filter_in['taxon_name'], epitope_part['product'])
             field_name = "toTable"
-            epitope_part = f" WHERE iedb_epitope_id = {epitope_part['iedb_epitope_id']}"
-            #epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+            #epitope_part = f" WHERE iedb_epitope_id = {epitope_part['iedb_epitope_id']}"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
         else:
             epitope_table = None
 
