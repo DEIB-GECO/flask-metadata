@@ -11,7 +11,7 @@ from model.models import db
 from utils import load_viruses
 from apis import epitope
 
-base_url = '/virusurf_epitope/'
+base_url = '/virusurf/'
 api_url = base_url + 'api'
 repo_static_url = base_url + 'repo_static'
 
@@ -120,13 +120,21 @@ def index():
     flask.current_app.logger.info("serve index")
     return render_template('index.html')
 
+# base url defined in apis init
+@simple_page.route('/epitope/')
+def index_epitope():
+    flask.current_app.logger.info("serve index")
+    return render_template('index.html')
 
 # Make a "catch all route" so all requests match our index.html file.
 # This lets us use the new history APIs in the browser.
 @simple_page.route('/', defaults={'path': ''})
 @simple_page.route('/<path:path>')
 def redirect_all(path):
-    return redirect(url_for('.index'))
+    if path.startswith("epi"):
+        return redirect(url_for('.index_epitope'))
+    else:
+        return redirect(url_for('.index'))
 
 
 # register blueprints
