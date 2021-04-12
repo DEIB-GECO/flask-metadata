@@ -11,7 +11,7 @@ from model.models import db
 from utils import load_viruses
 from apis import epitope
 
-base_url = '/virusurf/'
+base_url = '/virusurf_epitope/'
 api_url = base_url + 'api'
 repo_static_url = base_url + 'repo_static'
 
