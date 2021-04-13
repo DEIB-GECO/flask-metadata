@@ -9,7 +9,7 @@ from model.models import db
 from .poll import poll_cache
 
 import utils
-from utils import sql_query_generator, taxon_name_dict, custom_db_execution
+from utils import sql_query_generator, taxon_name_dict, custom_db_execution, taxon_id_dict
 
 is_gisaid = False
 epitope_id = 'iedb_epitope_id'
@@ -644,12 +644,6 @@ class FieldValue(Resource):
 
                 query_ex += add_where_epi_query_without_variants(filter_in, payload_epi_query, field_name)
 
-                if field_name == 'product':
-                    query_ex += """ and protein_name in (
-                                        select distinct product 
-                                        from annotation
-                                    ) """
-
                 query_ex += """ group by label
                 order by item_count desc, label asc"""
 
@@ -684,7 +678,27 @@ class FieldValue(Resource):
 
                     res = [{'value': allele['label'], 'count': allele['count']} for allele in list_separated_mhc_allele]
                 else:
-                    res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+                    if field_name == 'product':
+                        the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
+                        taxon_id = the_virus["taxon_id"]
+                        all_protein = taxon_id_dict[taxon_id]['a_products'];
+                        li = [item.get('name') for item in all_protein]
+                        list_protein = []
+                        for row in res:
+                            if row['label'] in li:
+                                protein = row['label']
+                                count_protein = row['item_count']
+                                row_dict = {'label': protein, 'count': count_protein}
+                                list_protein.append(row_dict)
+
+                        list_protein.sort(key=lambda s: s['count'], reverse=True)
+
+                        res = [{'value': allele['label'], 'count': allele['count']} for allele in
+                               list_protein]
+
+                    else:
+                        res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+
                 res = {'values': res}
 
                 poll_cache.set_result(poll_id, res)
