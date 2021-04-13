@@ -682,10 +682,7 @@ class FieldValue(Resource):
                     res = [{'value': allele['label'], 'count': allele['count']} for allele in list_separated_mhc_allele]
                 else:
                     if field_name == 'product':
-                        the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
-                        taxon_id = the_virus["taxon_id"]
-                        all_protein = taxon_id_dict[taxon_id]['a_products'];
-                        li = [item.get('name') for item in all_protein]
+                        li = protein_array
                         list_protein = []
                         for row in res:
                             if row['label'] in li:
@@ -1693,6 +1690,23 @@ def load_host_id():
 
         host_dict[host_taxon_name] = row_dict
         host_id_dict[host_id] = row_dict
+
+
+protein_array = []
+
+
+def load_protein():
+    from model.models import db
+
+    query = """SELECT distinct product
+               FROM annotation"""
+    query2 = sqlalchemy.text(query)
+    res = db.engine.execute(query2).fetchall()
+
+    for row in res:
+        row_dict = dict(row)
+        if row_dict['product'] is not None:
+            protein_array.append(row_dict['product'])
 
 
 def query_product_all_mat_view(field_name, filter_in, pair_query, type, panel, payload_epi_query):
