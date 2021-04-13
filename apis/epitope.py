@@ -53,8 +53,10 @@ columns_epi_sel = [
 ]
 
 columns_epi_amino = [
+    ColumnEpi('Variant Position Range', 'variant_position_range',
+              'Range of positions within the amino acid sequence of the gene, based on the reference sequence', 'num',
+              True, False),
     ColumnEpi('Variant Type', 'variant_aa_type', 'Type of amino acid change that must appear in the epitopes (SUB = substitution, INS = insertion, DEL = deletion)', 'str', False, False),
-    ColumnEpi('Variant Position Range', 'variant_position_range', 'Range of positions within the amino acid sequence of the gene, based on the reference sequence', 'num', True, False),
     ColumnEpi('Original Aminoacid', 'sequence_aa_original', 'Affected amino acid sequence from the corresponding reference sequence of the chosen Virus', 'str', False, False),
     ColumnEpi('Alternative Aminoacid', 'sequence_aa_alternative', 'Changed amino acid sequence (in the target sequence) with respect to the reference one', 'str', False, False),
 ]
@@ -641,6 +643,12 @@ class FieldValue(Resource):
                             FROM epitope as epi join epitope_fragment as epif on epi.epitope_id = epif.epitope_id"""
 
                 query_ex += add_where_epi_query_without_variants(filter_in, payload_epi_query, field_name)
+
+                if field_name == 'product':
+                    query_ex += """ and protein_name in (
+                                        select distinct product 
+                                        from annotation
+                                    ) """
 
                 query_ex += """ group by label
                 order by item_count desc, label asc"""
