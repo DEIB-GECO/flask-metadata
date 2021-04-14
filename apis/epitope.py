@@ -679,10 +679,13 @@ class FieldValue(Resource):
                     res = [{'value': allele['label'], 'count': allele['count']} for allele in list_separated_mhc_allele]
                 else:
                     if field_name == 'product':
-                        the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
-                        taxon_id = the_virus["taxon_id"]
-                        all_protein = taxon_id_dict[taxon_id]['a_products'];
-                        li = [item.get('name') for item in all_protein]
+                        if is_gisaid:
+                            li = protein_array
+                        else:
+                            the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
+                            taxon_id = the_virus["taxon_id"]
+                            all_protein = taxon_id_dict[taxon_id]['a_products']
+                            li = [item.get('name') for item in all_protein]
                         list_protein = []
                         for row in res:
                             if row['label'] in li:
@@ -914,6 +917,23 @@ class FieldValue(Resource):
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
 
+@api.route('/allProtein')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+        filter_in = payload.get("gcm")
+        if is_gisaid:
+            res = protein_array
+        else:
+            the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
+            taxon_id = the_virus["taxon_id"]
+            all_protein = taxon_id_dict[taxon_id]['a_products']
+            res = [item.get('name') for item in all_protein]
+
+        return res
+
+
 ############
 
 
@@ -982,7 +1002,7 @@ def gen_where_epi_query_field(payload_epi_query, field_name):
     else:
         where_part = ""
 
-    i = 0;
+    i = 0
 
     for (column, values) in payload_epi_query.items():
         if column == f"{epitope_id}":
@@ -1065,7 +1085,7 @@ def gen_where_epi_query_field_without_variants(payload_epi_query, field_name):
     else:
         where_part = ""
 
-    i = 0;
+    i = 0
 
     for (column, values) in payload_epi_query.items():
         if column == f"{epitope_id}":
@@ -1527,9 +1547,13 @@ def gen_epitope_part_json_virusviz(epitope_part, without_variants=False, all_pop
             link = epitope_part['link']
             protein_to_query = epitope_part['protein']
 
+            virus_line_dict = virus_dict[filter_in['taxon_name'][0].lower()]
+            virus_id = virus_line_dict["virus_id"]
+
             query_protein_name = f"""SELECT distinct product
-                                        FROM annotation
-                                        WHERE LOWER(product) = '{protein_to_query}'"""
+                                        FROM annotation as ann JOIN sequence as seq on ann.sequence_id = seq.sequence_id
+                                        WHERE LOWER(product) = '{protein_to_query}'
+                                        AND virus_id = {virus_id}"""
 
             #                        array_agg(distinct iedb_epitope_id) as iedb_epitope_id
 
@@ -1690,6 +1714,23 @@ def load_host_id():
 
         host_dict[host_taxon_name] = row_dict
         host_id_dict[host_id] = row_dict
+
+
+protein_array = []
+
+
+def load_protein():
+    from model.models import db
+
+    query = """SELECT distinct product
+               FROM annotation"""
+    query2 = sqlalchemy.text(query)
+    res = db.engine.execute(query2).fetchall()
+
+    for row in res:
+        row_dict = dict(row)
+        if row_dict['product'] is not None:
+            protein_array.append(row_dict['product'])
 
 
 def query_product_all_mat_view(field_name, filter_in, pair_query, type, panel, payload_epi_query):
