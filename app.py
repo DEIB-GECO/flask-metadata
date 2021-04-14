@@ -10,6 +10,7 @@ from apis import api_blueprint
 from model.models import db
 from utils import load_viruses
 from apis import epitope
+from apis.query import is_gisaid
 
 base_url = '/virusurf_gisaid/'
 api_url = base_url + 'api'
@@ -175,4 +176,5 @@ load_viruses()
 epitope.load_hosts()
 epitope.load_virus_id()
 epitope.load_host_id()
-epitope.load_protein()
+if is_gisaid:
+    epitope.load_protein()
