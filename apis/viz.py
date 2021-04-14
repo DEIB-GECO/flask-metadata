@@ -77,7 +77,7 @@ class VizSubmit(Resource):
 
         user_epitope_part = payload.get("userEpitope")
         if user_epitope_part is not None:
-            epitope_json_part = gen_epitope_part_json_virusviz(user_epitope_part)
+            epitope_json_part = gen_epitope_part_json_virusviz(user_epitope_part, filter_in=filter_in)
 
         epitope_without_variants_part = payload.get("epitope_without_variants")
         if epitope_without_variants_part is not None:
