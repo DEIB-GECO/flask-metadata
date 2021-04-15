@@ -455,7 +455,7 @@ class FieldValue(Resource):
                 query_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
                                                    payload_epi_query, "all")
 
-                query_table += f""" GROUP BY {epitope_id}
+                query_table += f""" GROUP BY epic.{epitope_id}
                                 ) as a"""
 
                 #ORDER BY {epitope_id}
@@ -464,7 +464,8 @@ class FieldValue(Resource):
 
                 query_table += """ JOIN epitope_fragment as epif ON epif.epitope_id = (SELECT min(epitope_id)
 												   FROM epitope as c
-													WHERE c.iedb_epitope_id = a.iedb_epitope_id)"""
+													WHERE c.iedb_epitope_id = a.iedb_epitope_id)
+									 JOIN epitope as epiepi on epiepi.iedb_epitope_id = a.iedb_epitope_id """
 
                 query_table += group_by_epi_query_table1(payload_table_headers)
 
@@ -538,10 +539,10 @@ class FieldValue(Resource):
 
         def async_function():
             try:
-                query_count_table = f"SELECT count(distinct {epitope_id}) as count_epi FROM {epitope_table} as epic"
+                query_count_table = f"SELECT count(distinct epic.{epitope_id}) as count_epi FROM {epitope_table} as epic"
 
                 query_count_table += add_where_epi_query(filter_in, pair_query, type, 'item_id', "", panel,
-                                                   payload_epi_query, "all")
+                                                   payload_epi_query, "")
 
                 query = sqlalchemy.text(query_count_table)
                 res = db.engine.execute(query).fetchall()
@@ -1007,46 +1008,46 @@ def gen_where_epi_query_field(payload_epi_query, field_name):
     for (column, values) in payload_epi_query.items():
         if column == f"{epitope_id}":
             where_part += add_and(i, field_name)
-            where_part += f" {epitope_id} = {values} "
+            where_part += f" epic.{epitope_id} = {values} "
         elif column == "startExt":
             if field_name != "position_range":
                 for value in values:
                     where_part += add_and( i, field_name)
-                    where_part += f" epi_frag_annotation_stop >= {value} "
+                    where_part += f" epic.epi_frag_annotation_stop >= {value} "
         elif column == "stopExt":
             if field_name != "position_range":
                 for value in values:
                     where_part += add_and( i, field_name)
-                    where_part += f" epi_frag_annotation_start <= {value} "
+                    where_part += f" epic.epi_frag_annotation_start <= {value} "
         elif column == "startExtVariant":
             if field_name != "variant_position_range":
                 for value in values:
                     where_part += add_and( i, field_name)
-                    where_part += f" start_aa_original >= {value} "
+                    where_part += f" epic.start_aa_original >= {value} "
         elif column == "stopExtVariant":
             if field_name != "variant_position_range":
                 for value in values:
                     where_part += add_and( i, field_name)
-                    where_part += f" start_aa_original <= {value} "
+                    where_part += f" epic.start_aa_original <= {value} "
         elif column == "startFreqExt" or column == "stopFreqExt":
             if column == "startFreqExt":
                 if field_name != "response_frequency":
                     for value in values:
                         if value is not None:
                             where_part += add_and( i, field_name)
-                            where_part += f" response_frequency_pos >= {value} "
+                            where_part += f" epic.response_frequency_pos >= {value} "
                         else:
                             where_part += add_and( i, field_name)
-                            where_part += f" response_frequency_pos IS NULL "
+                            where_part += f" epic.response_frequency_pos IS NULL "
             elif column == "stopFreqExt":
                 if field_name != "response_frequency":
                     for value in values:
                         if value is not None:
                             where_part += add_and( i, field_name)
-                            where_part += f" response_frequency_pos <= {value} "
+                            where_part += f" epic.response_frequency_pos <= {value} "
                         else:
                             where_part += add_and( i, field_name)
-                            where_part += f" response_frequency_pos IS NULL "
+                            where_part += f" epic.response_frequency_pos IS NULL "
         else:
             col = columns_dict_epi_all[column]
             #col = columns_dict_epi_sel[column]
@@ -1058,9 +1059,9 @@ def gen_where_epi_query_field(payload_epi_query, field_name):
                 for value in values:
                     if value is not None:
                         if column == "mhc_allele":
-                            where_part += f"( mhc_allele LIKE '%{value},%' or mhc_allele LIKE '%{value}')"
+                            where_part += f"( epic.mhc_allele LIKE '%{value},%' or epic.mhc_allele LIKE '%{value}')"
                         else:
-                            where_part += f" {column} ="
+                            where_part += f" epic.{column} ="
                             if column_type == 'str':
                                 where_part += f" '{value}' "
                             elif column_type == 'num':
@@ -1068,7 +1069,7 @@ def gen_where_epi_query_field(payload_epi_query, field_name):
                             else:
                                 where_part += ""
                     else:
-                        where_part += f" {column} IS NULL "
+                        where_part += f" epic.{column} IS NULL "
                     count = count - 1
                     if count > 0:
                         where_part += f" or "
@@ -1267,12 +1268,15 @@ def group_by_epi_query_table1(payload_table_headers):
                 or header == 'epi_frag_annotation_stop':
             group_by_part += ""
         else:
-            group_by_part += f"{header}"
+            if header == "external_link":
+                group_by_part += f""
+            else:
+                group_by_part += f"a.{header}"
 
         count = count - 1
         if count > 0:
             if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
-                    or header == 'epi_frag_annotation_stop':
+                    or header == 'epi_frag_annotation_stop' or header == "external_link":
                 group_by_part += ''
             else:
                 group_by_part += ', '
@@ -1292,10 +1296,10 @@ def gen_select_epi_query_table1(payload_table_headers, epitope_table):
                                         epi_frag_annotation_stop, {header})) as epi_fragment_all_information """
         elif header == 'epi_frag_annotation_start' or header == 'epi_frag_annotation_stop':
             table_select_part += ""
-        elif header == f'{epitope_id}':
-            table_select_part += f" a.{header} "
+        elif header == f'external_link':
+            table_select_part += f" array_agg(distinct {header}) as {header} "
         else:
-            table_select_part += f" {header} "
+            table_select_part += f" a.{header} "
 
         count = count - 1
         if count > 0:
@@ -1309,7 +1313,7 @@ def gen_select_epi_query_table1(payload_table_headers, epitope_table):
     count = len(payload_table_headers)
     for header in payload_table_headers:
         if header == f'{epitope_id}':
-            table_select_part += f"{epitope_id} "
+            table_select_part += f"epic.{epitope_id} "
         elif header == 'num_seq':
             table_select_part += f"count(distinct(seqc.sequence_id)) as {header}"
         elif header == 'num_var':
@@ -1322,16 +1326,19 @@ def gen_select_epi_query_table1(payload_table_headers, epitope_table):
             table_select_part += ""
         else:
             if header == "is_linear":
-                table_select_part += f" bool_and({header}) as {header} "
+                table_select_part += f" bool_and(epic.{header}) as {header} "
             elif header == "cell_type":
-                table_select_part += f" array_agg(distinct {header}) as {header} "
+                table_select_part += f" array_agg(distinct epic.{header}) as {header} "
             else:
-                table_select_part += f" max({header}) as {header} "
+                if header == "external_link":
+                    table_select_part += f""
+                else:
+                    table_select_part += f" max(epic.{header}) as {header} "
 
         count = count - 1
         if count > 0:
             if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
-                    or header == 'epi_frag_annotation_stop':
+                    or header == 'epi_frag_annotation_stop' or header == "external_link":
                 table_select_part += ''
             else:
                 table_select_part += ', '
@@ -1355,7 +1362,7 @@ def gen_select_epi_query_table_without_variants(payload_table_headers):
             table_select_part += f" {header} as {header} "
         elif header == f'is_linear':
             table_select_part += f" bool_and({header}) as {header} "
-        elif header == f'cell_type':
+        elif header == f'cell_type' or header == f'external_link':
             table_select_part += f" array_agg(distinct {header}) as {header} "
         else:
             table_select_part += f" max({header}) as {header} "

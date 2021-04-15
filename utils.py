@@ -491,7 +491,7 @@ def generate_where_sql(gcm_query, search_type, rel_distance=3, epitope_part=None
 
     if epitope_part is not None:
         where_part += f""" and it.sequence_id IN (SELECT distinct sequence_id 
-                        FROM {epitope_table}  {epitope_part}) """
+                        FROM {epitope_table} as epic  {epitope_part}) """
     return where_part
 
 
