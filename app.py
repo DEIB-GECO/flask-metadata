@@ -57,6 +57,8 @@ my_app = Flask(__name__)
 
 my_app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 my_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+my_app.config['SQLALCHEMY_POOL_SIZE'] = 1
+my_app.config['SQLALCHEMY_MAX_OVERFLOW'] = 30
 
 db.init_app(my_app)
 
