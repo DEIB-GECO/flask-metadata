@@ -233,6 +233,7 @@ class FieldValue(Resource):
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
     def post(self):
+        from . import viz
         payload = api.payload
         product = payload.get('product')
         payload_cmp_query = payload.get("compound_query")
@@ -242,6 +243,13 @@ class FieldValue(Resource):
         maxPos = 0
 
         if is_gisaid:
+            all_protein = viz.sars_cov_2_products['A']
+            for item in all_protein:
+                name = str(item.get('name'))
+                if name.lower() == product.lower():
+                    minPos = 1
+                    maxPos = (item.get('end') - item.get('start')) // 3
+
             res = [{'start': minPos, 'stop': maxPos}]
             res = {'values': res}
 

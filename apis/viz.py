@@ -18,6 +18,10 @@ from .epitope import gen_where_epi_query_field, gen_epitope_part_json_virusviz, 
 
 is_gisaid = False
 
+sars_cov_2_products = {
+    "A": []
+}
+
 api = Namespace('viz', description='Operations to perform viz using metadata')
 
 table_parser = api.parser()
