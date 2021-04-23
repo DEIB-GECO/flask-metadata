@@ -18,10 +18,6 @@ from .epitope import gen_where_epi_query_field, gen_epitope_part_json_virusviz, 
 
 is_gisaid = False
 
-sars_cov_2_products = {
-    "A": []
-}
-
 api = Namespace('viz', description='Operations to perform viz using metadata')
 
 table_parser = api.parser()
@@ -53,10 +49,15 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "## Please use */field/{field_name}* endpoint\n" + \
                   "------------------\n"
 
+
 with open("viz_schema.json", 'r') as f:
     schema = json.load(f)
 schema_names = {x["name"] for x in schema}
 
+
+sars_cov_2_products = {
+    "A": []
+}
 
 #############################SERVICES IMPLEMENTATION#############################################
 @api.route('/submit')
