@@ -299,11 +299,6 @@ sars_cov_2_products = {
     ]
 }
 
-
-sars_cov_2_products = {
-    "A": []
-}
-
 #############################SERVICES IMPLEMENTATION#############################################
 @api.route('/submit')
 @api.response(404, 'Results not found')  # TODO correct
