@@ -54,7 +54,9 @@ columns_epi_sel = [
 
 columns_epi_amino = [
     ColumnEpi('Variant Position Range', 'variant_position_range',
-              'Range of positions within the amino acid sequence of the gene, based on the reference sequence', 'num',
+              'Range of positions within the amino acid sequence of the gene, based on the reference sequence. '
+              'Insertions and deletions have arbitrary lengths. Substitutions only involve one amino acid residue. '
+              'Please search for one single substitution at a time.', 'num',
               True, False),
     ColumnEpi('Variant Type', 'variant_aa_type', 'Type of amino acid change that must appear in the epitopes (SUB = substitution, INS = insertion, DEL = deletion)', 'str', False, False),
     ColumnEpi('Original Aminoacid', 'sequence_aa_original', 'Affected amino acid sequence from the corresponding reference sequence of the chosen Virus', 'str', False, False),
@@ -190,7 +192,7 @@ class FieldValue(Resource):
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
 
-@api.route('/extremesPositionNewEpitope')
+@api.route('/extremesPositionNewEpitopeAminoacid')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
     def post(self):
@@ -225,6 +227,45 @@ class FieldValue(Resource):
         from app import executor_inner
         executor_inner.submit(async_function)
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
+
+
+@api.route('/extremesPositionNewEpitope')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        from . import viz
+        payload = api.payload
+        product = payload.get('product')
+        payload_cmp_query = payload.get("compound_query")
+        filter_in = payload_cmp_query.get("gcm")
+
+        minPos = 0
+        maxPos = 0
+
+        if is_gisaid:
+            all_protein = viz.sars_cov_2_products['A']
+            for item in all_protein:
+                name = str(item.get('name'))
+                if name.lower() == product.lower():
+                    minPos = 1
+                    maxPos = (item.get('end') - item.get('start')) // 3
+
+            res = [{'start': minPos, 'stop': maxPos}]
+            res = {'values': res}
+
+        else:
+            all_protein = taxon_name_dict[filter_in['taxon_name'][0].lower()]['a_products']
+            for item in all_protein:
+                name = str(item.get('name'))
+                if name.lower() == product.lower():
+                    minPos = 1
+                    maxPos = (item.get('end') - item.get('start')) // 3
+
+            res = [{'start': minPos, 'stop': maxPos}]
+            res = {'values': res}
+
+        return res
+
 
 
 @api.route('/epiFreqExtremes')
@@ -281,14 +322,17 @@ class FieldValue(Resource):
                     query_ex = """SELECT distinct 
                                     ("""
                     query_ex += field_name
-                    query_ex += f""") as label, count(distinct {epitope_id}) as item_count
+                    query_ex += f""") as label
                                 FROM {epitope_table} as epic"""
+
+                    #, count(distinct {epitope_id}) as item_count
 
                     query_ex += add_where_epi_query(filter_in, pair_query, type, 'item_id', "",
                                                     panel, payload_epi_query, field_name)
 
                     query_ex += """ group by label
-                    order by item_count desc, label asc"""
+                    order by label asc"""
+                    #item_count desc
 
                 if field_name == 'product':
                     query_ex = query_product_all_mat_view(field_name, filter_in, pair_query, type, panel, payload_epi_query)
@@ -300,31 +344,32 @@ class FieldValue(Resource):
                 res = db.engine.execute(query_ex_2).fetchall()
                 flask.current_app.logger.debug(query_ex_2)
 
-                if field_name == 'mhc_allele':
-                    list_separated_mhc_allele = []
-                    for row in res:
-                        all_mhc_allele = row['label']
-                        count_mhc_allele = row['item_count']
-                        if all_mhc_allele is not None:
-                            list_mhc_allele = list(all_mhc_allele.split(','))
-                            for item in list_mhc_allele:
-                                row_dict = {'label': item, 'count': count_mhc_allele}
-                                if not any(allele['label'] == item for allele in list_separated_mhc_allele):
-                                    list_separated_mhc_allele.append(row_dict)
-                                else:
-                                    for allele in list_separated_mhc_allele:
-                                        if allele['label'] == item:
-                                            allele['count'] = allele['count'] + count_mhc_allele
-                        else:
-                            list_mhc_allele = None
-                            row_dict = {'label': list_mhc_allele, 'count': count_mhc_allele}
-                            list_separated_mhc_allele.append(row_dict)
-
-                    list_separated_mhc_allele.sort(key=lambda s: s['count'], reverse=True)
-
-                    res = [{'value': allele['label'], 'count': allele['count']} for allele in list_separated_mhc_allele]
-                else:
-                    res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+                #if field_name == 'mhc_allele':
+                #    list_separated_mhc_allele = []
+                #    for row in res:
+                #        all_mhc_allele = row['label']
+                #        count_mhc_allele = row['item_count']
+                #        if all_mhc_allele is not None:
+                #            list_mhc_allele = list(all_mhc_allele.split(','))
+                #            for item in list_mhc_allele:
+                #                row_dict = {'label': item, 'count': count_mhc_allele}
+                #                if not any(allele['label'] == item for allele in list_separated_mhc_allele):
+                #                    list_separated_mhc_allele.append(row_dict)
+                #                else:
+                #                    for allele in list_separated_mhc_allele:
+                #                        if allele['label'] == item:
+                #                            allele['count'] = allele['count'] + count_mhc_allele
+                #        else:
+                #            list_mhc_allele = None
+                #            row_dict = {'label': list_mhc_allele, 'count': count_mhc_allele}
+                #            list_separated_mhc_allele.append(row_dict)
+                #
+                #    list_separated_mhc_allele.sort(key=lambda s: s['count'], reverse=True)
+                #
+                #    res = [{'value': allele['label'], 'count': allele['count']} for allele in list_separated_mhc_allele]
+                #else:
+                #    res = [{'value': row['label'], 'count': row['item_count']} for row in res]
+                res = [{'value': row['label']} for row in res]
                 res = {'values': res}
 
                 poll_cache.set_result(poll_id, res)
@@ -477,7 +522,32 @@ class FieldValue(Resource):
                 flask.current_app.logger.debug(query)
 
                 res = [{column: value for column, value in row.items()} for row in res]
-                res = {'values': res}
+
+                res2 = []
+                for row in res:
+                    new_row = row.copy()
+                    cell_type = []
+                    mhc_allele = []
+                    response_frequency_pos = []
+                    mhc_class = []
+                    assay_type = []
+                    for item in row:
+                        if item == 'all_array_info':
+                            to_iterate = row[item]
+                            for subitem in to_iterate:
+                                cell_type.append(subitem[0])
+                                mhc_allele.append(subitem[1])
+                                response_frequency_pos.append(subitem[2])
+                                mhc_class.append(subitem[3])
+                                assay_type.append(subitem[4])
+                                new_row['cell_type'] = cell_type
+                                new_row['mhc_allele'] = mhc_allele
+                                new_row['response_frequency_pos'] = response_frequency_pos
+                                new_row['mhc_class'] = mhc_class
+                                new_row['assay_type'] = assay_type
+                    res2.append(new_row)
+
+                res = {'values': res2}
 
                 poll_cache.set_result(poll_id, res)
             except Exception as e:
@@ -852,18 +922,39 @@ class FieldValue(Resource):
 
                 res = [{column: value for column, value in row.items()} for row in res]
 
+                res2 = []
                 for row in res:
+                    new_row = row.copy()
+                    cell_type = []
+                    mhc_allele = []
+                    response_frequency_pos = []
+                    mhc_class = []
+                    assay_type = []
                     for item in row:
                         if item == 'virus_id':
                             the_virus = virus_id_dict[row[item]]
                             taxon_name = the_virus["taxon_name"]
-                            row[item] = taxon_name
+                            new_row[item] = taxon_name
                         if item == 'host_id':
                             the_host = host_id_dict[row[item]]
                             host_taxon_name = the_host["host_taxon_name"]
-                            row[item] = host_taxon_name
+                            new_row[item] = host_taxon_name
+                        if item == 'all_array_info':
+                            to_iterate = row[item]
+                            for subitem in to_iterate:
+                                cell_type.append(subitem[0])
+                                mhc_allele.append(subitem[1])
+                                response_frequency_pos.append(subitem[2])
+                                mhc_class.append(subitem[3])
+                                assay_type.append(subitem[4])
+                                new_row['cell_type'] = cell_type
+                                new_row['mhc_allele'] = mhc_allele
+                                new_row['response_frequency_pos'] = response_frequency_pos
+                                new_row['mhc_class'] = mhc_class
+                                new_row['assay_type'] = assay_type
+                    res2.append(new_row)
 
-                res = {'values': res}
+                res = {'values': res2}
 
                 poll_cache.set_result(poll_id, res)
             except Exception as e:
@@ -1240,7 +1331,7 @@ def gen_select_epi_query_table(payload_table_headers, epitope_table=None):
             table_select_part += f"""sum(CASE
                                          WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
                                          ELSE 0
-                                    END) as {header}"""
+                                    END) / count(distinct epic.cell_type)  as {header}"""
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
             table_select_part += f"array_agg(distinct row(epi_fragment_id, " \
@@ -1268,15 +1359,20 @@ def group_by_epi_query_table1(payload_table_headers):
                 or header == 'epi_frag_annotation_stop':
             group_by_part += ""
         else:
-            if header == "external_link":
+            if header == "external_link" or header == f'mhc_allele' or header == f'response_frequency_pos' \
+                    or header == f'mhc_class' or header == f'assay_type':
                 group_by_part += f""
             else:
-                group_by_part += f"a.{header}"
+                if header == "cell_type":
+                    group_by_part += f" a.all_array_info "
+                else:
+                    group_by_part += f"a.{header}"
 
         count = count - 1
         if count > 0:
             if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
-                    or header == 'epi_frag_annotation_stop' or header == "external_link":
+                    or header == 'epi_frag_annotation_stop' or header == "external_link" or header == f'mhc_allele' \
+                    or header == f'response_frequency_pos' or header == f'mhc_class' or header == f'assay_type':
                 group_by_part += ''
             else:
                 group_by_part += ', '
@@ -1298,12 +1394,17 @@ def gen_select_epi_query_table1(payload_table_headers, epitope_table):
             table_select_part += ""
         elif header == f'external_link':
             table_select_part += f" array_agg(distinct {header}) as {header} "
+        elif header == f'cell_type':
+            table_select_part += f" a.all_array_info "
+        elif header == f'mhc_allele' or header == f'response_frequency_pos' or header == f'mhc_class' or header == f'assay_type':
+            table_select_part += ""
         else:
             table_select_part += f" a.{header} "
 
         count = count - 1
         if count > 0:
-            if header == 'epi_frag_annotation_start' or header == 'epi_frag_annotation_stop':
+            if header == 'epi_frag_annotation_start' or header == 'epi_frag_annotation_stop' or header == f'mhc_allele' \
+                    or header == f'response_frequency_pos' or header == f'mhc_class' or header == f'assay_type':
                 table_select_part += ""
             else:
                 table_select_part += ', '
@@ -1320,17 +1421,19 @@ def gen_select_epi_query_table1(payload_table_headers, epitope_table):
             table_select_part += f"""sum(CASE
                                          WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
                                          ELSE 0
-                                    END) as {header}"""
+                                    END) / count(distinct epic.cell_type)  as {header}"""
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
             table_select_part += ""
         else:
             if header == "is_linear":
                 table_select_part += f" bool_and(epic.{header}) as {header} "
-            elif header == "cell_type":
-                table_select_part += f" array_agg(distinct epic.{header}) as {header} "
+            elif header == f'cell_type':
+                table_select_part += f"array_agg(distinct array[epic.cell_type, epic.mhc_allele," \
+                                     f" epic.response_frequency_pos::text, epic.mhc_class, epic.assay_type]) " \
+                                     f"as all_array_info"
             else:
-                if header == "external_link":
+                if header == "external_link" or header == f'mhc_allele' or header == f'response_frequency_pos' or header == f'mhc_class' or header == f'assay_type':
                     table_select_part += f""
                 else:
                     table_select_part += f" max(epic.{header}) as {header} "
@@ -1338,7 +1441,8 @@ def gen_select_epi_query_table1(payload_table_headers, epitope_table):
         count = count - 1
         if count > 0:
             if header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
-                    or header == 'epi_frag_annotation_stop' or header == "external_link":
+                    or header == 'epi_frag_annotation_stop' or header == "external_link" or header == f'mhc_allele' \
+                    or header == f'response_frequency_pos' or header == f'mhc_class' or header == f'assay_type':
                 table_select_part += ''
             else:
                 table_select_part += ', '
@@ -1362,14 +1466,22 @@ def gen_select_epi_query_table_without_variants(payload_table_headers):
             table_select_part += f" {header} as {header} "
         elif header == f'is_linear':
             table_select_part += f" bool_and({header}) as {header} "
-        elif header == f'cell_type' or header == f'external_link':
+        elif header == f'external_link':
             table_select_part += f" array_agg(distinct {header}) as {header} "
+        elif header == f'cell_type':
+            table_select_part += f"array_agg(distinct array[cell_type, mhc_allele," \
+                                 f" response_frequency_pos::text, mhc_class, assay_type]) as all_array_info"
+        elif header == f'mhc_allele' or header == f'response_frequency_pos' or header == f'mhc_class' or header == f'assay_type':
+            table_select_part += f""
         else:
             table_select_part += f" max({header}) as {header} "
 
         count = count - 1
         if count > 0:
-            table_select_part += ', '
+            if header == f'mhc_allele' or header == f'response_frequency_pos' or header == f'mhc_class' or header == f'assay_type':
+                table_select_part += ''
+            else:
+                table_select_part += ', '
 
     table_select_part += f" FROM epitope as epi join epitope_fragment as epif on epi.epitope_id = epif.epitope_id join epitope_fragment as epif2 on epi.epitope_id = epif2.epitope_id "
 

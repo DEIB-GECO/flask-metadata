@@ -50,6 +50,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
                   "## Please use */field/{field_name}* endpoint\n" + \
                   "------------------\n"
 
+
 with open("viz_schema.json", 'r') as f:
     schema = json.load(f)
 schema_names = {x["name"] for x in schema}
@@ -298,6 +299,10 @@ sars_cov_2_products = {
     ]
 }
 
+
+sars_cov_2_products = {
+    "A": []
+}
 
 #############################SERVICES IMPLEMENTATION#############################################
 @api.route('/submit')
