@@ -45,9 +45,9 @@ class ColumnEpi:
 
 columns_epi_sel = [
     ColumnEpi('Protein Name', 'product', 'Name of the protein where the epitopes must be located', 'str', False, False),
-    ColumnEpi('Assay (T/B Cell)', 'cell_type', 'Assay type of the epitopes', 'str', False, False),
+    ColumnEpi('Assay', 'cell_type', 'Assay type of the epitopes', 'str', False, False),
     ColumnEpi('HLA restriction', 'mhc_allele', 'HLA restriction that must be related to the epitopes', 'str', False, False),
-    ColumnEpi('Linear / Non Linear', 'is_linear', 'Information related to the type of the epitopes (linear or conformational)', 'str', False, False),
+    ColumnEpi('Is Linear', 'is_linear', 'Information related to the type of the epitopes (linear or conformational)', 'str', False, False),
     ColumnEpi('Response Freq', 'response_frequency', 'Range in which the response frequency of the epitopes must be included', 'num', False, True),
     ColumnEpi('Position Range', 'position_range', 'Range in which the epitopes must have at least a part included', 'num', True, False),
 ]
