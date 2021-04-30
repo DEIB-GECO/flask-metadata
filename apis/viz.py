@@ -309,6 +309,8 @@ class VizSubmit(Resource):
     def post(self):
         '''For the posted query, it retrieves a list of items with the related GCM metadata'''
 
+        api.abort(404)
+
         payload = api.payload
         args = table_parser.parse_args()
         is_control = args.get('is_control')
