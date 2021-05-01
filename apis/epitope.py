@@ -48,8 +48,10 @@ columns_epi_sel = [
     ColumnEpi('Assay', 'cell_type', 'Assay type of the epitopes', 'str', False, False),
     ColumnEpi('HLA restriction', 'mhc_allele', 'HLA restriction that must be related to the epitopes', 'str', False, False),
     ColumnEpi('Is Linear', 'is_linear', 'Information related to the type of the epitopes (linear or conformational)', 'str', False, False),
-    ColumnEpi('Response Freq', 'response_frequency', 'Range in which the response frequency of the epitopes must be included', 'num', False, True),
+    ColumnEpi('Response Frequency', 'response_frequency', 'info resp freq', 'num', False, True),
     ColumnEpi('Position Range', 'position_range', 'Range in which the epitopes must have at least a part included', 'num', True, False),
+    ColumnEpi('Epitope IEDB ID', 'iedb_epitope_id', 'IEDB ID of the epitope', 'num', False, False),
+    #ColumnEpi('Assay Type', 'assay_type', 'Assay type', 'str', False, False),
 ]
 
 columns_epi_amino = [
@@ -1097,7 +1099,7 @@ def gen_where_epi_query_field(payload_epi_query, field_name):
     i = 0
 
     for (column, values) in payload_epi_query.items():
-        if column == f"{epitope_id}":
+        if column == f"{epitope_id}" and not isinstance(values, list):
             where_part += add_and(i, field_name)
             where_part += f" epic.{epitope_id} = {values} "
         elif column == "startExt":
@@ -1180,7 +1182,8 @@ def gen_where_epi_query_field_without_variants(payload_epi_query, field_name):
     i = 0
 
     for (column, values) in payload_epi_query.items():
-        if column == f"{epitope_id}":
+        #and not isinstance(values, list)
+        if column == f"{epitope_id}" and not isinstance(values, list):
             where_part += add_and(i, field_name)
             where_part += f" {epitope_id} = {values} "
         elif column == "startExt":
