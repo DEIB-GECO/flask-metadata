@@ -50,7 +50,7 @@ columns_epi_sel = [
     ColumnEpi('Is Linear', 'is_linear', 'Information related to the type of the epitopes (linear or conformational)', 'str', False, False),
     ColumnEpi('Response Frequency', 'response_frequency', 'info resp freq', 'num', False, True),
     ColumnEpi('Position Range', 'position_range', 'Range in which the epitopes must have at least a part included', 'num', True, False),
-    ColumnEpi('IEDB epitope ID', 'iedb_epitope_id', 'IEDB ID of the epitope', 'num', False, False),
+    ColumnEpi('Epitope IEDB ID', 'iedb_epitope_id', 'IEDB ID of the epitope', 'num', False, False),
     #ColumnEpi('Assay Type', 'assay_type', 'Assay type', 'str', False, False),
 ]
 
