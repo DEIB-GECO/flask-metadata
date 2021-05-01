@@ -9,6 +9,7 @@ from flask_restplus import Namespace, Resource, fields, inputs, marshal
 from model.models import db
 from utils import sql_query_generator, log_query
 from .epitope import gen_where_epi_query_field, getMatView
+from .poll import poll_cache
 
 is_gisaid = False
 
@@ -288,6 +289,83 @@ class QueryCountDataset(Resource):
             res = db.engine.execute(sqlalchemy.text(query)).fetchall()
             flask.current_app.logger.debug('got results')
             return res[0][0]
+
+        if is_control and pairs:
+            result_inner = run_query()
+            is_aa = ('aa' in [pairs[p]['type_query'] for p in pairs])
+            # add is_aa to the count
+            pairs = {}
+            result_inner2 = run_query(is_aa=is_aa)
+            return_result = result_inner2 - result_inner
+        else:
+            result_inner = run_query()
+            return_result = result_inner
+
+        return return_result
+
+
+@api.route('/countPoll')
+@api.response(404, 'Results not found')
+class QueryCountDataset(Resource):
+    @api.doc('return_query_result1', params={'body': body_desc,
+                                             'agg': agg_desc,
+                                             'annotation_type': 'No description',
+                                             'rel_distance': rel_distance_desc})
+    @api.expect(count_parser)
+    def post(self):
+        '''For the posted query, it retrieves the total number of item rows'''
+        payload = api.payload
+        log_query('query/count', '', payload)
+
+        filter_in = payload.get('gcm')
+        q_type = payload.get('type')
+        pairs = payload.get('kv')
+        args = count_parser.parse_args()
+        agg = args['agg']
+        rel_distance = args['rel_distance']
+        annotation_type = args.get('annotation_type')
+
+        is_control = args.get('is_control')
+
+        epitope_part = payload.get("epitope")
+
+        if epitope_part is not None:
+            epitope_table = getMatView(filter_in['taxon_name'], epitope_part['product'])
+            field_name = "toTable"
+            epitope_part = gen_where_epi_query_field(epitope_part, field_name)
+        else:
+            epitope_table = None
+
+        def run_query(is_aa=False):
+            poll_id = poll_cache.create_dict_element()
+            def async_function():
+                try:
+                    if is_aa and not is_gisaid:
+                        exclude_aa_seq_null = f" it.sequence_id  in (SELECT sequence_id FROM annotation_sequence) "
+                    else:
+                        exclude_aa_seq_null = None
+                    query = "select count(*) "
+                    query += "from ("
+
+                    sub_query = sql_query_generator(filter_in, q_type, pairs, 'table', agg=agg, limit=None, offset=None,
+                                                    rel_distance=rel_distance, annotation_type=annotation_type,
+                                                    external_where_conditions=[exclude_aa_seq_null], epitope_part=epitope_part,
+                                                    epitope_table=epitope_table)
+
+                    query += sub_query + ") as a "
+                    flask.current_app.logger.debug(query)
+
+                    res = db.engine.execute(sqlalchemy.text(query)).fetchall()
+                    flask.current_app.logger.debug('got results')
+
+                    poll_cache.set_result(poll_id, res[0][0])
+                except Exception as e:
+                    poll_cache.set_result(poll_id, None)
+                    raise e
+
+            from app import executor_inner
+            executor_inner.submit(async_function)
+            return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
         if is_control and pairs:
             result_inner = run_query()
