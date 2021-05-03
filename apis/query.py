@@ -43,6 +43,7 @@ table_parser.add_argument('is_control', type=inputs.boolean, default=False)
 table_parser.add_argument('download_file_format', type=str, default="fasta")
 table_parser.add_argument('download_type', type=str, default="nuc")
 table_parser.add_argument('gisaid_only', type=inputs.boolean, default=False)
+table_parser.add_argument('accession_ids', type=str, default=None)
 
 ################################API IMPLEMENTATION###########################################
 
@@ -118,7 +119,7 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 #############################Query Function#############################################
 def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-               limit, offset, is_control, gisaid_only, numElems=None, epitope_part=None, epitope_table=None):
+               limit, offset, is_control, gisaid_only, numElems=None, epitope_part=None, epitope_table=None, download_accession_ids=None):
     def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
         if exclude_accession_list:
             exclude_accession_list = list(f"{x}" for x in exclude_accession_list)
@@ -144,7 +145,7 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
                                     order_col=orderCol, order_dir=orderDir, rel_distance=rel_distance,
                                     annotation_type=annotation_type,
                                     external_where_conditions=[exclude_accession_where, exclude_gisaid_where, exclude_aa_seq_null],
-                                    epitope_part=epitope_part, epitope_table=epitope_table)
+                                    epitope_part=epitope_part, epitope_table=epitope_table, download_accession_ids=download_accession_ids)
 
         pre_query = db.engine.execute(sqlalchemy.text(query))
         # return_columns = set(pre_query._metadata.keys)
@@ -217,6 +218,8 @@ class Query(Resource):
         is_control = args.get('is_control')
         gisaid_only = args.get('gisaid_only')
 
+        download_accession_ids = args.get('accession_ids')
+
         if numPage and numElems:
             offset = (numPage - 1) * numElems
             limit = numElems
@@ -239,7 +242,8 @@ class Query(Resource):
             epitope_table = None
 
         return_result = list(full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-                                   limit, offset, is_control, gisaid_only, numElems, epitope_part=epitope_part, epitope_table=epitope_table))
+                                   limit, offset, is_control, gisaid_only, numElems, epitope_part=epitope_part,
+                                        epitope_table=epitope_table, download_accession_ids=download_accession_ids))
         return return_result
 
 

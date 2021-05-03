@@ -252,7 +252,8 @@ def pair_query_resolver(pair_query, pair_key):
 
 def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=False, field_selected="", limit=1000,
                         offset=0, order_col="accession_id", order_dir="ASC", rel_distance=3, panel=None,
-                        annotation_type=None, external_where_conditions=[], epitope_part=None, epitope_table=None):
+                        annotation_type=None, external_where_conditions=[], epitope_part=None, epitope_table=None,
+                        download_accession_ids=None):
     # TODO VIRUS PAIRS
     # pairs = generate_where_pairs(pairs_query)
     # pairs = generate_where_pairs({})
@@ -378,11 +379,15 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
             select_columns = (key for key, value in columns_dict_item.items() if value.table_name != 'AnnotationView')
 
         all_columns = "it.sequence_id, " + ', '.join(select_columns) + " "
-        select_part = "SELECT " + all_columns
-        if pair_count:
-            select_part += ',' + ','.join(pair_count)
+        if download_accession_ids is not None:
+            select_part = "SELECT accession_id "
+            group_by_part = " GROUP BY accession_id "
+        else:
+            select_part = "SELECT " + all_columns
+            if pair_count:
+                select_part += ',' + ','.join(pair_count)
 
-        group_by_part = " GROUP BY " + all_columns
+            group_by_part = " GROUP BY " + all_columns
         del all_columns
 
         if limit:
