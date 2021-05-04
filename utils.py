@@ -401,6 +401,9 @@ def sql_query_generator(gcm_query, search_type, pairs_query, return_type, agg=Fa
     elif return_type == 'allInfo':
         select_part = " SELECT * "
 
+    elif return_type == 'allInfoCustomEpi':
+        select_part = " SELECT distinct it.*, ex.*, sp.*, hs.*, v.*, annaa_0.*, aa_varaa_0.* "
+
     elif return_type == 'field_value':
         # TODO add new....
         if columns_dict_all[field_selected].table_name == 'Annotation':
