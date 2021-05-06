@@ -1028,6 +1028,177 @@ class FieldValue(Resource):
         return res
 
 
+@api.route('/totalMutationStatistics')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        payload = api.payload
+
+        epitope_id = payload.get("epitopeID")
+        payload_epi_query = payload.get("epi_query")
+        payload_cmp_query = payload.get("compound_query")
+        filter_in = payload_cmp_query.get("gcm")
+        type = payload_cmp_query.get("type")
+        pair_query = payload_cmp_query.get("kv")
+        panel = payload_cmp_query.get("panel")
+        payload_parameters = payload.get("parameters")
+        first_parameter = payload_parameters.get("firstParameter")
+        second_parameter = payload_parameters.get("secondParameter")
+
+        if epitope_id is not None:
+            epitope_table = getMatView(filter_in['taxon_name'], payload_epi_query['product'])
+
+        poll_id = poll_cache.create_dict_element()
+
+        def async_function():
+            try:
+
+                first_select_part = ""
+                first_select_part += " SELECT "
+                for item in [first_parameter, second_parameter]:
+                    if item is not None:
+                        if item == "Collection date as month":
+                            first_select_part += " col_date "
+                        elif item == "Collection date as year":
+                            first_select_part += " col_date "
+                        elif item == "Lineage":
+                            first_select_part += " lineage "
+                        elif item == "Clade":
+                            first_select_part += " clade "
+                        elif item == "Country":
+                            first_select_part += " country "
+                        elif item == "Region":
+                            first_select_part += " region "
+                        elif item == "Continent":
+                            first_select_part += " geo_group "
+                        first_select_part += ", "
+                first_select_part += " array_agg((start_aa_original, sequence_aa_original, " \
+                                     "sequence_aa_alternative, num_var) order by (start_aa_original, " \
+                                     "sequence_aa_original, sequence_aa_alternative, num_var)) as all_info "
+
+                first_select_part += " FROM ( "
+
+                second_select_part = ""
+                second_select_part += " SELECT "
+                for item in [first_parameter, second_parameter]:
+                    if item is not None:
+                        if item == "Collection date as month":
+                            second_select_part += " TO_DATE(REPLACE(collection_date, '-', '/'), 'YY-MM')::text as col_date "
+                        elif item == "Collection date as year":
+                            second_select_part += " TO_DATE(REPLACE(collection_date, '-', '/'), 'YY')::text as col_date "
+                        elif item == "Lineage":
+                            second_select_part += " lineage "
+                        elif item == "Clade":
+                            second_select_part += " clade "
+                        elif item == "Country":
+                            second_select_part += " country "
+                        elif item == "Region":
+                            second_select_part += " region "
+                        elif item == "Continent":
+                            second_select_part += " geo_group "
+                        second_select_part += ", "
+
+                second_select_part += " start_aa_original, sequence_aa_original, sequence_aa_alternative, " \
+                                       "count(*) as num_var "
+
+                if epitope_id is not None:
+                    second_select_part += f" FROM {epitope_table} AS epic "
+
+                    where_part_final = ""
+                    where_part_final += f""" JOIN ( """
+                    query_seq_sel = sql_query_generator(filter_in, pairs_query=pair_query, search_type=type,
+                                                        return_type="allInfo", field_selected="", panel=panel)
+                    where_part_final += query_seq_sel
+                    where_part_final += f""" ) as seqc ON epic.sequence_id = seqc.sequence_id """
+
+
+                    the_virus = taxon_name_dict[filter_in['taxon_name'][0].lower()]
+                    taxon_id = the_virus["taxon_id"]
+                    the_host = host_taxon_name_dict[filter_in['host_taxon_name'][0].lower()]
+                    host_taxon_id = the_host["host_taxon_id"]
+
+                    where_part_epitope = " WHERE "
+                    where_part_epitope += f""" epic.taxon_id = {taxon_id} 
+                                    and epic.host_taxon_id = {host_taxon_id} 
+                                    and epic.iedb_epitope_id = {epitope_id}"""
+                else:
+                    second_select_part += f" FROM ( "
+                    where_part_final = ""
+                    query_seq_sel = sql_query_generator(filter_in, pairs_query=pair_query, search_type=type,
+                                                        return_type="allInfoCustomEpi", field_selected="", panel=panel)
+                    where_part_final += query_seq_sel
+                    where_part_final += " ) as A "
+
+
+                group_by_part = " GROUP BY "
+                for item in [first_parameter, second_parameter]:
+                    if item is not None:
+                        if item == "Collection date as month":
+                            group_by_part += " col_date "
+                        elif item == "Collection date as year":
+                            group_by_part += " col_date "
+                        elif item == "Lineage":
+                            group_by_part += " lineage "
+                        elif item == "Clade":
+                            group_by_part += " clade "
+                        elif item == "Country":
+                            group_by_part += " country "
+                        elif item == "Region":
+                            group_by_part += " region "
+                        elif item == "Continent":
+                            group_by_part += " geo_group "
+                        group_by_part += ", "
+
+                group_by_part += " start_aa_original, sequence_aa_original, sequence_aa_alternative ) as b "
+
+                group_by_part_2 = " GROUP BY "
+                i = 0
+                for item in [first_parameter, second_parameter]:
+                    if item is not None:
+                        if i > 0:
+                            group_by_part_2 += " , "
+                        if item == "Collection date as month":
+                            group_by_part_2 += " col_date "
+                        elif item == "Collection date as year":
+                            group_by_part_2 += " col_date "
+                        elif item == "Lineage":
+                            group_by_part_2 += " lineage "
+                        elif item == "Clade":
+                            group_by_part_2 += " clade "
+                        elif item == "Country":
+                            group_by_part_2 += " country "
+                        elif item == "Region":
+                            group_by_part_2 += " region "
+                        elif item == "Continent":
+                            group_by_part_2 += " geo_group "
+                        i = i + 1
+
+                query_table = first_select_part + second_select_part + where_part_final
+                if epitope_id is not None:
+                    query_table += where_part_epitope
+
+                query_table += group_by_part + group_by_part_2
+
+                query = sqlalchemy.text(query_table)
+
+                res = db.engine.execute(query).fetchall()
+                flask.current_app.logger.debug(query)
+
+                res = [{column: value for column, value in row.items()} for row in res]
+                res = {'values': res}
+
+                #return res
+
+                poll_cache.set_result(poll_id, res)
+            except Exception as e:
+                poll_cache.set_result(poll_id, None)
+                raise e
+
+        from app import executor_inner
+        executor_inner.submit(async_function)
+        return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
+
+
 ############
 
 
