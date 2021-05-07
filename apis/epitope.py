@@ -1151,10 +1151,12 @@ class FieldValue(Resource):
 
                 group_by_part += " start_aa_original, sequence_aa_original, sequence_aa_alternative ) as b "
 
-                group_by_part_2 = " GROUP BY "
+                group_by_part_2 = ""
                 i = 0
                 for item in [first_parameter, second_parameter]:
                     if item is not None:
+                        if i == 0:
+                            group_by_part_2 += " GROUP BY "
                         if i > 0:
                             group_by_part_2 += " , "
                         if item == "Collection date as month":

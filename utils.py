@@ -656,6 +656,7 @@ def load_viruses():
             FROM virus 
             NATURAL JOIN sequence
             NATURAL JOIN annotation
+            NATURAL LEFT JOIN annotation_sequence
             WHERE is_reference
             ORDER BY virus_id, gene_name
         """
@@ -673,7 +674,7 @@ def load_viruses():
                 "start": row_dict["start"],
                 "end": row_dict["stop"],
                 "row": 0,
-                # "sequence": row_dict["aminoacid_sequence"],
+                "sequence": row_dict["aminoacid_sequence"],
             }
             if taxon_id in product_colors and product in product_colors[taxon_id]:
                 a_new_product.update({'color': product_colors[taxon_id][product]})
