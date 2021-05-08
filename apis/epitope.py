@@ -251,6 +251,8 @@ class FieldValue(Resource):
                 if name.lower() == product.lower():
                     minPos = 1
                     maxPos = (item.get('end') - item.get('start')) // 3
+                    if "nsp" in name.lower():
+                        maxPos = maxPos + 1
 
             res = [{'start': minPos, 'stop': maxPos}]
             res = {'values': res}
@@ -262,12 +264,65 @@ class FieldValue(Resource):
                 if name.lower() == product.lower():
                     minPos = 1
                     maxPos = (item.get('end') - item.get('start')) // 3
+                    if "nsp" in name.lower():
+                        maxPos = maxPos + 1
 
             res = [{'start': minPos, 'stop': maxPos}]
             res = {'values': res}
 
         return res
 
+
+@api.route('/sequenceAminoacidNewEpitope')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+        from . import viz
+        payload = api.payload
+        product = payload.get('product')
+        payload_cmp_query = payload.get("compound_query")
+        filter_in = payload_cmp_query.get("gcm")
+        position_ranges = payload.get('position_ranges')
+
+        aa_sequence = ""
+
+        if is_gisaid:
+            all_protein = viz.sars_cov_2_products['A']
+            for item in all_protein:
+                name = str(item.get('name'))
+                if name.lower() == product.lower():
+                    aa_sequence = item.get('sequence')
+
+        else:
+            all_protein = taxon_name_dict[filter_in['taxon_name'][0].lower()]['a_products']
+            for item in all_protein:
+                name = str(item.get('name'))
+                if name.lower() == product.lower():
+                    aa_sequence = item.get('sequence')
+
+        position_ranges = position_ranges.replace('\n', '')
+        all_position = list(position_ranges.split(','))
+        length = len(all_position)
+        j = 0
+        arrSequences = []
+        while j < length:
+            position_j = all_position[j]
+            position_j = list(position_j.split('-'))
+
+            single_sequence = aa_sequence[int(position_j[0])-1: int(position_j[1])]
+            j = j + 1
+            arrSequences.append(single_sequence)
+
+        length2 = len(arrSequences)
+        k = 0
+        res = ""
+        while k < length2:
+            res += arrSequences[k]
+            k = k + 1
+            if k != length2:
+                res += ",\n"
+
+        return res
 
 
 @api.route('/epiFreqExtremes')
@@ -1098,8 +1153,12 @@ class FieldValue(Resource):
                             second_select_part += " geo_group "
                         second_select_part += ", "
 
-                second_select_part += " start_aa_original, sequence_aa_original, sequence_aa_alternative, " \
-                                       "count(*) as num_var "
+                if epitope_id is not None:
+                    second_select_part += " start_aa_original, sequence_aa_original, sequence_aa_alternative, " \
+                                       "count(*) / count(DISTINCT epic.cell_type) as num_var "
+                else:
+                    second_select_part += " start_aa_original, sequence_aa_original, sequence_aa_alternative, " \
+                                          "count(*) as num_var "
 
                 if epitope_id is not None:
                     second_select_part += f" FROM {epitope_table} AS epic "
