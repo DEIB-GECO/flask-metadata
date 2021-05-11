@@ -729,8 +729,9 @@ class FieldValue(Resource):
         pair_query = payload.get("kv")
         panel = payload.get("panel")
 
-        query_count_variant = """SELECT sum(variant_aa_length) as num_var
+        query_count_variant = """SELECT count(variant_aa_length) as num_var
                                     FROM ( """
+                            #"""SELECT sum(variant_aa_length) as num_var
 
         query_count_variant += sql_query_generator(filter_in, pairs_query=pair_query, search_type=type,
                                 return_type="count_variants", field_selected="", panel=panel)
@@ -1564,9 +1565,10 @@ def gen_select_epi_query_table(payload_table_headers, epitope_table=None):
             table_select_part += f"count(distinct(seqc.sequence_id)) as {header}"
         elif header == 'num_var':
             table_select_part += f"""sum(CASE
-                                         WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
+                                         WHEN epic.sequence_id = seqc.sequence_id THEN 1
                                          ELSE 0
                                     END) / count(distinct epic.cell_type)  as {header}"""
+                                    # WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
             table_select_part += f"array_agg(distinct row(epi_fragment_id, " \
@@ -1654,9 +1656,10 @@ def gen_select_epi_query_table1(payload_table_headers, epitope_table):
             table_select_part += f"count(distinct(seqc.sequence_id)) as {header}"
         elif header == 'num_var':
             table_select_part += f"""sum(CASE
-                                         WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
+                                         WHEN epic.sequence_id = seqc.sequence_id THEN 1
                                          ELSE 0
                                     END) / count(distinct epic.cell_type)  as {header}"""
+                                    # WHEN epic.sequence_id = seqc.sequence_id THEN variant_aa_length
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
             table_select_part += ""
@@ -1733,7 +1736,8 @@ def gen_select_epi_query_table2(payload_table_headers, epitope_table=None):
         elif header == 'num_seq':
             table_select_part += f"count(distinct(sequence_id)) as {header}"
         elif header == 'num_var':
-            table_select_part += f"sum(variant_aa_length ) as {header}"
+            table_select_part += f"count(variant_aa_length ) as {header}"
+                            # "sum(variant_aa_length ) as {header}"
         elif header == 'epi_fragment_sequence' or header == 'epi_frag_annotation_start' \
                 or header == 'epi_frag_annotation_stop':
             table_select_part += ""
