@@ -3,8 +3,8 @@ import datetime
 
 import flask
 import sqlalchemy
-import tqdm as tqdm
-import pandas as pd
+#import tqdm as tqdm
+#import pandas as pd
 from flask import Response, json
 from flask_restplus import Namespace, Resource, fields, inputs
 
@@ -1277,7 +1277,8 @@ class FieldValue(Resource):
             list_pairs = [('c101', 'B.1'),
                           ('c103', 'B.1.243')]
 
-        for l in tqdm.tqdm(set([l for c, l in list_pairs])):
+        #for l in tqdm.tqdm(set([l for c, l in list_pairs])):
+        for l in set([l for c, l in list_pairs]):
             query = f"""
             SELECT sequence_id,  product, sequence_aa_original, start_aa_original, sequence_aa_alternative
             FROM sequence
@@ -1320,21 +1321,33 @@ class FieldValue(Resource):
     
             """
 
-        connection = db.engine.raw_connection()
-        cur = connection.cursor()
-        cur.execute(query)
-        rows_epitope = cur.fetchall()
-        colnames = [desc[0] for desc in cur.description]
+        #connection = db.engine.raw_connection()
+        #cur = connection.cursor()
+        #cur.execute(query)
+        #rows_epitope = cur.fetchall()
 
-        all_epitopes = pd.DataFrame(rows_epitope, columns=colnames)
-        epitopes = all_epitopes[all_epitopes.protein_name == "Spike (surface glycoprotein)"]
-        epitopes['number_of_pubs'] = epitopes.external_link.str.count(",") + 1
+        #colnames = [desc[0] for desc in cur.description]
+        #all_epitopes = pd.DataFrame(rows_epitope, columns=colnames)
+        #epitopes = all_epitopes[all_epitopes.protein_name == "Spike (surface glycoprotein)"]
+        #epitopes['number_of_pubs'] = epitopes.external_link.str.count(",") + 1
+        #epitopes['pubs'] = epitopes.external_link.str.split(",")
 
-        epitopes['pubs'] = epitopes.external_link.str.split(",")
+        #epitopes_dict = []
+        #for index, row in list(epitopes.iterrows()):
+        #    epitopes_dict.append(dict(row))
 
-        epitopes_dict = []
-        for index, row in list(epitopes.iterrows()):
-            epitopes_dict.append(dict(row))
+        res = db.engine.execute(query).fetchall()
+        res = [{column: value for column, value in row.items()} for row in res]
+        res2 = []
+        for row in res:
+            new_row = row.copy()
+            for item in row:
+                if item == "external_link":
+                    num = row[item].count(",") + 1
+                    new_row[item] = num
+                    new_row['pubs'] = row[item].split(",")
+            res2.append(new_row)
+        epitopes_dict = res2
 
         return epitopes_dict
 
