@@ -1340,13 +1340,18 @@ class FieldValue(Resource):
         res = [{column: value for column, value in row.items()} for row in res]
         res2 = []
         for row in res:
+            filter_protein = False
             new_row = row.copy()
             for item in row:
                 if item == "external_link":
                     num = row[item].count(",") + 1
                     new_row[item] = num
                     new_row['pubs'] = row[item].split(",")
-            res2.append(new_row)
+                if item == "protein_name":
+                    if row[item] == "Spike (surface glycoprotein)":
+                        filter_protein = True
+            if filter_protein:
+                res2.append(new_row)
         epitopes_dict = res2
 
         return epitopes_dict
