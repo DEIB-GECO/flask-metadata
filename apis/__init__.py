@@ -11,7 +11,7 @@ from .poll import api as poll_api
 from .viz import api as viz_api
 from .epitope import api as epitope_api
 
-enable_doc = True
+enable_doc = False
 
 api_blueprint = Blueprint('api', __name__)
 
