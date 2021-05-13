@@ -1302,7 +1302,7 @@ class FieldValue(Resource):
 @api.route('/allEpitopes')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
-    def post(self):
+    def get(self):
         query = f"""
                 SELECT DISTINCT 
                     iedb_epitope_id, 
