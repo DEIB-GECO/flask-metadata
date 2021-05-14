@@ -1,7 +1,10 @@
+import collections
 import datetime
 
 import flask
 import sqlalchemy
+#import tqdm as tqdm
+#import pandas as pd
 from flask import Response, json
 from flask_restplus import Namespace, Resource, fields, inputs
 
@@ -1261,7 +1264,99 @@ class FieldValue(Resource):
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
 
-############
+@api.route('/statisticsMutationsLineages')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        list_pairs = api.payload
+
+        lineage_stats = {}
+
+        if list_pairs is None:
+            list_pairs = [('c101', 'B.1'),
+                          ('c103', 'B.1.243')]
+
+        #for l in tqdm.tqdm(set([l for c, l in list_pairs])):
+        for l in set([l for c, l in list_pairs]):
+            query = f"""
+            SELECT sequence_id,  product, sequence_aa_original, start_aa_original, sequence_aa_alternative
+            FROM sequence
+            NATURAL JOIN annotation
+            NATURAL JOIN aminoacid_variant
+             WHERE lineage ilike '{l}'
+             AND  product = 'Spike (surface glycoprotein)'
+            ORDER BY sequence_id, product, start_aa_original
+
+            """
+
+            rows = db.engine.execute(query).fetchall()
+            ln = len(set([x[0] for x in rows]))
+
+            lineage_stats[l] = {x: y / ln for x, y in
+                            collections.Counter([(x[-2], x[-3], x[-1]) for x in rows]).items()}
+
+        return lineage_stats
+
+
+@api.route('/allEpitopes')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def get(self):
+        query = f"""
+                SELECT DISTINCT 
+                    iedb_epitope_id, 
+                    protein_name, 
+                    epitope_sequence,
+                    epi_annotation_start, 
+                    epi_annotation_stop, 
+                    external_link,
+                    is_linear,
+                    epi_frag_annotation_start,
+                    epi_frag_annotation_stop
+                FROM epitope
+                NATURAL JOIN epitope_fragment
+                WHERE virus_id =1 
+                AND host_id = 1
+    
+            """
+
+        #connection = db.engine.raw_connection()
+        #cur = connection.cursor()
+        #cur.execute(query)
+        #rows_epitope = cur.fetchall()
+
+        #colnames = [desc[0] for desc in cur.description]
+        #all_epitopes = pd.DataFrame(rows_epitope, columns=colnames)
+        #epitopes = all_epitopes[all_epitopes.protein_name == "Spike (surface glycoprotein)"]
+        #epitopes['number_of_pubs'] = epitopes.external_link.str.count(",") + 1
+        #epitopes['pubs'] = epitopes.external_link.str.split(",")
+
+        #epitopes_dict = []
+        #for index, row in list(epitopes.iterrows()):
+        #    epitopes_dict.append(dict(row))
+
+        res = db.engine.execute(query).fetchall()
+        res = [{column: value for column, value in row.items()} for row in res]
+        res2 = []
+        for row in res:
+            filter_protein = False
+            new_row = row.copy()
+            for item in row:
+                if item == "external_link":
+                    num = row[item].count(",") + 1
+                    new_row[item] = num
+                    new_row['pubs'] = row[item].split(",")
+                if item == "protein_name":
+                    if row[item] == "Spike (surface glycoprotein)":
+                        filter_protein = True
+            if filter_protein:
+                res2.append(new_row)
+        epitopes_dict = res2
+
+        return epitopes_dict
+
+    ############
 
 
 ############ FUNZIONI
