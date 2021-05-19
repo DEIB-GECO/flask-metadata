@@ -1299,6 +1299,67 @@ class FieldValue(Resource):
         return lineage_stats
 
 
+@api.route('/statisticsMutationsLineagesGET')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def get(self):
+
+        query_lin_count = f"""
+        SELECT lineage, count(*) as total
+        FROM sequence
+        WHERE virus_id = 1
+        GROUP BY lineage
+        """
+
+        res_lin_count = db.engine.execute(query_lin_count).fetchall()
+        flask.current_app.logger.debug(query_lin_count)
+
+        lin_dict = {}
+        for row in res_lin_count:
+            row_dict = dict(row)
+            if row_dict['lineage'] is not None:
+                lineage = row_dict['lineage']
+            else:
+                lineage = None
+            lin_dict[lineage] = row_dict
+
+        # res_lin_count = [{column: value for column, value in row.items()} for row in res_lin_count]
+
+        query_all = f"""
+        SELECT lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative, count(*) as total
+        FROM sequence
+        NATURAL JOIN annotation
+        NATURAL JOIN aminoacid_variant
+        WHERE virus_id = 1
+        GROUP BY lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative
+        ORDER BY start_aa_original asc
+        """
+
+        res_all = db.engine.execute(query_all).fetchall()
+        flask.current_app.logger.debug(query_all)
+
+        res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+        lineage_stats = {}
+        for row in res_all:
+            for item in row:
+                new_row = {}
+                if row['lineage'] in lineage_stats:
+                    if item == "total":
+                        line = lineage_stats[row['lineage']]
+                        name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'], row['product'])
+                        denominator = lin_dict[row['lineage']]
+                        line[name] = row[item] / denominator['total']
+                else:
+                    if item == "total":
+                        name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'], row['product'])
+                        denominator = lin_dict[row['lineage']]
+                        new_row[name] = row[item] / denominator['total']
+                    lineage_stats[row['lineage']] = new_row
+
+        return lineage_stats
+
+
 @api.route('/allEpitopes')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
