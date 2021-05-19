@@ -176,5 +176,7 @@ load_viruses()
 epitope.load_hosts()
 epitope.load_virus_id()
 epitope.load_host_id()
+epitope.create_lineage_stats_dict()
+epitope.create_all_epitope_dict()
 if is_gisaid:
     epitope.load_protein()

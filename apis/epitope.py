@@ -1304,118 +1304,133 @@ class FieldValue(Resource):
 class FieldValue(Resource):
     def get(self):
 
-        query_lin_count = f"""
-        SELECT lineage, count(*) as total
-        FROM sequence
-        WHERE virus_id = 1
-        GROUP BY lineage
-        """
+        empty = {}
+        if lineage_stats_dict == empty:
+            print("lin stats empty")
 
-        res_lin_count = db.engine.execute(query_lin_count).fetchall()
-        flask.current_app.logger.debug(query_lin_count)
+            query_lin_count = f"""
+            SELECT lineage, count(*) as total
+            FROM sequence
+            WHERE virus_id = 1
+            GROUP BY lineage
+            """
 
-        lin_dict = {}
-        for row in res_lin_count:
-            row_dict = dict(row)
-            if row_dict['lineage'] is not None:
-                lineage = row_dict['lineage']
-            else:
-                lineage = None
-            lin_dict[lineage] = row_dict
+            res_lin_count = db.engine.execute(query_lin_count).fetchall()
+            flask.current_app.logger.debug(query_lin_count)
 
-        # res_lin_count = [{column: value for column, value in row.items()} for row in res_lin_count]
-
-        query_all = f"""
-        SELECT lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative, count(*) as total
-        FROM sequence
-        NATURAL JOIN annotation
-        NATURAL JOIN aminoacid_variant
-        WHERE virus_id = 1
-        GROUP BY lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative
-        ORDER BY start_aa_original asc
-        """
-
-        res_all = db.engine.execute(query_all).fetchall()
-        flask.current_app.logger.debug(query_all)
-
-        res_all = [{column: value for column, value in row.items()} for row in res_all]
-
-        lineage_stats = {}
-        for row in res_all:
-            for item in row:
-                new_row = {}
-                if row['lineage'] in lineage_stats:
-                    if item == "total":
-                        line = lineage_stats[row['lineage']]
-                        name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'], row['product'])
-                        denominator = lin_dict[row['lineage']]
-                        line[name] = row[item] / denominator['total']
+            lin_dict = {}
+            for row in res_lin_count:
+                row_dict = dict(row)
+                if row_dict['lineage'] is not None:
+                    lineage = row_dict['lineage']
                 else:
-                    if item == "total":
-                        name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'], row['product'])
-                        denominator = lin_dict[row['lineage']]
-                        new_row[name] = row[item] / denominator['total']
-                    lineage_stats[row['lineage']] = new_row
+                    lineage = None
+                lin_dict[lineage] = row_dict
 
-        return lineage_stats
+            # res_lin_count = [{column: value for column, value in row.items()} for row in res_lin_count]
+
+            query_all = f"""
+            SELECT lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative, count(*) as total
+            FROM sequence
+            NATURAL JOIN annotation
+            NATURAL JOIN aminoacid_variant
+            WHERE virus_id = 1
+            GROUP BY lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative
+            ORDER BY start_aa_original asc
+            """
+
+            res_all = db.engine.execute(query_all).fetchall()
+            flask.current_app.logger.debug(query_all)
+
+            res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+            lineage_stats = {}
+            for row in res_all:
+                for item in row:
+                    new_row = {}
+                    if row['lineage'] in lineage_stats:
+                        if item == "total":
+                            line = lineage_stats[row['lineage']]
+                            name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'], row['product'])
+                            denominator = lin_dict[row['lineage']]
+                            line[name] = row[item] / denominator['total']
+                    else:
+                        if item == "total":
+                            name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'], row['product'])
+                            denominator = lin_dict[row['lineage']]
+                            new_row[name] = row[item] / denominator['total']
+                        lineage_stats[row['lineage']] = new_row
+
+            return lineage_stats
+        else:
+            print("lin stats NOT empty")
+            return lineage_stats_dict
 
 
 @api.route('/allEpitopes')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
     def get(self):
-        query = f"""
-                SELECT DISTINCT 
-                    iedb_epitope_id, 
-                    protein_name, 
-                    epitope_sequence,
-                    epi_annotation_start, 
-                    epi_annotation_stop, 
-                    external_link,
-                    is_linear,
-                    epi_frag_annotation_start,
-                    epi_frag_annotation_stop
-                FROM epitope
-                NATURAL JOIN epitope_fragment
-                WHERE virus_id =1 
-                AND host_id = 1
-    
-            """
 
-        #connection = db.engine.raw_connection()
-        #cur = connection.cursor()
-        #cur.execute(query)
-        #rows_epitope = cur.fetchall()
+        empty = []
+        if all_epitope_dict == empty:
+            print("epi empty")
 
-        #colnames = [desc[0] for desc in cur.description]
-        #all_epitopes = pd.DataFrame(rows_epitope, columns=colnames)
-        #epitopes = all_epitopes[all_epitopes.protein_name == "Spike (surface glycoprotein)"]
-        #epitopes['number_of_pubs'] = epitopes.external_link.str.count(",") + 1
-        #epitopes['pubs'] = epitopes.external_link.str.split(",")
+            query = f"""
+                    SELECT DISTINCT 
+                        iedb_epitope_id, 
+                        protein_name, 
+                        epitope_sequence,
+                        epi_annotation_start, 
+                        epi_annotation_stop, 
+                        external_link,
+                        is_linear,
+                        epi_frag_annotation_start,
+                        epi_frag_annotation_stop
+                    FROM epitope
+                    NATURAL JOIN epitope_fragment
+                    WHERE virus_id =1 
+                    AND host_id = 1
+        
+                """
 
-        #epitopes_dict = []
-        #for index, row in list(epitopes.iterrows()):
-        #    epitopes_dict.append(dict(row))
+            #connection = db.engine.raw_connection()
+            #cur = connection.cursor()
+            #cur.execute(query)
+            #rows_epitope = cur.fetchall()
 
-        res = db.engine.execute(query).fetchall()
-        res = [{column: value for column, value in row.items()} for row in res]
-        res2 = []
-        for row in res:
-            filter_protein = False
-            new_row = row.copy()
-            for item in row:
-                if item == "external_link":
-                    num = row[item].count(",") + 1
-                    new_row[item] = num
-                    new_row['pubs'] = row[item].split(",")
-                if item == "protein_name":
-                    if row[item] == "Spike (surface glycoprotein)":
-                        filter_protein = True
-            if filter_protein:
-                res2.append(new_row)
-        epitopes_dict = res2
+            #colnames = [desc[0] for desc in cur.description]
+            #all_epitopes = pd.DataFrame(rows_epitope, columns=colnames)
+            #epitopes = all_epitopes[all_epitopes.protein_name == "Spike (surface glycoprotein)"]
+            #epitopes['number_of_pubs'] = epitopes.external_link.str.count(",") + 1
+            #epitopes['pubs'] = epitopes.external_link.str.split(",")
 
-        return epitopes_dict
+            #epitopes_dict = []
+            #for index, row in list(epitopes.iterrows()):
+            #    epitopes_dict.append(dict(row))
+
+            res = db.engine.execute(query).fetchall()
+            res = [{column: value for column, value in row.items()} for row in res]
+            res2 = []
+            for row in res:
+                filter_protein = False
+                new_row = row.copy()
+                for item in row:
+                    if item == "external_link":
+                        num = row[item].count(",") + 1
+                        new_row[item] = num
+                        new_row['pubs'] = row[item].split(",")
+                    if item == "protein_name":
+                        if row[item] == "Spike (surface glycoprotein)":
+                            filter_protein = True
+                if filter_protein:
+                    res2.append(new_row)
+            epitopes_dict = res2
+
+            return epitopes_dict
+        else:
+            print("epi NOT empty")
+            return all_epitope_dict
 
     ############
 
@@ -2309,3 +2324,101 @@ def query_product_all_mat_view(field_name, filter_in, pair_query, type, panel, p
     query_product += """ order by item_count desc, label asc"""
 
     return query_product
+
+
+lineage_stats_dict = {}
+
+
+def create_lineage_stats_dict():
+    query_lin_count = f"""
+            SELECT lineage, count(*) as total
+            FROM sequence
+            WHERE virus_id = 1
+            GROUP BY lineage
+            """
+
+    res_lin_count = db.engine.execute(query_lin_count).fetchall()
+    flask.current_app.logger.debug(query_lin_count)
+
+    lin_dict = {}
+    for row in res_lin_count:
+        row_dict = dict(row)
+        if row_dict['lineage'] is not None:
+            lineage = row_dict['lineage']
+        else:
+            lineage = None
+        lin_dict[lineage] = row_dict
+
+    # res_lin_count = [{column: value for column, value in row.items()} for row in res_lin_count]
+
+    query_all = f"""
+            SELECT lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative, count(*) as total
+            FROM sequence
+            NATURAL JOIN annotation
+            NATURAL JOIN aminoacid_variant
+            WHERE virus_id = 1
+            GROUP BY lineage, product, sequence_aa_original, start_aa_original, sequence_aa_alternative
+            ORDER BY start_aa_original asc
+            """
+
+    res_all = db.engine.execute(query_all).fetchall()
+    flask.current_app.logger.debug(query_all)
+
+    res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+    for row in res_all:
+        for item in row:
+            new_row = {}
+            if row['lineage'] in lineage_stats_dict:
+                if item == "total":
+                    line = lineage_stats_dict[row['lineage']]
+                    name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'],
+                            row['product'])
+                    denominator = lin_dict[row['lineage']]
+                    line[name] = row[item] / denominator['total']
+            else:
+                if item == "total":
+                    name = (row['start_aa_original'], row['sequence_aa_original'], row['sequence_aa_alternative'],
+                            row['product'])
+                    denominator = lin_dict[row['lineage']]
+                    new_row[name] = row[item] / denominator['total']
+                lineage_stats_dict[row['lineage']] = new_row
+
+
+all_epitope_dict = []
+
+
+def create_all_epitope_dict():
+    query = f"""
+                    SELECT DISTINCT 
+                        iedb_epitope_id, 
+                        protein_name, 
+                        epitope_sequence,
+                        epi_annotation_start, 
+                        epi_annotation_stop, 
+                        external_link,
+                        is_linear,
+                        epi_frag_annotation_start,
+                        epi_frag_annotation_stop
+                    FROM epitope
+                    NATURAL JOIN epitope_fragment
+                    WHERE virus_id =1 
+                    AND host_id = 1
+
+                """
+
+    res = db.engine.execute(query).fetchall()
+    res = [{column: value for column, value in row.items()} for row in res]
+    for row in res:
+        filter_protein = False
+        new_row = row.copy()
+        for item in row:
+            if item == "external_link":
+                num = row[item].count(",") + 1
+                new_row[item] = num
+                new_row['pubs'] = row[item].split(",")
+            if item == "protein_name":
+                if row[item] == "Spike (surface glycoprotein)":
+                    filter_protein = True
+        if filter_protein:
+            all_epitope_dict.append(new_row)
