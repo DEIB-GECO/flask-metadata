@@ -27,16 +27,16 @@ def get_env_variable(name):
 
 def get_db_uri():
     from apis.query import is_gisaid
-    database_name = "vcm_gisaid_du_1" # vcm_du_1
+    database_name = "vcm_du_1"
 
     try:
         # /home/metadata/virusurf_active_databases.txt
         with open("/home/metadata/virusurf_active_databases.txt") as f:
             lines = f.readlines()
-            if is_gisaid:
-                database_name = [x for x in lines if 'gisaid' in x][0]
-            else:
-                database_name = [x for x in lines if 'gisaid' not in x][0]
+            #if is_gisaid:
+            database_name = [x for x in lines if 'gisaid' in x][0]
+            #else:
+            #    database_name = [x for x in lines if 'gisaid' not in x][0]
     except IOError:
         pass
 
