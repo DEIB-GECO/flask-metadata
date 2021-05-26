@@ -33,10 +33,10 @@ def get_db_uri():
         # /home/metadata/virusurf_active_databases.txt
         with open("/home/metadata/virusurf_active_databases.txt") as f:
             lines = f.readlines()
-            if is_gisaid:
-                database_name = [x for x in lines if 'gisaid' in x][0]
-            else:
-                database_name = [x for x in lines if 'gisaid' not in x][0]
+            #if is_gisaid:
+            database_name = [x for x in lines if 'gisaid' in x][0]
+            #else:
+            #    database_name = [x for x in lines if 'gisaid' not in x][0]
     except IOError:
         pass
 
