@@ -118,7 +118,8 @@ deprecated_desc = "## In the next release, the endpoint will not be available\n"
 
 #############################Query Function#############################################
 def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, annotation_type,
-               limit, offset, is_control, gisaid_only, numElems=None, epitope_part=None, epitope_table=None):
+               limit, offset, is_control, gisaid_only, numElems=None, epitope_part=None, epitope_table=None,
+               return_all_columns=False):
     def run_query(limit_inner, offset_inner, exclude_accession_list=None, is_aa=None):
         if exclude_accession_list:
             exclude_accession_list = list(f"{x}" for x in exclude_accession_list)
@@ -150,12 +151,14 @@ def full_query(filter_in, q_type, pairs, agg, orderCol, orderDir, rel_distance, 
         # return_columns = set(pre_query._metadata.keys)
         res = pre_query  # .fetchall()
 
-        result = []
-        result_columns = query_result.keys()
-        if numElems is None or numElems > 20:
-            result_columns = ['accession_id']
-        for row in res:
-            result.append({f'{x}': row[x] for x in result_columns})
+        # result = []
+        if not return_all_columns:
+            result_columns = query_result.keys()
+            if numElems is None or numElems > 20:
+                result_columns = ['accession_id']
+            result = ({f'{x}': row[x] for x in result_columns} for row in res )
+        else:
+            result = pre_query
 
         #result = (dict(x) for x in res)
         result = ({k: str(v) if type(v) == datetime.date else v for k, v in x.items()} for x in result)

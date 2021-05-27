@@ -406,8 +406,8 @@ class VizSubmit(Resource):
         def async_function():
             try:
                 res = list(full_query(filter_in, q_type, pairs, orderCol="sequence_id", limit=None, is_control=is_control,
-                                 agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
-                                 gisaid_only=gisaid_only, epitope_part=epitope_part, epitope_table=epitope_table))
+                                      agg=False, orderDir="ASC", rel_distance=3, annotation_type=None, offset=0,
+                                      gisaid_only=gisaid_only, epitope_part=epitope_part, epitope_table=epitope_table, return_all_columns=True))
 
                 res_sequence_id = [str(row["sequence_id"]) for row in res]
 
@@ -530,7 +530,7 @@ class VizSubmit(Resource):
                 #     print("FILE WRITTEN")
                 # endregion
             except Exception as e:
-                flask.current_app.logger.error(e)
+                flask.current_app.logger.error(e, e)
                 poll_cache.set_result(poll_id, None)
                 raise e
 
