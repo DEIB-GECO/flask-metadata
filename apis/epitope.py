@@ -1299,6 +1299,29 @@ class FieldValue(Resource):
         return lineage_stats
 
 
+@api.route('/mutationForSequence')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        id_sequence = api.payload
+
+        query = f"""
+        select product, lineage, array_agg(row(start_aa_original, sequence_aa_original, sequence_aa_alternative))
+        from sequence as it JOIN annotation as ann on ann.sequence_id = it.sequence_id
+        JOIN aminoacid_variant as amin on ann.annotation_id = amin.annotation_id
+        where accession_id = '{id_sequence}' and product like '%%Spike%%'
+        group by product, lineage
+        """
+
+        res = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+        print("q", res)
+        res = [{column: value for column, value in row.items()} for row in res]
+
+        return res
+
+
 @api.route('/statisticsMutationsLineagesGET')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
