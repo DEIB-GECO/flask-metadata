@@ -1445,6 +1445,23 @@ class FieldValue(Resource):
         return res_all
 
 
+@api.route('/allLineages')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def get(self):
+
+        query = f"""SELECT distinct lineage, count(*) as cnt
+                    FROM sequence
+                    GROUP BY lineage
+                    ORDER BY cnt desc"""
+
+        res_all = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+        res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+        return res_all
+
+
 @api.route('/allEpitopes')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
