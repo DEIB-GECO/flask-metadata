@@ -1434,9 +1434,9 @@ class FieldValue(Resource):
 class FieldValue(Resource):
     def get(self):
 
-        query = f"""SELECT distinct geo_group, country, region, province
+        query = f"""SELECT distinct geo_group, country, region
                     FROM host_sample
-                    ORDER BY geo_group, country, region, province"""
+                    ORDER BY geo_group, country, region"""
 
         res_all = db.engine.execute(query).fetchall()
         flask.current_app.logger.debug(query)
