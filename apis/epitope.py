@@ -1264,6 +1264,9 @@ class FieldValue(Resource):
         return flask.Response(json.dumps({'result': poll_id}), mimetype='application/json')
 
 
+######################################## API NEW PROJECT ############################################################
+
+
 @api.route('/statisticsMutationsLineages')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
@@ -1390,6 +1393,58 @@ class FieldValue(Resource):
             return lineage_stats_dict
 
 
+@api.route('/tableLineageCountry')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        filter_geo = api.payload     # {'type': 'country', 'value': 'Italy', 'minCountSeq': 500}
+        # filter_geo = {'type': 'country', 'value': 'Italy', 'minCountSeq': 500}
+        geo_selection = 'country'
+        geo_min_count = filter_geo['minCountSeq']
+        geo_where = filter_geo['type']
+        geo_where_value = filter_geo['value'].lower()
+
+        if geo_where == 'geo_group':
+            geo_selection = 'country'
+        elif geo_where == 'country':
+            geo_selection = 'region'
+        elif geo_where == 'region':
+            geo_selection = 'province'
+
+        query = f"""SELECT a.lineage, array_agg(row(a.{geo_selection}, a.cnt)) as country_count
+                    FROM (
+                    SELECT lineage, {geo_selection}, count(*) as cnt
+                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id """
+        query += f""" WHERE LOWER({geo_where}) = '{geo_where_value}' """
+        query += f"""GROUP BY lineage, {geo_selection}
+                    ORDER BY lineage) as a
+                    GROUP BY a.lineage
+                    HAVING sum(a.cnt) >= {geo_min_count}"""
+
+        res_all = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+        res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+        return res_all
+
+
+@api.route('/allGeo')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def get(self):
+
+        query = f"""SELECT distinct geo_group, country, region, province
+                    FROM host_sample
+                    ORDER BY geo_group, country, region, province"""
+
+        res_all = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+        res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+        return res_all
+
+
 @api.route('/allEpitopes')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
@@ -1455,7 +1510,8 @@ class FieldValue(Resource):
             print("epi NOT empty")
             return all_epitope_dict
 
-    ############
+
+######################################## END API NEW PROJECT #####################################################
 
 
 ############ FUNZIONI
