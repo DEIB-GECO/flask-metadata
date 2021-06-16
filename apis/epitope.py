@@ -1558,6 +1558,7 @@ class FieldValue(Resource):
                                'numerator': numerator,
                                'denominator': denominator,
                                'fraction': (numerator/denominator)*100,
+                               'denominator_country': denominator_country,
                                'fraction_country': (item['total']/denominator_country)*100}
 
                 array_result.append(single_line)
