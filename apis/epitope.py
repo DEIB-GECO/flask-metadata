@@ -1542,14 +1542,104 @@ class FieldValue(Resource):
         return array_result
 
 
+@api.route('/analyzeMutationProvinceRegion')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        type_geo1 = payload['type_geo1']      # type_geo1 = 'country'
+        geo1 = payload['geo1']                # geo1 = 'Italy'
+        type_geo2 = payload['type_geo2']      # type_geo2 = 'region'
+        geo2 = payload['geo2']                # geo2 = 'Campania'
+
+        array_result = []
+        geo1 = geo1.replace("'", "''")
+        geo2 = geo2.replace("'", "''")
+        query1 = f""" SELECT distinct ann.product, start_aa_original, sequence_aa_original,
+                        sequence_aa_alternative, count(*) as total, array_agg(distinct lineage) as lineage
+                        FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                        JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                        JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                        WHERE {type_geo2} = '{geo2}'
+                        AND product = 'Spike (surface glycoprotein)'
+                        GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                        ORDER BY product, start_aa_original """
+
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+        query_count_denominator = f""" SELECT count(*)
+                        FROM 
+                        (
+                            SELECT distinct it.sequence_id
+                            FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                            JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                            JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                            WHERE {type_geo1} = '{geo1}' AND {type_geo2} != '{geo2}'
+                        ) as a """
+
+        res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
+        flask.current_app.logger.debug(query_count_denominator)
+        res_query_count_denominator = [{column: value for column, value in row.items()}
+                                       for row in res_query_count_denominator]
+
+        denominator = res_query_count_denominator[0]['count']
+
+        for item in res_query1:
+            start = item['start_aa_original']
+            original = item['sequence_aa_original']
+            alternative = item['sequence_aa_alternative']
+            protein = item['product']
+            lineage = item['lineage']
+            protein_to_send = protein.replace("'", "''")
+            query_count_numerator = f"""SELECT count(*)
+                        FROM 
+                        (
+                            SELECT distinct it.sequence_id
+                            FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                            JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                            JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                            WHERE {type_geo1} = '{geo1}'
+                            AND {type_geo2} != '{geo2}'
+                            AND start_aa_original = {start}
+                            AND sequence_aa_original = '{original}' 
+                            AND sequence_aa_alternative = '{alternative}'
+                            AND product = '{protein_to_send}'
+                        ) as a"""
+
+            res_query_count_numerator = db.engine.execute(query_count_numerator).fetchall()
+            flask.current_app.logger.debug(query_count_numerator)
+            res_query_count_numerator = [{column: value for column, value in row.items()}
+                                           for row in res_query_count_numerator]
+
+            numerator = res_query_count_numerator[0]['count']
+
+            single_line = {'lineage': lineage, type_geo1: geo1, type_geo2: geo2,
+                           'count_seq': item['total'],
+                           'product': item['product'],
+                           'start_aa_original': item['start_aa_original'],
+                           'sequence_aa_original': item['sequence_aa_original'],
+                           'sequence_aa_alternative': item['sequence_aa_alternative'],
+                           'numerator': numerator,
+                           'denominator': denominator,
+                           'fraction': (numerator/denominator)*100}
+
+            array_result.append(single_line)
+
+        return array_result
+
+
 @api.route('/allGeo')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
     def get(self):
 
-        query = f"""SELECT distinct geo_group, country, region
+        query = f"""SELECT distinct geo_group, country, region, province, count(*)
                     FROM host_sample
-                    ORDER BY geo_group, country, region"""
+                    GROUP BY geo_group, country, region, province
+                    ORDER BY geo_group, country, region, province"""
 
         res_all = db.engine.execute(query).fetchall()
         flask.current_app.logger.debug(query)
