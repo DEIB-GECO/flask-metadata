@@ -1636,10 +1636,10 @@ class FieldValue(Resource):
 class FieldValue(Resource):
     def get(self):
 
-        query = f"""SELECT distinct geo_group, country, region, province, count(*)
-                    FROM host_sample
+        query = f"""SELECT distinct geo_group, country, region, province, count(distinct sequence_id)
+                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     GROUP BY geo_group, country, region, province
-                    ORDER BY geo_group, country, region, province"""
+                    ORDER BY geo_group, country, region, province """
 
         res_all = db.engine.execute(query).fetchall()
         flask.current_app.logger.debug(query)
