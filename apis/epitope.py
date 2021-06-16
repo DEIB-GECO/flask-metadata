@@ -7,7 +7,6 @@ import sqlalchemy
 #import pandas as pd
 from flask import Response, json
 from flask_restplus import Namespace, Resource, fields, inputs
-from scipy.stats import binom
 
 from model.models import db
 from .poll import poll_cache
@@ -1551,8 +1550,6 @@ class FieldValue(Resource):
                 if denominator_country == 0:
                     denominator_country = 1
 
-                p_value = 1 - binom.cdf(item['total'] - 1, denominator_country, numerator/denominator)
-
                 single_line = {'lineage': lineage, 'country': country, 'count_seq': item['total'],
                                'start_aa_original': item['start_aa_original'],
                                'product': item['product'],
@@ -1561,8 +1558,7 @@ class FieldValue(Resource):
                                'numerator': numerator,
                                'denominator': denominator,
                                'fraction': (numerator/denominator)*100,
-                               'fraction_country': (item['total']/denominator_country)*100,
-                               'p_value': p_value}
+                               'fraction_country': (item['total']/denominator_country)*100}
 
                 array_result.append(single_line)
 
