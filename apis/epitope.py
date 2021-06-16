@@ -1528,6 +1528,9 @@ class FieldValue(Resource):
 
                 numerator = res_query_count_numerator[0]['count']
 
+                if denominator == 0:
+                    denominator = 1
+
                 single_line = {'lineage': lineage, 'country': country, 'count_seq': item['total'],
                                'start_aa_original': item['start_aa_original'],
                                'product': item['product'],
