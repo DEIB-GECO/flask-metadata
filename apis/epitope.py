@@ -7,6 +7,7 @@ import sqlalchemy
 #import pandas as pd
 from flask import Response, json
 from flask_restplus import Namespace, Resource, fields, inputs
+from scipy.stats import binom
 
 from model.models import db
 from .poll import poll_cache
@@ -1501,6 +1502,23 @@ class FieldValue(Resource):
 
             denominator = res_query_count_denominator[0]['count']
 
+            query_count_denominator_country = f""" SELECT count(*)
+                                            FROM 
+                                            (
+                                                SELECT distinct it.sequence_id
+                                                FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                                JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                                JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                                WHERE lineage = '{lineage}' AND country = '{country_to_send}'
+                                            ) as a"""
+
+            res_query_count_denominator_country = db.engine.execute(query_count_denominator_country).fetchall()
+            flask.current_app.logger.debug(query_count_denominator_country)
+            res_query_count_denominator_country = [{column: value for column, value in row.items()}
+                                           for row in res_query_count_denominator_country]
+
+            denominator_country = res_query_count_denominator_country[0]['count']
+
             for item in res_query1:
                 start = item['start_aa_original']
                 original = item['sequence_aa_original']
@@ -1530,6 +1548,10 @@ class FieldValue(Resource):
 
                 if denominator == 0:
                     denominator = 1
+                if denominator_country == 0:
+                    denominator_country = 1
+
+                p_value = 1 - binom.cdf(item['total'] - 1, denominator_country, numerator/denominator)
 
                 single_line = {'lineage': lineage, 'country': country, 'count_seq': item['total'],
                                'start_aa_original': item['start_aa_original'],
@@ -1538,7 +1560,9 @@ class FieldValue(Resource):
                                'sequence_aa_alternative': item['sequence_aa_alternative'],
                                'numerator': numerator,
                                'denominator': denominator,
-                               'fraction': (numerator/denominator)*100}
+                               'fraction': (numerator/denominator)*100,
+                               'fraction_country': (item['total']/denominator_country)*100,
+                               'p_value': p_value}
 
                 array_result.append(single_line)
 
