@@ -1476,9 +1476,10 @@ class FieldValue(Resource):
                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                             WHERE lineage = '{lineage}' AND country = '{country_to_send}'
-                            AND product = 'Spike (surface glycoprotein)'
                             GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                             ORDER BY product, start_aa_original """
+
+            # AND product = 'Spike (surface glycoprotein)'
 
             res_query1 = db.engine.execute(query1).fetchall()
             flask.current_app.logger.debug(query1)
