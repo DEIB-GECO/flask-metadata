@@ -1611,6 +1611,23 @@ class FieldValue(Resource):
 
         denominator = res_query_count_denominator[0]['count']
 
+        query_count_denominator_target = f""" SELECT count(*)
+                                FROM 
+                                (
+                                    SELECT distinct it.sequence_id
+                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                    WHERE {type_geo2} = '{geo2}'
+                                ) as a """
+
+        res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
+        flask.current_app.logger.debug(query_count_denominator_target)
+        res_query_count_denominator_target = [{column: value for column, value in row.items()}
+                                       for row in res_query_count_denominator_target]
+
+        denominator_target = res_query_count_denominator_target[0]['count']
+
         for item in res_query1:
             start = item['start_aa_original']
             original = item['sequence_aa_original']
@@ -1648,7 +1665,9 @@ class FieldValue(Resource):
                            'sequence_aa_alternative': item['sequence_aa_alternative'],
                            'numerator': numerator,
                            'denominator': denominator,
-                           'fraction': (numerator/denominator)*100}
+                           'fraction': (numerator/denominator)*100,
+                           'denominator_target': denominator_target,
+                           'fraction_target': (item['total'] / denominator_target) * 100}
 
             array_result.append(single_line)
 
