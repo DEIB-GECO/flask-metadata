@@ -1582,15 +1582,26 @@ class FieldValue(Resource):
         array_result = []
         for country in array_country:
             country_to_send = country.replace("'", "''")
+
+            if lineage == 'empty':
+                where_part_lineage = "  "
+            else:
+                where_part_lineage = f"""  AND lineage = '{lineage}'  """
+            if country == 'empty':
+                where_part_country = "  "
+            else:
+                where_part_country = f"""  AND country = '{country_to_send}'  """
+
             query1 = f"""  SELECT distinct ann.product, start_aa_original, sequence_aa_original,
                     sequence_aa_alternative, count(*) as total
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                    WHERE lineage = '{lineage}' AND country = '{country_to_send}'
-                    AND product = 'Spike (surface glycoprotein)'
-                    AND collection_date > '{start_target_time}'
+                    WHERE collection_date > '{start_target_time}'
                     AND collection_date <= '{end_target_time}'
+                    {where_part_lineage}
+                    {where_part_country}
+                    AND product = 'Spike (surface glycoprotein)'
                     GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                     ORDER BY product, start_aa_original  """
 
@@ -1605,9 +1616,10 @@ class FieldValue(Resource):
                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                WHERE lineage = '{lineage}' AND country = '{country_to_send}'
-                                AND collection_date <= '{end_background_time}'
+                                WHERE collection_date <= '{end_background_time}'
                                 AND collection_date > '{start_background_time}'
+                                {where_part_lineage}
+                                {where_part_country}
                             ) as a """
 
             res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
@@ -1624,9 +1636,10 @@ class FieldValue(Resource):
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                    WHERE lineage = '{lineage}' AND country = '{country_to_send}'
-                                    AND collection_date > '{start_target_time}'
+                                    WHERE collection_date > '{start_target_time}'
                                     AND collection_date <= '{end_target_time}'
+                                    {where_part_lineage}
+                                {   where_part_country}
                                 ) as a """
 
             res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
@@ -1649,13 +1662,14 @@ class FieldValue(Resource):
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                    WHERE lineage = '{lineage}' AND country = '{country_to_send}'
-                                    AND collection_date <= '{end_background_time}'
+                                    WHERE AND collection_date <= '{end_background_time}'
                                     AND collection_date > '{start_background_time}'
                                     AND start_aa_original = {start}
                                     AND sequence_aa_original = '{original}' 
                                     AND sequence_aa_alternative = '{alternative}'
                                     AND product = '{protein_to_send}'
+                                    {where_part_lineage}
+                                    {where_part_country}
                                 ) as a"""
 
                 res_query_count_numerator = db.engine.execute(query_count_numerator).fetchall()
