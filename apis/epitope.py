@@ -1662,7 +1662,7 @@ class FieldValue(Resource):
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                    WHERE AND collection_date <= '{end_background_time}'
+                                    WHERE collection_date <= '{end_background_time}'
                                     AND collection_date > '{start_background_time}'
                                     AND start_aa_original = {start}
                                     AND sequence_aa_original = '{original}' 
