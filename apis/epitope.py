@@ -1566,6 +1566,128 @@ class FieldValue(Resource):
         return array_result
 
 
+@api.route('/analyzeMutationCountryLineageInTime')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        lineage = payload['lineage']    # 'B.1'
+        array_country = payload['country']    # ['Italy']
+        start_target_time = ['start_target']    # '2021-03-31'
+        end_target_time = ['end_target']        # '2021-06-31'
+        start_background_time = ['start_background']  # '2019-01-31'
+        end_background_time = ['end_background']      # '2021-03-31'
+
+        array_result = []
+        for country in array_country:
+            country_to_send = country.replace("'", "''")
+            query1 = f"""  SELECT distinct ann.product, start_aa_original, sequence_aa_original,
+                    sequence_aa_alternative, count(*) as total
+                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                    WHERE lineage = '{lineage}' AND country = '{country_to_send}'
+                    AND product = 'Spike (surface glycoprotein)'
+                    AND collection_date > '{start_target_time}'
+                    AND collection_date <= '{end_target_time}'
+                    GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                    ORDER BY product, start_aa_original  """
+
+            res_query1 = db.engine.execute(query1).fetchall()
+            flask.current_app.logger.debug(query1)
+            res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+            query_count_denominator = f""" SELECT count(*)
+                            FROM 
+                            (
+                                SELECT distinct it.sequence_id
+                                FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                WHERE lineage = '{lineage}' AND country = '{country_to_send}'
+                                AND collection_date <= '{end_background_time}'
+                                AND collection_date > '{start_background_time}'
+                            ) as a """
+
+            res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
+            flask.current_app.logger.debug(query_count_denominator)
+            res_query_count_denominator = [{column: value for column, value in row.items()}
+                                           for row in res_query_count_denominator]
+
+            denominator = res_query_count_denominator[0]['count']
+
+            query_count_denominator_target = f""" SELECT count(*)
+                                FROM 
+                                (
+                                    SELECT distinct it.sequence_id
+                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                    WHERE lineage = '{lineage}' AND country = '{country_to_send}'
+                                    AND collection_date > '{start_target_time}'
+                                    AND collection_date <= '{end_target_time}'
+                                ) as a """
+
+            res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
+            flask.current_app.logger.debug(query_count_denominator_target)
+            res_query_count_denominator_target = [{column: value for column, value in row.items()}
+                                           for row in res_query_count_denominator_target]
+
+            denominator_country = res_query_count_denominator_target[0]['count']
+
+            for item in res_query1:
+                start = item['start_aa_original']
+                original = item['sequence_aa_original']
+                alternative = item['sequence_aa_alternative']
+                protein = item['product']
+                protein_to_send = protein.replace("'", "''")
+                query_count_numerator = f"""SELECT count(*)
+                                FROM 
+                                (
+                                    SELECT distinct it.sequence_id
+                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                    WHERE lineage = '{lineage}' AND country = '{country_to_send}'
+                                    AND collection_date <= '{end_background_time}'
+                                    AND collection_date > '{start_background_time}'
+                                    AND start_aa_original = {start}
+                                    AND sequence_aa_original = '{original}' 
+                                    AND sequence_aa_alternative = '{alternative}'
+                                    AND product = '{protein_to_send}'
+                                ) as a"""
+
+                res_query_count_numerator = db.engine.execute(query_count_numerator).fetchall()
+                flask.current_app.logger.debug(query_count_numerator)
+                res_query_count_numerator = [{column: value for column, value in row.items()}
+                                               for row in res_query_count_numerator]
+
+                numerator = res_query_count_numerator[0]['count']
+
+                if denominator == 0:
+                    denominator = 1
+                if denominator_country == 0:
+                    denominator_country = 1
+
+                single_line = {'lineage': lineage, 'country': country, 'count_seq': item['total'],
+                               'target_time': start_target_time + '//' + end_target_time,
+                               'background_time': start_background_time + '//' + end_background_time,
+                               'start_aa_original': item['start_aa_original'],
+                               'product': item['product'],
+                               'sequence_aa_original': item['sequence_aa_original'],
+                               'sequence_aa_alternative': item['sequence_aa_alternative'],
+                               'numerator': numerator,
+                               'denominator': denominator,
+                               'fraction': (numerator/denominator)*100,
+                               'denominator_target': denominator_country,
+                               'fraction_target': (item['total']/denominator_country)*100}
+
+                array_result.append(single_line)
+
+        return array_result
+
+
 @api.route('/analyzeMutationProvinceRegion')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
@@ -1656,6 +1778,11 @@ class FieldValue(Resource):
                                            for row in res_query_count_numerator]
 
             numerator = res_query_count_numerator[0]['count']
+
+            if denominator == 0:
+                denominator = 1
+            if denominator_country == 0:
+                denominator_country = 1
 
             single_line = {'lineage': lineage, type_geo1: geo1, type_geo2: geo2,
                            'count_seq': item['total'],
