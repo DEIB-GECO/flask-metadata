@@ -1781,8 +1781,8 @@ class FieldValue(Resource):
 
             if denominator == 0:
                 denominator = 1
-            if denominator_country == 0:
-                denominator_country = 1
+            if denominator_target == 0:
+                denominator_target = 1
 
             single_line = {'lineage': lineage, type_geo1: geo1, type_geo2: geo2,
                            'count_seq': item['total'],
