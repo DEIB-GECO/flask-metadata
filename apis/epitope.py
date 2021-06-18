@@ -1702,6 +1702,41 @@ class FieldValue(Resource):
         return array_result
 
 
+@api.route('/analyzeTimeDistributionCountryLineage')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        lineage = payload['lineage']    # 'B.1'
+        country = payload['country']    # 'Italy'
+
+        country_to_send = country.replace("'", "''")
+
+        if lineage == 'empty':
+            where_part_lineage = "  "
+        else:
+            where_part_lineage = f"""  AND lineage = '{lineage}'  """
+        if country == 'empty':
+            where_part_country = "  "
+        else:
+            where_part_country = f"""  AND country = '{country_to_send}'  """
+
+        query1 = f""" SELECT collection_date as name, count(*) as value
+                FROM sequence as it JOIN host_sample as hs ON hs.host_sample_id = it.host_sample_id
+                WHERE collection_date > '2019-01-01'
+                {where_part_lineage}
+                {where_part_country}
+                GROUP BY collection_date
+                ORDER BY collection_date """
+
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+        return res_query1
+
+
 @api.route('/analyzeMutationProvinceRegion')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
