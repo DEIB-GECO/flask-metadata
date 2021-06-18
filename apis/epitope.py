@@ -1574,10 +1574,10 @@ class FieldValue(Resource):
         payload = api.payload
         lineage = payload['lineage']    # 'B.1'
         array_country = payload['country']    # ['Italy']
-        start_target_time = ['start_target']    # '2021-03-31'
-        end_target_time = ['end_target']        # '2021-06-31'
-        start_background_time = ['start_background']  # '2019-01-31'
-        end_background_time = ['end_background']      # '2021-03-31'
+        start_target_time = payload['start_target']    # '2021-03-31'
+        end_target_time = payload['end_target']        # '2021-06-31'
+        start_background_time = payload['start_background']  # '2019-01-31'
+        end_background_time = payload['end_background']      # '2021-03-31'
 
         array_result = []
         for country in array_country:
