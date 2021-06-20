@@ -1518,32 +1518,29 @@ class FieldValue(Resource):
 
             denominator_country = res_query_count_denominator_country[0]['count']
 
+            query_background = f"""SELECT product, start_aa_original, sequence_aa_original, 
+                                            sequence_aa_alternative, count(*) as total
+                                            FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                            JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                            JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                            WHERE lineage = '{lineage}' AND country != '{country_to_send}'
+                                            AND product = 'Spike (surface glycoprotein)'
+                                            GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                                            ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
+
+            res_query_background = db.engine.execute(query_background).fetchall()
+            flask.current_app.logger.debug(query_background)
+            res_query_background = [{column: value for column, value in row.items()}
+                                    for row in res_query_background]
+
             for item in res_query1:
-                start = item['start_aa_original']
-                original = item['sequence_aa_original']
-                alternative = item['sequence_aa_alternative']
-                protein = item['product']
-                protein_to_send = protein.replace("'", "''")
-                query_count_numerator = f"""SELECT count(*)
-                                FROM 
-                                (
-                                    SELECT distinct it.sequence_id
-                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                    WHERE lineage = '{lineage}' AND country != '{country_to_send}'
-                                    AND start_aa_original = {start}
-                                    AND sequence_aa_original = '{original}' 
-                                    AND sequence_aa_alternative = '{alternative}'
-                                    AND product = '{protein_to_send}'
-                                ) as a"""
-
-                res_query_count_numerator = db.engine.execute(query_count_numerator).fetchall()
-                flask.current_app.logger.debug(query_count_numerator)
-                res_query_count_numerator = [{column: value for column, value in row.items()}
-                                               for row in res_query_count_numerator]
-
-                numerator = res_query_count_numerator[0]['count']
+                numerator = 0
+                for item2 in res_query_background:
+                    if item['start_aa_original'] == item2['start_aa_original'] \
+                            and item['sequence_aa_original'] == item2['sequence_aa_original'] \
+                            and item['sequence_aa_alternative'] == item2['sequence_aa_alternative'] \
+                            and item['product'] == item2['product']:
+                        numerator = item2['total']
 
                 if denominator == 0:
                     denominator = 1
@@ -1557,9 +1554,9 @@ class FieldValue(Resource):
                                'sequence_aa_alternative': item['sequence_aa_alternative'],
                                'numerator': numerator,
                                'denominator': denominator,
-                               'fraction': (numerator/denominator)*100,
+                               'fraction': (numerator / denominator) * 100,
                                'denominator_country': denominator_country,
-                               'fraction_country': (item['total']/denominator_country)*100}
+                               'fraction_country': (item['total'] / denominator_country) * 100}
 
                 array_result.append(single_line)
 
@@ -1649,35 +1646,32 @@ class FieldValue(Resource):
 
             denominator_country = res_query_count_denominator_target[0]['count']
 
+            query_background = f"""SELECT product, start_aa_original, sequence_aa_original, 
+                                                        sequence_aa_alternative, count(*) as total
+                                                        FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                                        JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                                        JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                                        WHERE collection_date <= '{end_background_time}'
+                                                        AND collection_date > '{start_background_time}'
+                                                        {where_part_lineage}
+                                                        {where_part_country}
+                                                        AND product = 'Spike (surface glycoprotein)'
+                                                        GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                                                        ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
+
+            res_query_background = db.engine.execute(query_background).fetchall()
+            flask.current_app.logger.debug(query_background)
+            res_query_background = [{column: value for column, value in row.items()}
+                                    for row in res_query_background]
+
             for item in res_query1:
-                start = item['start_aa_original']
-                original = item['sequence_aa_original']
-                alternative = item['sequence_aa_alternative']
-                protein = item['product']
-                protein_to_send = protein.replace("'", "''")
-                query_count_numerator = f"""SELECT count(*)
-                                FROM 
-                                (
-                                    SELECT distinct it.sequence_id
-                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                    WHERE collection_date <= '{end_background_time}'
-                                    AND collection_date > '{start_background_time}'
-                                    AND start_aa_original = {start}
-                                    AND sequence_aa_original = '{original}' 
-                                    AND sequence_aa_alternative = '{alternative}'
-                                    AND product = '{protein_to_send}'
-                                    {where_part_lineage}
-                                    {where_part_country}
-                                ) as a"""
-
-                res_query_count_numerator = db.engine.execute(query_count_numerator).fetchall()
-                flask.current_app.logger.debug(query_count_numerator)
-                res_query_count_numerator = [{column: value for column, value in row.items()}
-                                               for row in res_query_count_numerator]
-
-                numerator = res_query_count_numerator[0]['count']
+                numerator = 0
+                for item2 in res_query_background:
+                    if item['start_aa_original'] == item2['start_aa_original'] \
+                            and item['sequence_aa_original'] == item2['sequence_aa_original'] \
+                            and item['sequence_aa_alternative'] == item2['sequence_aa_alternative'] \
+                            and item['product'] == item2['product']:
+                        numerator = item2['total']
 
                 if denominator == 0:
                     denominator = 1
@@ -1799,41 +1793,37 @@ class FieldValue(Resource):
 
         denominator_target = res_query_count_denominator_target[0]['count']
 
+        query_background = f"""SELECT product, start_aa_original, sequence_aa_original, 
+                                sequence_aa_alternative, count(*) as total
+                                FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                WHERE {type_geo1} = '{geo1}'
+                                AND {type_geo2} != '{geo2}'
+                                AND product = 'Spike (surface glycoprotein)'
+                                GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                                ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
+
+        res_query_background = db.engine.execute(query_background).fetchall()
+        flask.current_app.logger.debug(query_background)
+        res_query_background = [{column: value for column, value in row.items()}
+                                for row in res_query_background]
+
         for item in res_query1:
-            start = item['start_aa_original']
-            original = item['sequence_aa_original']
-            alternative = item['sequence_aa_alternative']
-            protein = item['product']
-            lineage = item['lineage']
-            protein_to_send = protein.replace("'", "''")
-            query_count_numerator = f"""SELECT count(*)
-                        FROM 
-                        (
-                            SELECT distinct it.sequence_id
-                            FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                            JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                            JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                            WHERE {type_geo1} = '{geo1}'
-                            AND {type_geo2} != '{geo2}'
-                            AND start_aa_original = {start}
-                            AND sequence_aa_original = '{original}' 
-                            AND sequence_aa_alternative = '{alternative}'
-                            AND product = '{protein_to_send}'
-                        ) as a"""
-
-            res_query_count_numerator = db.engine.execute(query_count_numerator).fetchall()
-            flask.current_app.logger.debug(query_count_numerator)
-            res_query_count_numerator = [{column: value for column, value in row.items()}
-                                           for row in res_query_count_numerator]
-
-            numerator = res_query_count_numerator[0]['count']
+            numerator = 0
+            for item2 in res_query_background:
+                if item['start_aa_original'] == item2['start_aa_original'] \
+                        and item['sequence_aa_original'] == item2['sequence_aa_original'] \
+                        and item['sequence_aa_alternative'] == item2['sequence_aa_alternative'] \
+                        and item['product'] == item2['product']:
+                    numerator = item2['total']
 
             if denominator == 0:
                 denominator = 1
             if denominator_target == 0:
                 denominator_target = 1
 
-            single_line = {'lineage': lineage, type_geo1: geo1, type_geo2: geo2,
+            single_line = {'lineage': item['lineage'], type_geo1: geo1, type_geo2: geo2,
                            'count_seq': item['total'],
                            'product': item['product'],
                            'start_aa_original': item['start_aa_original'],
