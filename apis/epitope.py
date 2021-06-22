@@ -14,7 +14,7 @@ from .poll import poll_cache
 import utils
 from utils import sql_query_generator, taxon_name_dict, custom_db_execution, taxon_id_dict
 
-is_gisaid = False
+is_gisaid = True
 epitope_id = 'iedb_epitope_id'
 
 api = Namespace('epitope', description='epitope')
@@ -1543,9 +1543,13 @@ class FieldValue(Resource):
                         numerator = item2['total']
 
                 if denominator == 0:
-                    denominator = 1
+                    fraction = 0
+                else:
+                    fraction = (numerator / denominator)
                 if denominator_country == 0:
-                    denominator_country = 1
+                    fraction_country = 0
+                else:
+                    fraction_country = (item['total'] / denominator_country)
 
                 single_line = {'lineage': lineage, 'country': country, 'count_seq': item['total'],
                                'start_aa_original': item['start_aa_original'],
@@ -1554,9 +1558,9 @@ class FieldValue(Resource):
                                'sequence_aa_alternative': item['sequence_aa_alternative'],
                                'numerator': numerator,
                                'denominator': denominator,
-                               'fraction': (numerator / denominator) * 100,
+                               'fraction': fraction * 100,
                                'denominator_country': denominator_country,
-                               'fraction_country': (item['total'] / denominator_country) * 100}
+                               'fraction_country': fraction_country * 100}
 
                 array_result.append(single_line)
 
@@ -1674,9 +1678,13 @@ class FieldValue(Resource):
                         numerator = item2['total']
 
                 if denominator == 0:
-                    denominator = 1
+                    fraction = 0
+                else:
+                    fraction = (numerator / denominator)
                 if denominator_country == 0:
-                    denominator_country = 1
+                    fraction_target = 0
+                else:
+                    fraction_target = (item['total'] / denominator_country)
 
                 single_line = {'lineage': lineage, 'country': country, 'count_seq': item['total'],
                                'target_time': start_target_time + '//' + end_target_time,
@@ -1687,9 +1695,9 @@ class FieldValue(Resource):
                                'sequence_aa_alternative': item['sequence_aa_alternative'],
                                'numerator': numerator,
                                'denominator': denominator,
-                               'fraction': (numerator/denominator)*100,
+                               'fraction': fraction*100,
                                'denominator_target': denominator_country,
-                               'fraction_target': (item['total']/denominator_country)*100}
+                               'fraction_target': fraction_target*100}
 
                 array_result.append(single_line)
 
@@ -1819,9 +1827,13 @@ class FieldValue(Resource):
                     numerator = item2['total']
 
             if denominator == 0:
-                denominator = 1
+                fraction = 0
+            else:
+                fraction = (numerator / denominator)
             if denominator_target == 0:
-                denominator_target = 1
+                fraction_target = 0
+            else:
+                fraction_target = (item['total'] / denominator_target)
 
             single_line = {'lineage': item['lineage'], type_geo1: geo1, type_geo2: geo2,
                            'count_seq': item['total'],
@@ -1831,9 +1843,9 @@ class FieldValue(Resource):
                            'sequence_aa_alternative': item['sequence_aa_alternative'],
                            'numerator': numerator,
                            'denominator': denominator,
-                           'fraction': (numerator/denominator)*100,
+                           'fraction': fraction*100,
                            'denominator_target': denominator_target,
-                           'fraction_target': (item['total'] / denominator_target) * 100}
+                           'fraction_target': fraction_target * 100}
 
             array_result.append(single_line)
 
