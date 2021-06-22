@@ -1471,8 +1471,16 @@ class FieldValue(Resource):
         array_result = []
         for country in array_country:
             where_protein = ""
+            k = 0
+            length = len(array_protein)
             for protein in array_protein:
-                where_protein += f""" AND product = '{protein}' """
+                if k == 0:
+                    where_protein += f""" AND (product = '{protein}' """
+                else:
+                    where_protein += f""" OR product = '{protein}' """
+                k = k + 1
+                if k == length:
+                    where_protein += """ ) """
 
             country_to_send = country.replace("'", "''")
             query1 = f""" SELECT distinct ann.product, start_aa_original, sequence_aa_original,
@@ -1591,8 +1599,16 @@ class FieldValue(Resource):
             country_to_send = country.replace("'", "''")
 
             where_protein = ""
+            k = 0
+            length = len(array_protein)
             for protein in array_protein:
-                where_protein += f""" AND product = '{protein}' """
+                if k == 0:
+                    where_protein += f""" AND (product = '{protein}' """
+                else:
+                    where_protein += f""" OR product = '{protein}' """
+                k = k + 1
+                if k == length:
+                    where_protein += """ ) """
 
             if lineage == 'empty':
                 where_part_lineage = "  "
@@ -1762,8 +1778,16 @@ class FieldValue(Resource):
         array_protein = payload['protein']    # ['Spike (surface glycoprotein)']
 
         where_protein = ""
+        k = 0
+        length = len(array_protein)
         for protein in array_protein:
-            where_protein += f""" AND product = '{protein}' """
+            if k == 0:
+                where_protein += f""" AND (product = '{protein}' """
+            else:
+                where_protein += f""" OR product = '{protein}' """
+            k = k + 1
+            if k == length:
+                where_protein += """ ) """
 
         array_result = []
         geo1 = geo1.replace("'", "''")
