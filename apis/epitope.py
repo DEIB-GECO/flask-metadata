@@ -1779,6 +1779,16 @@ class FieldValue(Resource):
         geo2 = payload['geo2']                # geo2 = 'Campania'
         array_protein = payload['protein']    # ['Spike (surface glycoprotein)']
 
+        test_lineage = """ AND ( lineage = 'B.1.1.7' 
+                           OR lineage = 'B.1.318'
+                           OR lineage = 'B.1.351'
+                           OR lineage = 'B.1.525' 
+                           OR lineage = 'B.1.526'
+                           OR lineage = 'B.1.526.1' 
+                           OR lineage = 'C.37'
+                           OR lineage = 'P.1'
+                           OR lineage = 'P.1.2' ) """
+
         where_protein = ""
         k = 0
         length = len(array_protein)
@@ -1802,6 +1812,7 @@ class FieldValue(Resource):
                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                         WHERE {type_geo2} = '{geo2}'
                         {where_protein}
+                        {test_lineage}
                         GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                         ORDER BY product, start_aa_original """
 
@@ -1817,6 +1828,7 @@ class FieldValue(Resource):
                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                             WHERE {type_geo1} = '{geo1}' AND {type_geo2} != '{geo2}'
+                            {test_lineage}
                         ) as a """
 
         res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
@@ -1834,6 +1846,7 @@ class FieldValue(Resource):
                                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                     WHERE {type_geo2} = '{geo2}'
+                                    {test_lineage}
                                 ) as a """
 
         res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
@@ -1851,6 +1864,7 @@ class FieldValue(Resource):
                                 WHERE {type_geo1} = '{geo1}'
                                 AND {type_geo2} != '{geo2}'
                                 {where_protein}
+                                {test_lineage}
                                 GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                 ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
 
