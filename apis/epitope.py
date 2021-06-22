@@ -1474,6 +1474,7 @@ class FieldValue(Resource):
             k = 0
             length = len(array_protein)
             for protein in array_protein:
+                protein = protein.replace("'", "''")
                 if k == 0:
                     where_protein += f""" AND (product = '{protein}' """
                 else:
@@ -1602,6 +1603,7 @@ class FieldValue(Resource):
             k = 0
             length = len(array_protein)
             for protein in array_protein:
+                protein = protein.replace("'", "''")
                 if k == 0:
                     where_protein += f""" AND (product = '{protein}' """
                 else:
@@ -1781,6 +1783,7 @@ class FieldValue(Resource):
         k = 0
         length = len(array_protein)
         for protein in array_protein:
+            protein = protein.replace("'", "''")
             if k == 0:
                 where_protein += f""" AND (product = '{protein}' """
             else:
