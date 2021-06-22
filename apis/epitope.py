@@ -1529,7 +1529,7 @@ class FieldValue(Resource):
                                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                             WHERE lineage = '{lineage}' AND country != '{country_to_send}'
-                                            {where_lineage}
+                                            {where_protein}
                                             GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                             ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
 
