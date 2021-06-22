@@ -1466,9 +1466,14 @@ class FieldValue(Resource):
         payload = api.payload
         lineage = payload['lineage']    # 'B.1'
         array_country = payload['country']    # ['Italy']
+        array_lineage = payload['lineage']  # ['Spike (surface glycoprotein)']
 
         array_result = []
         for country in array_country:
+            where_lineage = ""
+            for lineage in array_lineage:
+                where_lineage += f""" AND product = '{lineage}' """
+
             country_to_send = country.replace("'", "''")
             query1 = f""" SELECT distinct ann.product, start_aa_original, sequence_aa_original,
                             sequence_aa_alternative, count(*) as total
@@ -1476,7 +1481,7 @@ class FieldValue(Resource):
                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                             WHERE lineage = '{lineage}' AND country = '{country_to_send}'
-                            AND product = 'Spike (surface glycoprotein)'
+                            {where_lineage}
                             GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                             ORDER BY product, start_aa_original """
 
@@ -1524,7 +1529,7 @@ class FieldValue(Resource):
                                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                             WHERE lineage = '{lineage}' AND country != '{country_to_send}'
-                                            AND product = 'Spike (surface glycoprotein)'
+                                            {where_lineage}
                                             GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                             ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
 
@@ -1579,10 +1584,15 @@ class FieldValue(Resource):
         end_target_time = payload['end_target']        # '2021-06-31'
         start_background_time = payload['start_background']  # '2019-01-31'
         end_background_time = payload['end_background']      # '2021-03-31'
+        array_lineage = payload['lineage']                 # ['Spike (surface glycoprotein)']
 
         array_result = []
         for country in array_country:
             country_to_send = country.replace("'", "''")
+
+            where_lineage = ""
+            for lineage in array_lineage:
+                where_lineage += f""" AND product = '{lineage}' """
 
             if lineage == 'empty':
                 where_part_lineage = "  "
@@ -1602,7 +1612,7 @@ class FieldValue(Resource):
                     AND collection_date <= '{end_target_time}'
                     {where_part_lineage}
                     {where_part_country}
-                    AND product = 'Spike (surface glycoprotein)'
+                    {where_lineage}
                     GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                     ORDER BY product, start_aa_original  """
 
@@ -1659,7 +1669,7 @@ class FieldValue(Resource):
                                                         AND collection_date > '{start_background_time}'
                                                         {where_part_lineage}
                                                         {where_part_country}
-                                                        AND product = 'Spike (surface glycoprotein)'
+                                                        {where_lineage}
                                                         GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                                         ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
 
@@ -1749,6 +1759,11 @@ class FieldValue(Resource):
         geo1 = payload['geo1']                # geo1 = 'Italy'
         type_geo2 = payload['type_geo2']      # type_geo2 = 'region'
         geo2 = payload['geo2']                # geo2 = 'Campania'
+        array_lineage = payload['lineage']    # ['Spike (surface glycoprotein)']
+
+        where_lineage = ""
+        for lineage in array_lineage:
+            where_lineage += f""" AND product = '{lineage}' """
 
         array_result = []
         geo1 = geo1.replace("'", "''")
@@ -1759,7 +1774,7 @@ class FieldValue(Resource):
                         JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                         WHERE {type_geo2} = '{geo2}'
-                        AND product = 'Spike (surface glycoprotein)'
+                        {where_lineage}
                         GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                         ORDER BY product, start_aa_original """
 
@@ -1808,7 +1823,7 @@ class FieldValue(Resource):
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                 WHERE {type_geo1} = '{geo1}'
                                 AND {type_geo2} != '{geo2}'
-                                AND product = 'Spike (surface glycoprotein)'
+                                {where_lineage}
                                 GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                 ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
 
