@@ -1646,7 +1646,7 @@ class FieldValue(Resource):
                                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                 WHERE collection_date <= '{end_background_time}'
-                                AND collection_date > '{start_background_time}'
+                                AND collection_date >= '{start_background_time}'
                                 {where_part_lineage}
                                 {where_part_country}
                             ) as a """
@@ -1684,7 +1684,7 @@ class FieldValue(Resource):
                                                         JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                                         WHERE collection_date <= '{end_background_time}'
-                                                        AND collection_date > '{start_background_time}'
+                                                        AND collection_date >= '{start_background_time}'
                                                         {where_part_lineage}
                                                         {where_part_country}
                                                         {where_protein}
