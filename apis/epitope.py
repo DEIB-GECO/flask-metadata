@@ -1420,7 +1420,11 @@ class FieldValue(Resource):
         query += f"""GROUP BY lineage, {geo_selection}
                     ORDER BY lineage) as a
                     GROUP BY a.lineage
-                    HAVING sum(a.cnt) >= {geo_min_count}"""
+                    HAVING (sum(a.cnt)/ (SELECT count(distinct it2.sequence_id)
+                             FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                             WHERE LOWER({geo_where}) = '{geo_where_value}'
+                            )
+                   )*100 >= {geo_min_count}"""
 
         res_all = db.engine.execute(query).fetchall()
         flask.current_app.logger.debug(query)
@@ -1438,22 +1442,26 @@ class FieldValue(Resource):
         lineage = payload['lineage']     # lineage = 'B.1'
         min_count = payload['min_count']     # min_count = 5
 
-        query_country = f"""SELECT a.country
+        query_country = f"""SELECT a.country, a.cnt, a.total
                      FROM (
-                     SELECT lineage, country, count(*) as cnt
-                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                     SELECT lineage, country, count(*) as cnt, (SELECT count(distinct it2.sequence_id)
+                               FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                               WHERE hs.country = hs2.country
+                             ) as total
+				     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                      WHERE lineage = '{lineage}'
                      GROUP BY lineage, country) as a
-                     GROUP BY a.country, a.cnt
-                     HAVING a.cnt >= {min_count} 
+                     GROUP BY a.country, a.cnt, a.total
                      ORDER BY a.country asc"""
 
         res_country = db.engine.execute(query_country).fetchall()
         flask.current_app.logger.debug(query_country)
         array_country = []
-        for row in res_country:
-            for column, value in row.items():
-                array_country.append(value)
+        res_all = [{column: value for column, value in row.items()} for row in res_country]
+
+        for row in res_all:
+            if (row['cnt']/row['total'])*100 > min_count:
+                array_country.append(row['country'])
 
         return array_country
 
