@@ -1922,7 +1922,8 @@ class FieldValue(Resource):
         field_name = payload['field']
         query_fields = payload['query']
 
-        del query_fields[field_name]
+        if field_name in query_fields:
+            del query_fields[field_name]
 
         i = 0
         where_part = " "
