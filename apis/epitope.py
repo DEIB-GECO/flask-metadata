@@ -1618,6 +1618,7 @@ class FieldValue(Resource):
             if k == length:
                 where_protein += """ ) """
 
+        i = 0
         where_part = ""
         if query_fields is not None:
             for key in query_fields:
@@ -1764,6 +1765,7 @@ class FieldValue(Resource):
         payload = api.payload
         query_fields = payload['query']
 
+        i = 0
         where_part = ""
         if query_fields is not None:
             for key in query_fields:
