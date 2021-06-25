@@ -1622,10 +1622,7 @@ class FieldValue(Resource):
         where_part = ""
         if query_fields is not None:
             for key in query_fields:
-                if i == 0:
-                    where_part += f""" WHERE """
-                else:
-                    where_part += f""" AND """
+                where_part += f""" AND """
                 if key == 'minDate':
                     where_part += f""" collection_date >= '{query_fields[key]}' """
                 elif key == 'maxDate':
@@ -1769,10 +1766,7 @@ class FieldValue(Resource):
         where_part = ""
         if query_fields is not None:
             for key in query_fields:
-                if i == 0:
-                    where_part += f""" WHERE """
-                else:
-                    where_part += f""" AND """
+                where_part += f""" AND """
                 if key == 'minDate':
                     where_part += f""" collection_date >= '{query_fields[key]}' """
                 elif key == 'maxDate':
