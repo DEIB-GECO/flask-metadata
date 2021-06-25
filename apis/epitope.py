@@ -1461,8 +1461,7 @@ class FieldValue(Resource):
 
         for row in res_all:
             if (row['cnt']/row['total'])*100 > min_count:
-                single_line = {'count': row['cnt'], 'value': row['country']}
-                array_country.append(single_line)
+                array_country.append(row['country'])
 
         return array_country
 
