@@ -1595,150 +1595,163 @@ class FieldValue(Resource):
     def post(self):
 
         payload = api.payload
-        lineage = payload['lineage']    # 'B.1'
-        # array_country = payload['country']    # ['Italy']
         start_target_time = payload['start_target']    # '2021-03-31'
         end_target_time = payload['end_target']        # '2021-06-31'
         start_background_time = payload['start_background']  # '2019-01-31'
         end_background_time = payload['end_background']      # '2021-03-31'
         array_protein = payload['protein']                 # ['Spike (surface glycoprotein)']
 
-        type_geo1 = payload['type_geo1']  # type_geo1 = 'country'
-        array_geo1 = payload['geo1']  # geo1 = ['Italy']
+        query_fields = payload['query']
 
         array_result = []
-        for geo1 in array_geo1:
-            geo1 = geo1.replace("'", "''")
 
-            where_protein = ""
-            k = 0
-            length = len(array_protein)
-            for protein in array_protein:
-                protein = protein.replace("'", "''")
-                if k == 0:
-                    where_protein += f""" AND (product = '{protein}' """
+        where_protein = ""
+        k = 0
+        length = len(array_protein)
+        for protein in array_protein:
+            protein = protein.replace("'", "''")
+            if k == 0:
+                where_protein += f""" AND (product = '{protein}' """
+            else:
+                where_protein += f""" OR product = '{protein}' """
+            k = k + 1
+            if k == length:
+                where_protein += """ ) """
+
+        where_part = ""
+        if query_fields is not None:
+            for key in query_fields:
+                if i == 0:
+                    where_part += f""" WHERE """
                 else:
-                    where_protein += f""" OR product = '{protein}' """
-                k = k + 1
-                if k == length:
-                    where_protein += """ ) """
+                    where_part += f""" AND """
+                if key == 'minDate':
+                    where_part += f""" collection_date >= '{query_fields[key]}' """
+                elif key == 'maxDate':
+                    where_part += f""" collection_date <= '{query_fields[key]}' """
+                else:
+                    replace_fields_value = query_fields[key].replace("'", "''")
+                    where_part += f""" {key} = '{replace_fields_value }' """
+                i = i + 1
 
-            if lineage == 'empty':
-                where_part_lineage = "  "
-            else:
-                where_part_lineage = f"""  AND lineage = '{lineage}'  """
-            if geo1 == 'empty':
-                where_part_country = "  "
-            else:
-                where_part_country = f"""  AND {type_geo1} = '{geo1}'  """
+        if 'lineage' in query_fields:
+            lineage = query_fields['lineage']
+        else:
+            lineage = 'empty'
+        if 'province' in query_fields:
+            geo1 = query_fields['province']
+        elif 'region' in query_fields:
+            geo1 = query_fields['region']
+        elif 'country' in query_fields:
+            geo1 = query_fields['country']
+        elif 'geo_group' in query_fields:
+            geo1 = query_fields['geo_group']
+        else:
+            geo1 = 'empty'
 
-            query1 = f"""  SELECT distinct ann.product, start_aa_original, sequence_aa_original,
-                    sequence_aa_alternative, count(*) as total
-                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                    WHERE collection_date > '{start_target_time}'
-                    AND collection_date <= '{end_target_time}'
-                    {where_part_lineage}
-                    {where_part_country}
-                    {where_protein}
-                    GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
-                    ORDER BY product, start_aa_original  """
+        query1 = f"""  SELECT distinct ann.product, start_aa_original, sequence_aa_original,
+                sequence_aa_alternative, count(*) as total
+                FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                WHERE collection_date > '{start_target_time}'
+                AND collection_date <= '{end_target_time}'
+                {where_part}
+                {where_protein}
+                GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                ORDER BY product, start_aa_original  """
 
-            res_query1 = db.engine.execute(query1).fetchall()
-            flask.current_app.logger.debug(query1)
-            res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
 
-            query_count_denominator = f""" SELECT count(*)
+        query_count_denominator = f""" SELECT count(*)
+                        FROM 
+                        (
+                            SELECT distinct it.sequence_id
+                            FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                            JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                            JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                            WHERE collection_date <= '{end_background_time}'
+                            AND collection_date >= '{start_background_time}'
+                            {where_part}
+                        ) as a """
+
+        res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
+        flask.current_app.logger.debug(query_count_denominator)
+        res_query_count_denominator = [{column: value for column, value in row.items()}
+                                       for row in res_query_count_denominator]
+
+        denominator = res_query_count_denominator[0]['count']
+
+        query_count_denominator_target = f""" SELECT count(*)
                             FROM 
                             (
                                 SELECT distinct it.sequence_id
                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                WHERE collection_date <= '{end_background_time}'
-                                AND collection_date >= '{start_background_time}'
-                                {where_part_lineage}
-                                {where_part_country}
+                                WHERE collection_date > '{start_target_time}'
+                                AND collection_date <= '{end_target_time}'
+                                {where_part}
                             ) as a """
 
-            res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
-            flask.current_app.logger.debug(query_count_denominator)
-            res_query_count_denominator = [{column: value for column, value in row.items()}
-                                           for row in res_query_count_denominator]
+        res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
+        flask.current_app.logger.debug(query_count_denominator_target)
+        res_query_count_denominator_target = [{column: value for column, value in row.items()}
+                                       for row in res_query_count_denominator_target]
 
-            denominator = res_query_count_denominator[0]['count']
+        denominator_country = res_query_count_denominator_target[0]['count']
 
-            query_count_denominator_target = f""" SELECT count(*)
-                                FROM 
-                                (
-                                    SELECT distinct it.sequence_id
-                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                    WHERE collection_date > '{start_target_time}'
-                                    AND collection_date <= '{end_target_time}'
-                                    {where_part_lineage}
-                                {   where_part_country}
-                                ) as a """
+        query_background = f"""SELECT product, start_aa_original, sequence_aa_original, 
+                                                    sequence_aa_alternative, count(*) as total
+                                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                                    WHERE collection_date <= '{end_background_time}'
+                                                    AND collection_date >= '{start_background_time}'
+                                                    {where_part}
+                                                    {where_protein}
+                                                    GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                                                    ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
 
-            res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
-            flask.current_app.logger.debug(query_count_denominator_target)
-            res_query_count_denominator_target = [{column: value for column, value in row.items()}
-                                           for row in res_query_count_denominator_target]
+        res_query_background = db.engine.execute(query_background).fetchall()
+        flask.current_app.logger.debug(query_background)
+        res_query_background = [{column: value for column, value in row.items()}
+                                for row in res_query_background]
 
-            denominator_country = res_query_count_denominator_target[0]['count']
+        for item in res_query1:
+            numerator = 0
+            for item2 in res_query_background:
+                if item['start_aa_original'] == item2['start_aa_original'] \
+                        and item['sequence_aa_original'] == item2['sequence_aa_original'] \
+                        and item['sequence_aa_alternative'] == item2['sequence_aa_alternative'] \
+                        and item['product'] == item2['product']:
+                    numerator = item2['total']
 
-            query_background = f"""SELECT product, start_aa_original, sequence_aa_original, 
-                                                        sequence_aa_alternative, count(*) as total
-                                                        FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                                        JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                                        JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                                        WHERE collection_date <= '{end_background_time}'
-                                                        AND collection_date >= '{start_background_time}'
-                                                        {where_part_lineage}
-                                                        {where_part_country}
-                                                        {where_protein}
-                                                        GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
-                                                        ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
+            if denominator == 0:
+                fraction = 0
+            else:
+                fraction = (numerator / denominator)
+            if denominator_country == 0:
+                fraction_target = 0
+            else:
+                fraction_target = (item['total'] / denominator_country)
 
-            res_query_background = db.engine.execute(query_background).fetchall()
-            flask.current_app.logger.debug(query_background)
-            res_query_background = [{column: value for column, value in row.items()}
-                                    for row in res_query_background]
+            single_line = {'lineage': lineage, 'country': geo1, 'count_seq': item['total'],
+                           'target_time': start_target_time + '//' + end_target_time,
+                           'background_time': start_background_time + '//' + end_background_time,
+                           'start_aa_original': item['start_aa_original'],
+                           'product': item['product'],
+                           'sequence_aa_original': item['sequence_aa_original'],
+                           'sequence_aa_alternative': item['sequence_aa_alternative'],
+                           'numerator': numerator,
+                           'denominator': denominator,
+                           'fraction': fraction*100,
+                           'denominator_target': denominator_country,
+                           'fraction_target': fraction_target*100}
 
-            for item in res_query1:
-                numerator = 0
-                for item2 in res_query_background:
-                    if item['start_aa_original'] == item2['start_aa_original'] \
-                            and item['sequence_aa_original'] == item2['sequence_aa_original'] \
-                            and item['sequence_aa_alternative'] == item2['sequence_aa_alternative'] \
-                            and item['product'] == item2['product']:
-                        numerator = item2['total']
-
-                if denominator == 0:
-                    fraction = 0
-                else:
-                    fraction = (numerator / denominator)
-                if denominator_country == 0:
-                    fraction_target = 0
-                else:
-                    fraction_target = (item['total'] / denominator_country)
-
-                single_line = {'lineage': lineage, 'country': geo1, 'count_seq': item['total'],
-                               'target_time': start_target_time + '//' + end_target_time,
-                               'background_time': start_background_time + '//' + end_background_time,
-                               'start_aa_original': item['start_aa_original'],
-                               'product': item['product'],
-                               'sequence_aa_original': item['sequence_aa_original'],
-                               'sequence_aa_alternative': item['sequence_aa_alternative'],
-                               'numerator': numerator,
-                               'denominator': denominator,
-                               'fraction': fraction*100,
-                               'denominator_target': denominator_country,
-                               'fraction_target': fraction_target*100}
-
-                array_result.append(single_line)
+            array_result.append(single_line)
 
         return array_result
 
@@ -1749,28 +1762,28 @@ class FieldValue(Resource):
     def post(self):
 
         payload = api.payload
-        lineage = payload['lineage']    # 'B.1'
-        # country = payload['country']    # 'Italy'
-        type_geo1 = payload['type_geo1']  # type_geo1 = 'country'
-        geo1 = payload['geo1']  # geo1 = 'Italy'
+        query_fields = payload['query']
 
-        # country_to_send = country.replace("'", "''")
-        geo1 = geo1.replace("'", "''")
-
-        if lineage == 'empty':
-            where_part_lineage = "  "
-        else:
-            where_part_lineage = f"""  AND lineage = '{lineage}'  """
-        if geo1 == 'empty':
-            where_part_country = "  "
-        else:
-            where_part_country = f"""  AND {type_geo1} = '{geo1}'  """
+        where_part = ""
+        if query_fields is not None:
+            for key in query_fields:
+                if i == 0:
+                    where_part += f""" WHERE """
+                else:
+                    where_part += f""" AND """
+                if key == 'minDate':
+                    where_part += f""" collection_date >= '{query_fields[key]}' """
+                elif key == 'maxDate':
+                    where_part += f""" collection_date <= '{query_fields[key]}' """
+                else:
+                    replace_fields_value = query_fields[key].replace("'", "''")
+                    where_part += f""" {key} = '{replace_fields_value }' """
+                i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
                 FROM sequence as it JOIN host_sample as hs ON hs.host_sample_id = it.host_sample_id
                 WHERE collection_date > '2019-01-01'
-                {where_part_lineage}
-                {where_part_country}
+                {where_part}
                 GROUP BY collection_date
                 ORDER BY collection_date """
 
