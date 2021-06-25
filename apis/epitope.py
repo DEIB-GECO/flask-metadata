@@ -1596,16 +1596,19 @@ class FieldValue(Resource):
 
         payload = api.payload
         lineage = payload['lineage']    # 'B.1'
-        array_country = payload['country']    # ['Italy']
+        # array_country = payload['country']    # ['Italy']
         start_target_time = payload['start_target']    # '2021-03-31'
         end_target_time = payload['end_target']        # '2021-06-31'
         start_background_time = payload['start_background']  # '2019-01-31'
         end_background_time = payload['end_background']      # '2021-03-31'
         array_protein = payload['protein']                 # ['Spike (surface glycoprotein)']
 
+        type_geo1 = payload['type_geo1']  # type_geo1 = 'country'
+        array_geo1 = payload['geo1']  # geo1 = ['Italy']
+
         array_result = []
-        for country in array_country:
-            country_to_send = country.replace("'", "''")
+        for geo1 in array_geo1:
+            geo1 = geo1.replace("'", "''")
 
             where_protein = ""
             k = 0
@@ -1624,10 +1627,10 @@ class FieldValue(Resource):
                 where_part_lineage = "  "
             else:
                 where_part_lineage = f"""  AND lineage = '{lineage}'  """
-            if country == 'empty':
+            if geo1 == 'empty':
                 where_part_country = "  "
             else:
-                where_part_country = f"""  AND country = '{country_to_send}'  """
+                where_part_country = f"""  AND {type_geo1} = '{geo1}'  """
 
             query1 = f"""  SELECT distinct ann.product, start_aa_original, sequence_aa_original,
                     sequence_aa_alternative, count(*) as total
@@ -1722,7 +1725,7 @@ class FieldValue(Resource):
                 else:
                     fraction_target = (item['total'] / denominator_country)
 
-                single_line = {'lineage': lineage, 'country': country, 'count_seq': item['total'],
+                single_line = {'lineage': lineage, 'country': geo1, 'count_seq': item['total'],
                                'target_time': start_target_time + '//' + end_target_time,
                                'background_time': start_background_time + '//' + end_background_time,
                                'start_aa_original': item['start_aa_original'],
@@ -1747,18 +1750,21 @@ class FieldValue(Resource):
 
         payload = api.payload
         lineage = payload['lineage']    # 'B.1'
-        country = payload['country']    # 'Italy'
+        # country = payload['country']    # 'Italy'
+        type_geo1 = payload['type_geo1']  # type_geo1 = 'country'
+        geo1 = payload['geo1']  # geo1 = 'Italy'
 
-        country_to_send = country.replace("'", "''")
+        # country_to_send = country.replace("'", "''")
+        geo1 = geo1.replace("'", "''")
 
         if lineage == 'empty':
             where_part_lineage = "  "
         else:
             where_part_lineage = f"""  AND lineage = '{lineage}'  """
-        if country == 'empty':
+        if geo1 == 'empty':
             where_part_country = "  "
         else:
-            where_part_country = f"""  AND country = '{country_to_send}'  """
+            where_part_country = f"""  AND {type_geo1} = '{geo1}'  """
 
         query1 = f""" SELECT collection_date as name, count(*) as value
                 FROM sequence as it JOIN host_sample as hs ON hs.host_sample_id = it.host_sample_id
