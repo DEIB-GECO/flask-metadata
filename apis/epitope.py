@@ -1912,6 +1912,48 @@ class FieldValue(Resource):
         return array_result
 
 
+@api.route('/selectorQuery')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        # payload = {'field': 'lineage', 'query': {'lineage': 'B.1.1.7', 'country': 'Italy', 'minDate': '2021-03-31', 'maxDate': '2021-05-25'}}
+        field_name = payload['field']
+        query_fields = payload['query']
+
+        del query_fields[field_name]
+
+        i = 0
+        where_part = " "
+        if query_fields is not None:
+            for key in query_fields:
+                if i == 0:
+                    where_part += f""" WHERE """
+                else:
+                    where_part += f""" AND """
+                if key == 'minDate':
+                    where_part += f""" collection_date >= '{query_fields[key]}' """
+                elif key == 'maxDate':
+                    where_part += f""" collection_date <= '{query_fields[key]}' """
+                else:
+                    where_part += f""" {key} = '{query_fields[key]}' """
+                i = i + 1
+
+        query1 = f""" SELECT {field_name} as value, count(distinct it.sequence_id) as count
+                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                    {where_part}
+                    AND {field_name} is NOT null
+                    GROUP BY {field_name}
+                    ORDER BY count desc """
+
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+        return res_query1
+
+
 @api.route('/allGeo')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
