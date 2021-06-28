@@ -1796,11 +1796,10 @@ class FieldValue(Resource):
     def post(self):
 
         payload = api.payload
-        type_geo1 = payload['type_geo1']      # type_geo1 = 'country'
-        geo1 = payload['geo1']                # geo1 = 'Italy'
-        type_geo2 = payload['type_geo2']      # type_geo2 = 'region'
-        geo2 = payload['geo2']                # geo2 = 'Campania'
-        array_protein = payload['protein']    # ['Spike (surface glycoprotein)']
+        # type_geo1 = payload['type_geo1']      # type_geo1 = 'country'
+        # geo1 = payload['geo1']                # geo1 = 'Italy'
+        # type_geo2 = payload['type_geo2']      # type_geo2 = 'region'
+        # geo2 = payload['geo2']                # geo2 = 'Campania'
 
         # test_lineage = """ AND ( lineage = 'B.1.1.7'
         #                    OR lineage = 'B.1.318'
@@ -1811,6 +1810,53 @@ class FieldValue(Resource):
         #                    OR lineage = 'C.37'
         #                    OR lineage = 'P.1'
         #                    OR lineage = 'P.1.2' ) """
+
+        array_protein = payload['protein']    # ['Spike (surface glycoprotein)']
+        query_fields = payload['query']
+
+        if 'province' in query_fields:
+            target = query_fields['province']
+            background = query_fields['region']
+        elif 'region' in query_fields:
+            target = query_fields['region']
+            background = query_fields['country']
+        elif 'country' in query_fields:
+            target = query_fields['country']
+            background = query_fields['continent']
+        elif 'geo_group' in query_fields:
+            target = query_fields['continent']
+            background = 'world'
+        else:
+            target = 'empty'
+            background = 'empty'
+
+        i = 0
+        where_part_target = ""
+        where_part_background = ""
+        if query_fields is not None:
+            for key in query_fields:
+                if i == 0:
+                    where_part_target += f""" WHERE """
+                    where_part_background += f""" WHERE """
+                else:
+                    where_part_target += f""" AND """
+                    where_part_background += f""" AND """
+                if key == 'minDate':
+                    where_part_target += f""" collection_date >= '{query_fields[key]}' """
+                    where_part_background += f""" collection_date >= '{query_fields[key]}' """
+                elif key == 'maxDate':
+                    where_part_target += f""" collection_date <= '{query_fields[key]}' """
+                    where_part_background += f""" collection_date <= '{query_fields[key]}' """
+                else:
+                    replace_fields_value = query_fields[key].replace("'", "''")
+                    if key == target:
+                        where_part_target += f""" {key} = '{replace_fields_value}' """
+                        where_part_background += f""" {key} != '{replace_fields_value}' """
+                    else:
+                        where_part_target += f""" {key} = '{replace_fields_value}' """
+                        where_part_background += f""" {key} = '{replace_fields_value}' """
+
+                i = i + 1
 
         where_protein = ""
         k = 0
@@ -1826,14 +1872,14 @@ class FieldValue(Resource):
                 where_protein += """ ) """
 
         array_result = []
-        geo1 = geo1.replace("'", "''")
-        geo2 = geo2.replace("'", "''")
+        # geo1 = geo1.replace("'", "''")
+        # geo2 = geo2.replace("'", "''")
         query1 = f""" SELECT distinct ann.product, start_aa_original, sequence_aa_original,
                         sequence_aa_alternative, count(*) as total, array_agg(distinct lineage) as lineage
                         FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                         JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                        WHERE {type_geo2} = '{geo2}'
+                        {where_part_target}
                         {where_protein}
                         GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                         ORDER BY product, start_aa_original """
@@ -1849,7 +1895,7 @@ class FieldValue(Resource):
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                            WHERE {type_geo1} = '{geo1}' AND {type_geo2} != '{geo2}'
+                            {where_part_background}
                         ) as a """
 
         res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
@@ -1866,7 +1912,7 @@ class FieldValue(Resource):
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                    WHERE {type_geo2} = '{geo2}'
+                                    {where_part_target}
                                 ) as a """
 
         res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
@@ -1876,13 +1922,12 @@ class FieldValue(Resource):
 
         denominator_target = res_query_count_denominator_target[0]['count']
 
-        query_background = f"""SELECT product, start_aa_original, sequence_aa_original, 
+        query_background = f""" SELECT product, start_aa_original, sequence_aa_original, 
                                 sequence_aa_alternative, count(*) as total
                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                                WHERE {type_geo1} = '{geo1}'
-                                AND {type_geo2} != '{geo2}'
+                                {where_part_background}
                                 {where_protein}
                                 GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                 ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
@@ -1910,7 +1955,7 @@ class FieldValue(Resource):
             else:
                 fraction_target = (item['total'] / denominator_target)
 
-            single_line = {'lineage': item['lineage'], type_geo1: geo1, type_geo2: geo2,
+            single_line = {'lineage': item['lineage'], 'target': target, 'background': background,
                            'count_seq': item['total'],
                            'product': item['product'],
                            'start_aa_original': item['start_aa_original'],
