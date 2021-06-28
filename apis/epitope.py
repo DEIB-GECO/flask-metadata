@@ -1822,9 +1822,9 @@ class FieldValue(Resource):
             background = query_fields['country']
         elif 'country' in query_fields:
             target = query_fields['country']
-            background = query_fields['continent']
+            background = query_fields['geo_group']
         elif 'geo_group' in query_fields:
-            target = query_fields['continent']
+            target = query_fields['geo_group']
             background = 'world'
         else:
             target = 'empty'
