@@ -1511,8 +1511,6 @@ class FieldValue(Resource):
                                 (
                                     SELECT distinct it.sequence_id
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                     WHERE lineage = '{lineage}' AND country != '{country_to_send}'
                                 ) as a"""
 
@@ -1528,8 +1526,6 @@ class FieldValue(Resource):
                                             (
                                                 SELECT distinct it.sequence_id
                                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                                JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                                JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                                 WHERE lineage = '{lineage}' AND country = '{country_to_send}'
                                             ) as a"""
 
@@ -1668,8 +1664,6 @@ class FieldValue(Resource):
                         (
                             SELECT distinct it.sequence_id
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                            JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                            JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                             WHERE collection_date <= '{end_background_time}'
                             AND collection_date >= '{start_background_time}'
                             {where_part}
@@ -1687,8 +1681,6 @@ class FieldValue(Resource):
                             (
                                 SELECT distinct it.sequence_id
                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                 WHERE collection_date > '{start_target_time}'
                                 AND collection_date <= '{end_target_time}'
                                 {where_part}
@@ -1898,8 +1890,6 @@ class FieldValue(Resource):
                         (
                             SELECT distinct it.sequence_id
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                            JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                            JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                             {where_part_background}
                         ) as a """
 
@@ -1915,8 +1905,6 @@ class FieldValue(Resource):
                                 (
                                     SELECT distinct it.sequence_id
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
-                                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                     {where_part_target}
                                 ) as a """
 
