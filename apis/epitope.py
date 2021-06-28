@@ -2008,6 +2008,56 @@ class FieldValue(Resource):
         return res_query1
 
 
+@api.route('/getAccessionIds')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        # payload = {'query': {'lineage': 'B.1.1.7', 'country': 'Italy', 'geo_group': 'Europe',
+        #                      'minDateTerget': '2021-03-31', 'maxDateTarget': '2021-06-28',
+        #                      'start_aa_original': 614, 'sequence_aa_original': 'D',
+        #                      'sequence_aa_alternative': 'G', 'product': 'Spike (surface glycoprotein)'},
+        #            'query_false': ''}
+        query_false_field = payload['query_false']
+        query_fields = payload['query']
+
+        i = 0
+        where_part = " "
+        if query_fields is not None:
+            for key in query_fields:
+                if i == 0:
+                    where_part += f""" WHERE """
+                else:
+                    where_part += f""" AND """
+                if key == 'minDateBackground':
+                    where_part += f""" collection_date >= '{query_fields[key]}' """
+                elif key == 'maxDateBackground':
+                    where_part += f""" collection_date <= '{query_fields[key]}' """
+                elif key == 'minDateTarget':
+                    where_part += f""" collection_date > '{query_fields[key]}' """
+                elif key == 'maxDateTarget':
+                    where_part += f""" collection_date <= '{query_fields[key]}' """
+                else:
+                    if key == query_false_field:
+                        where_part += f""" {key} != '{query_fields[key]}' """
+                    else:
+                        where_part += f""" {key} = '{query_fields[key]}' """
+                i = i + 1
+
+        query1 = f""" SELECT array_agg(distinct it.accession_id ORDER BY it.accession_id) as acc_ids
+                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                    JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                    JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                    {where_part} """
+
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+        return res_query1
+
+
 @api.route('/allGeo')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
