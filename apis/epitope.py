@@ -1816,18 +1816,23 @@ class FieldValue(Resource):
 
         if 'province' in query_fields:
             target = query_fields['province']
+            target_key = 'province'
             background = query_fields['region']
         elif 'region' in query_fields:
             target = query_fields['region']
+            target_key = 'region'
             background = query_fields['country']
         elif 'country' in query_fields:
             target = query_fields['country']
+            target_key = 'country'
             background = query_fields['geo_group']
         elif 'geo_group' in query_fields:
             target = query_fields['geo_group']
+            target_key = 'geo_group'
             background = 'world'
         else:
             target = 'empty'
+            target_key = 'empty'
             background = 'empty'
 
         i = 0
@@ -1849,7 +1854,7 @@ class FieldValue(Resource):
                     where_part_background += f""" collection_date <= '{query_fields[key]}' """
                 else:
                     replace_fields_value = query_fields[key].replace("'", "''")
-                    if key == target:
+                    if key == target_key:
                         where_part_target += f""" {key} = '{replace_fields_value}' """
                         where_part_background += f""" {key} != '{replace_fields_value}' """
                     else:
