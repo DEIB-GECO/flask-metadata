@@ -1782,6 +1782,46 @@ class FieldValue(Resource):
         return res_query1
 
 
+@api.route('/analyzeTimeDistributionBackgroundQueryGeo')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        query_fields = payload['query']
+        query_false = payload['query_false']
+
+        i = 0
+        where_part = ""
+        if query_fields is not None:
+            for key in query_fields:
+                where_part += f""" AND """
+                if key == 'minDate':
+                    where_part += f""" collection_date >= '{query_fields[key]}' """
+                elif key == 'maxDate':
+                    where_part += f""" collection_date <= '{query_fields[key]}' """
+                else:
+                    replace_fields_value = query_fields[key].replace("'", "''")
+                    if key == query_false:
+                        where_part += f""" {key} != '{replace_fields_value }' """
+                    else:
+                        where_part += f""" {key} = '{replace_fields_value}' """
+                i = i + 1
+
+        query1 = f""" SELECT collection_date as name, count(*) as value
+                FROM sequence as it JOIN host_sample as hs ON hs.host_sample_id = it.host_sample_id
+                WHERE collection_date > '2019-01-01'
+                {where_part}
+                GROUP BY collection_date
+                ORDER BY collection_date """
+
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+        return res_query1
+
+
 @api.route('/analyzeMutationProvinceRegion')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
