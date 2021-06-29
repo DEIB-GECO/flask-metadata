@@ -1803,7 +1803,8 @@ class FieldValue(Resource):
                 else:
                     replace_fields_value = query_fields[key].replace("'", "''")
                     if key == query_false:
-                        where_part += f""" {key} != '{replace_fields_value }' """
+                        where_part += f""" ( {key} != '{replace_fields_value}' OR
+                                                                    {key} is null ) """
                     else:
                         where_part += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
@@ -1888,7 +1889,8 @@ class FieldValue(Resource):
                     replace_fields_value = query_fields[key].replace("'", "''")
                     if key == target_key:
                         where_part_target += f""" {key} = '{replace_fields_value}' """
-                        where_part_background += f""" {key} != '{replace_fields_value}' """
+                        where_part_background += f""" ( {key} != '{replace_fields_value}' OR
+                                                        {key} is null ) """
                     else:
                         where_part_target += f""" {key} = '{replace_fields_value}' """
                         where_part_background += f""" {key} = '{replace_fields_value}' """
@@ -2080,7 +2082,8 @@ class FieldValue(Resource):
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
                     if key == query_false_field:
-                        where_part += f""" {key} != '{query_fields[key]}' """
+                        where_part += f""" ( {key} != '{query_fields[key]}' OR 
+                                             {key} is null ) """
                     else:
                         where_part += f""" {key} = '{query_fields[key]}' """
                 i = i + 1
