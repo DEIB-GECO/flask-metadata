@@ -1850,19 +1850,34 @@ class FieldValue(Resource):
         if 'province' in query_fields:
             target = query_fields['province']
             target_key = 'province'
-            background = query_fields['region']
+            if 'region' in query_fields:
+                background = query_fields['region']
+            elif 'country' in query_fields:
+                background = query_fields['country']
+            elif 'geo_group' in query_fields:
+                background = query_fields['geo_group']
+            else:
+                background = 'World'
         elif 'region' in query_fields:
             target = query_fields['region']
             target_key = 'region'
-            background = query_fields['country']
+            if 'country' in query_fields:
+                background = query_fields['country']
+            elif 'geo_group' in query_fields:
+                background = query_fields['geo_group']
+            else:
+                background = 'World'
         elif 'country' in query_fields:
             target = query_fields['country']
             target_key = 'country'
-            background = query_fields['geo_group']
+            if 'geo_group' in query_fields:
+                background = query_fields['geo_group']
+            else:
+                background = 'World'
         elif 'geo_group' in query_fields:
             target = query_fields['geo_group']
             target_key = 'geo_group'
-            background = 'world'
+            background = 'World'
         else:
             target = 'empty'
             target_key = 'empty'
