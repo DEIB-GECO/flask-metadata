@@ -2244,11 +2244,11 @@ class FieldValue(Resource):
         #            'query_false': ''}
         query_false_field = payload['query_false']
         query_fields = payload['query']
-        query_target = payload['query_background']
+        query_target = payload['query_target']
 
         j = 0
         where_part_target = ""
-        if query_target is not None:
+        if query_target != 'empty':
             where_part_target += """ AND it.sequence_id not in (
                                  SELECT distinct it2.sequence_id
                                  FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
