@@ -2022,6 +2022,172 @@ class FieldValue(Resource):
         return array_result
 
 
+@api.route('/analyzeMutationTargetBackgroundFree')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        array_protein = payload['protein']
+        query_target = payload['query_target']
+        query_background = payload['query_background']
+
+        target = 'empty'
+        background = 'empty'
+
+        j = 0
+        i = 0
+        where_part_target = ""
+        where_part_background = ""
+        if query_target is not None:
+            for key in query_target:
+                if i == 0:
+                    where_part_target += f""" WHERE """
+                else:
+                    where_part_target += f""" AND """
+                if key == 'minDate':
+                    where_part_target += f""" collection_date >= '{query_target[key]}' """
+                elif key == 'maxDate':
+                    where_part_target += f""" collection_date <= '{query_target[key]}' """
+                else:
+                    replace_fields_value = query_target[key].replace("'", "''")
+                    where_part_target += f""" {key} = '{replace_fields_value}' """
+                i = i + 1
+
+        if query_background is not None:
+            for key in query_background:
+                if j == 0:
+                    where_part_background += f""" WHERE """
+                else:
+                    where_part_background += f""" AND """
+                if key == 'minDate':
+                    where_part_background += f""" collection_date >= '{query_background[key]}' """
+                elif key == 'maxDate':
+                    where_part_background += f""" collection_date <= '{query_background[key]}' """
+                else:
+                    replace_fields_value = query_background[key].replace("'", "''")
+                    where_part_background += f""" {key} = '{replace_fields_value}' """
+                j = j + 1
+
+        where_protein = ""
+        k = 0
+        length = len(array_protein)
+        for protein in array_protein:
+            protein = protein.replace("'", "''")
+            if k == 0:
+                where_protein += f""" AND (product = '{protein}' """
+            else:
+                where_protein += f""" OR product = '{protein}' """
+            k = k + 1
+            if k == length:
+                where_protein += """ ) """
+
+        array_result = []
+
+        query1 = f""" SELECT distinct ann.product, start_aa_original, sequence_aa_original,
+                        sequence_aa_alternative, count(*) as total, array_agg(distinct lineage) as lineage
+                        FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                        JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                        JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                        {where_part_target}
+                        {where_protein}
+                        GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                        ORDER BY product, start_aa_original """
+
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+        query_count_denominator = f""" SELECT count(*)
+                        FROM 
+                        (
+                            SELECT distinct it.sequence_id
+                            FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                            {where_part_background}
+                            AND it.sequence_id not in (
+                                 SELECT distinct it2.sequence_id
+                                 FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                                 {where_part_target}
+                            )
+                        ) as a """
+
+        res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
+        flask.current_app.logger.debug(query_count_denominator)
+        res_query_count_denominator = [{column: value for column, value in row.items()}
+                                       for row in res_query_count_denominator]
+
+        denominator = res_query_count_denominator[0]['count']
+
+        query_count_denominator_target = f""" SELECT count(*)
+                                FROM 
+                                (
+                                    SELECT distinct it.sequence_id
+                                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                    {where_part_target}
+                                ) as a """
+
+        res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
+        flask.current_app.logger.debug(query_count_denominator_target)
+        res_query_count_denominator_target = [{column: value for column, value in row.items()}
+                                       for row in res_query_count_denominator_target]
+
+        denominator_target = res_query_count_denominator_target[0]['count']
+
+        query_background = f""" SELECT product, start_aa_original, sequence_aa_original, 
+                                sequence_aa_alternative, count(*) as total
+                                FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                                JOIN annotation as ann ON ann.sequence_id = it.sequence_id
+                                JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
+                                {where_part_background}
+                                AND it.sequence_id not in (
+                                     SELECT distinct it2.sequence_id
+                                     FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                                     {where_part_target}
+                                )
+                                {where_protein}
+                                GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
+                                ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
+
+        res_query_background = db.engine.execute(query_background).fetchall()
+        flask.current_app.logger.debug(query_background)
+        res_query_background = [{column: value for column, value in row.items()}
+                                for row in res_query_background]
+
+        for item in res_query1:
+            numerator = 0
+            for item2 in res_query_background:
+                if item['start_aa_original'] == item2['start_aa_original'] \
+                        and item['sequence_aa_original'] == item2['sequence_aa_original'] \
+                        and item['sequence_aa_alternative'] == item2['sequence_aa_alternative'] \
+                        and item['product'] == item2['product']:
+                    numerator = item2['total']
+
+            if denominator == 0:
+                fraction = 0
+            else:
+                fraction = (numerator / denominator)
+            if denominator_target == 0:
+                fraction_target = 0
+            else:
+                fraction_target = (item['total'] / denominator_target)
+
+            single_line = {'lineage': item['lineage'], 'target': target, 'background': background,
+                           'count_seq': item['total'],
+                           'product': item['product'],
+                           'start_aa_original': item['start_aa_original'],
+                           'sequence_aa_original': item['sequence_aa_original'],
+                           'sequence_aa_alternative': item['sequence_aa_alternative'],
+                           'numerator': numerator,
+                           'denominator': denominator,
+                           'fraction': fraction*100,
+                           'denominator_target': denominator_target,
+                           'fraction_target': fraction_target * 100}
+
+            array_result.append(single_line)
+
+        return array_result
+
+
 @api.route('/selectorQuery')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
