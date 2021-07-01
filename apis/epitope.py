@@ -2244,6 +2244,29 @@ class FieldValue(Resource):
         #            'query_false': ''}
         query_false_field = payload['query_false']
         query_fields = payload['query']
+        query_target = payload['query_background']
+
+        j = 0
+        where_part_target = ""
+        if query_target is not None:
+            where_part_target += """ AND it.sequence_id not in (
+                                 SELECT distinct it2.sequence_id
+                                 FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                                """
+            for key in query_target:
+                if j == 0:
+                    where_part_target += f""" WHERE """
+                else:
+                    where_part_target += f""" AND """
+                if key == 'minDate':
+                    where_part_target += f""" collection_date >= '{query_target[key]}' """
+                elif key == 'maxDate':
+                    where_part_target += f""" collection_date <= '{query_target[key]}' """
+                else:
+                    replace_fields_value = query_target[key].replace("'", "''")
+                    where_part_target += f""" {key} = '{replace_fields_value}' """
+                j = j + 1
+            where_part_target += " ) "
 
         i = 0
         where_part = " "
@@ -2273,7 +2296,8 @@ class FieldValue(Resource):
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                    {where_part} """
+                    {where_part} 
+                    {where_part_target} """
 
         res_query1 = db.engine.execute(query1).fetchall()
         flask.current_app.logger.debug(query1)
