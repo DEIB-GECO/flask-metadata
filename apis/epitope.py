@@ -2188,6 +2188,65 @@ class FieldValue(Resource):
         return array_result
 
 
+@api.route('/countOverlappingSequenceTargetBackground')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        payload = api.payload
+        query_target = payload['query_target']
+        query_background = payload['query_background']
+
+        j = 0
+        i = 0
+        where_part_target = ""
+        where_part_background = ""
+        if query_target is not None:
+            for key in query_target:
+                if i == 0:
+                    where_part_target += f""" WHERE """
+                else:
+                    where_part_target += f""" AND """
+                if key == 'minDate':
+                    where_part_target += f""" collection_date >= '{query_target[key]}' """
+                elif key == 'maxDate':
+                    where_part_target += f""" collection_date <= '{query_target[key]}' """
+                else:
+                    replace_fields_value = query_target[key].replace("'", "''")
+                    where_part_target += f""" {key} = '{replace_fields_value}' """
+                i = i + 1
+
+        if query_background is not None:
+            for key in query_background:
+                if j == 0:
+                    where_part_background += f""" WHERE """
+                else:
+                    where_part_background += f""" AND """
+                if key == 'minDate':
+                    where_part_background += f""" collection_date >= '{query_background[key]}' """
+                elif key == 'maxDate':
+                    where_part_background += f""" collection_date <= '{query_background[key]}' """
+                else:
+                    replace_fields_value = query_background[key].replace("'", "''")
+                    where_part_background += f""" {key} = '{replace_fields_value}' """
+                j = j + 1
+
+        query1 = f""" SELECT count(distinct it.sequence_id)
+                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                    {where_part_background}
+                    AND it.sequence_id in (
+                         SELECT distinct it2.sequence_id
+                         FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                         {where_part_target}
+                    ) """
+
+        res_query1 = db.engine.execute(query1).fetchall()
+        flask.current_app.logger.debug(query1)
+        res_query1 = [{column: value for column, value in row.items()} for row in res_query1]
+
+        return res_query1
+
+
 @api.route('/selectorQuery')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
