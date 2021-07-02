@@ -1403,6 +1403,8 @@ class FieldValue(Resource):
         geo_selection = 'country'
         geo_min_count = filter_geo['minCountSeq']
         geo_where = filter_geo['type']
+        min_date = filter_geo['minDate']
+        max_date = filter_geo['maxDate']
         geo_where_value = filter_geo['value'].lower()
 
         if geo_where == 'geo_group':
@@ -1416,7 +1418,9 @@ class FieldValue(Resource):
                     FROM (
                     SELECT lineage, {geo_selection}, count(*) as cnt
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id """
-        query += f""" WHERE LOWER({geo_where}) = '{geo_where_value}' """
+        query += f""" WHERE LOWER({geo_where}) = '{geo_where_value}' 
+                      AND collection_date >= {min_date} 
+                      AND collection_date <= {max_date} """
         query += f"""GROUP BY lineage, {geo_selection}
                     ORDER BY lineage) as a
                     GROUP BY a.lineage
