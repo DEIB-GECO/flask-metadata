@@ -1419,16 +1419,16 @@ class FieldValue(Resource):
                     SELECT lineage, {geo_selection}, count(*) as cnt
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id """
         query += f""" WHERE LOWER({geo_where}) = '{geo_where_value}' 
-                      AND collection_date >= {min_date} 
-                      AND collection_date <= {max_date} """
+                      AND collection_date >= '{min_date}'
+                      AND collection_date <= '{max_date}' """
         query += f"""GROUP BY lineage, {geo_selection}
                     ORDER BY lineage) as a
                     GROUP BY a.lineage
                     HAVING (sum(a.cnt)/ (SELECT count(distinct it2.sequence_id)
                              FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                              WHERE LOWER({geo_where}) = '{geo_where_value}'
-                             AND collection_date >= {min_date} 
-                             AND collection_date <= {max_date}
+                             AND collection_date >= '{min_date}' 
+                             AND collection_date <= '{max_date}'
                             )
                    )*100 >= {geo_min_count}"""
 
