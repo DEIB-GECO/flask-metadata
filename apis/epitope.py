@@ -1439,6 +1439,48 @@ class FieldValue(Resource):
         return res_all
 
 
+@api.route('/denominatorLineageCountry')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def post(self):
+
+        filter_geo = api.payload
+
+        geo_selection = 'country'
+        geo_where = filter_geo['type']
+        min_date = filter_geo['minDate']
+        max_date = filter_geo['maxDate']
+        geo_where_value = filter_geo['value'].lower()
+
+        if geo_where == 'geo_group':
+            geo_selection = 'country'
+        elif geo_where == 'country':
+            geo_selection = 'region'
+        elif geo_where == 'region':
+            geo_selection = 'province'
+
+        query = f""" SELECT {geo_selection} as geo, count(*) as cnt
+                    FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                    WHERE LOWER(country) = '{geo_where_value}'
+                    AND collection_date >= '{min_date}'
+                    AND collection_date <= '{max_date}'
+                    GROUP BY region """
+
+        res_all = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+        res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+        denominators = {}
+
+        for item in res_all:
+            if item['geo'] is None:
+                denominators['N/D'] = item['cnt']
+            else:
+                denominators[item['geo']] = item['cnt']
+
+        return denominators
+
+
 @api.route('/arrayCountryForLineage')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
