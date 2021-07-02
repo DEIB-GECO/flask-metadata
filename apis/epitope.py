@@ -1470,15 +1470,7 @@ class FieldValue(Resource):
         flask.current_app.logger.debug(query)
         res_all = [{column: value for column, value in row.items()} for row in res_all]
 
-        denominators = {}
-
-        for item in res_all:
-            if item['geo'] is None:
-                denominators['N/D'] = item['cnt']
-            else:
-                denominators[item['geo']] = item['cnt']
-
-        return denominators
+        return res_all
 
 
 @api.route('/arrayCountryForLineage')
