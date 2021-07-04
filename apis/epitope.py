@@ -1405,7 +1405,10 @@ class FieldValue(Resource):
         geo_where = filter_geo['type']
         min_date = filter_geo['minDate']
         max_date = filter_geo['maxDate']
-        geo_where_value = filter_geo['value'].lower()
+        geo_where_value = filter_geo['value']
+
+        if geo_where_value is not None:
+            geo_where_value = geo_where_value.lower()
 
         if geo_where == 'geo_group':
             geo_selection = 'country'
@@ -1456,7 +1459,10 @@ class FieldValue(Resource):
         geo_where = filter_geo['type']
         min_date = filter_geo['minDate']
         max_date = filter_geo['maxDate']
-        geo_where_value = filter_geo['value'].lower()
+        geo_where_value = filter_geo['value']
+
+        if geo_where_value is not None:
+            geo_where_value = geo_where_value.lower()
 
         if geo_where == 'geo_group':
             geo_selection = 'country'
