@@ -1409,18 +1409,24 @@ class FieldValue(Resource):
 
         if geo_where == 'geo_group':
             geo_selection = 'country'
+            geo_where_part = f""" AND LOWER({geo_where}) = '{geo_where_value}' """
         elif geo_where == 'country':
             geo_selection = 'region'
+            geo_where_part = f""" AND LOWER({geo_where}) = '{geo_where_value}' """
         elif geo_where == 'region':
             geo_selection = 'province'
+            geo_where_part = f""" AND LOWER({geo_where}) = '{geo_where_value}' """
+        elif geo_where == 'world':
+            geo_selection = 'geo_group'
+            geo_where_part = f""" """
 
         query = f"""SELECT a.lineage, array_agg(row(a.{geo_selection}, a.cnt)) as country_count
                     FROM (
                     SELECT lineage, {geo_selection}, count(*) as cnt
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id """
-        query += f""" WHERE LOWER({geo_where}) = '{geo_where_value}' 
-                      AND collection_date >= '{min_date}'
-                      AND collection_date <= '{max_date}' """
+        query += f""" WHERE collection_date >= '{min_date}'
+                      AND collection_date <= '{max_date}'
+                       {geo_where_part}"""
         query += f"""GROUP BY lineage, {geo_selection}
                     ORDER BY lineage) as a
                     GROUP BY a.lineage
@@ -1454,17 +1460,23 @@ class FieldValue(Resource):
 
         if geo_where == 'geo_group':
             geo_selection = 'country'
+            geo_where_part = f""" AND LOWER({geo_where}) = '{geo_where_value}' """
         elif geo_where == 'country':
             geo_selection = 'region'
+            geo_where_part = f""" AND LOWER({geo_where}) = '{geo_where_value}' """
         elif geo_where == 'region':
             geo_selection = 'province'
+            geo_where_part = f""" AND LOWER({geo_where}) = '{geo_where_value}' """
+        elif geo_where == 'world':
+            geo_selection = 'geo_group'
+            geo_where_part = f""" """
 
         query = f""" SELECT {geo_selection} as geo, count(*) as cnt
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                    WHERE LOWER(country) = '{geo_where_value}'
-                    AND collection_date >= '{min_date}'
+                    WHERE collection_date >= '{min_date}'
                     AND collection_date <= '{max_date}'
-                    GROUP BY region """
+                    {geo_where_part}
+                    GROUP BY {geo_selection} """
 
         res_all = db.engine.execute(query).fetchall()
         flask.current_app.logger.debug(query)
