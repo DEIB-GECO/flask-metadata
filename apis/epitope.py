@@ -1477,7 +1477,7 @@ class FieldValue(Resource):
             geo_selection = 'geo_group'
             geo_where_part = f""" """
 
-        query = f""" SELECT REPLACE(a.{geo_selection}, ',', ' -') as geo, count(*) as cnt
+        query = f""" SELECT REPLACE({geo_selection}, ',', ' -') as geo, count(*) as cnt
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     WHERE collection_date >= '{min_date}'
                     AND collection_date <= '{max_date}'
