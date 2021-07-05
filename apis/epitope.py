@@ -1423,7 +1423,7 @@ class FieldValue(Resource):
             geo_selection = 'geo_group'
             geo_where_part = f""" """
 
-        query = f"""SELECT a.lineage, array_agg(row(a.{geo_selection}, a.cnt)) as country_count
+        query = f"""SELECT a.lineage, array_agg(row(REPLACE(a.{geo_selection}, ',', ' -'), a.cnt)) as country_count
                     FROM (
                     SELECT lineage, {geo_selection}, count(*) as cnt
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id """
@@ -1477,7 +1477,7 @@ class FieldValue(Resource):
             geo_selection = 'geo_group'
             geo_where_part = f""" """
 
-        query = f""" SELECT {geo_selection} as geo, count(*) as cnt
+        query = f""" SELECT REPLACE(a.{geo_selection}, ',', ' -') as geo, count(*) as cnt
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     WHERE collection_date >= '{min_date}'
                     AND collection_date <= '{max_date}'
