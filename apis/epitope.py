@@ -1429,6 +1429,7 @@ class FieldValue(Resource):
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id """
         query += f""" WHERE collection_date >= '{min_date}'
                       AND collection_date <= '{max_date}'
+                      AND coll_date_precision > 1
                        {geo_where_part}"""
         query += f"""GROUP BY lineage, {geo_selection}
                     ORDER BY lineage) as a
@@ -1437,6 +1438,7 @@ class FieldValue(Resource):
                              FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                              WHERE collection_date >= '{min_date}' 
                              AND collection_date <= '{max_date}'
+                             AND coll_date_precision > 1
                              {geo_where_part}
                             )
                    )*100 >= {geo_min_count}"""
@@ -1481,6 +1483,7 @@ class FieldValue(Resource):
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     WHERE collection_date >= '{min_date}'
                     AND collection_date <= '{max_date}'
+                    AND coll_date_precision > 1
                     {geo_where_part}
                     GROUP BY {geo_selection} """
 
@@ -1505,9 +1508,11 @@ class FieldValue(Resource):
                      SELECT lineage, country, count(*) as cnt, (SELECT count(distinct it2.sequence_id)
                                FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                                WHERE hs.country = hs2.country
+                               AND hs2.coll_date_precision > 1
                              ) as total
 				     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                      WHERE lineage = '{lineage}'
+                     AND hs.coll_date_precision > 1
                      GROUP BY lineage, country) as a
                      GROUP BY a.country, a.cnt, a.total
                      ORDER BY a.country asc"""
@@ -1556,6 +1561,7 @@ class FieldValue(Resource):
                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                             WHERE lineage = '{lineage}' AND country = '{country_to_send}'
+                            AND coll_date_precision > 1
                             {where_protein}
                             GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                             ORDER BY product, start_aa_original """
@@ -1570,6 +1576,7 @@ class FieldValue(Resource):
                                     SELECT distinct it.sequence_id
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     WHERE lineage = '{lineage}' AND country != '{country_to_send}'
+                                    AND coll_date_precision > 1
                                 ) as a"""
 
             res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
@@ -1585,6 +1592,7 @@ class FieldValue(Resource):
                                                 SELECT distinct it.sequence_id
                                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                                 WHERE lineage = '{lineage}' AND country = '{country_to_send}'
+                                                AND coll_date_precision > 1
                                             ) as a"""
 
             res_query_count_denominator_country = db.engine.execute(query_count_denominator_country).fetchall()
@@ -1600,6 +1608,7 @@ class FieldValue(Resource):
                                             JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                             JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                             WHERE lineage = '{lineage}' AND country != '{country_to_send}'
+                                            AND coll_date_precision > 1
                                             {where_protein}
                                             GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                             ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
@@ -1708,6 +1717,7 @@ class FieldValue(Resource):
                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                 WHERE collection_date > '{start_target_time}'
                 AND collection_date <= '{end_target_time}'
+                AND coll_date_precision > 1
                 {where_part}
                 {where_protein}
                 GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
@@ -1724,6 +1734,7 @@ class FieldValue(Resource):
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                             WHERE collection_date <= '{end_background_time}'
                             AND collection_date >= '{start_background_time}'
+                            AND coll_date_precision > 1
                             {where_part}
                         ) as a """
 
@@ -1741,6 +1752,7 @@ class FieldValue(Resource):
                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                 WHERE collection_date > '{start_target_time}'
                                 AND collection_date <= '{end_target_time}'
+                                AND coll_date_precision > 1
                                 {where_part}
                             ) as a """
 
@@ -1758,6 +1770,7 @@ class FieldValue(Resource):
                                                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                                     WHERE collection_date <= '{end_background_time}'
                                                     AND collection_date >= '{start_background_time}'
+                                                    AND coll_date_precision > 1
                                                     {where_part}
                                                     {where_protein}
                                                     GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
@@ -1829,6 +1842,7 @@ class FieldValue(Resource):
         query1 = f""" SELECT collection_date as name, count(*) as value
                 FROM sequence as it JOIN host_sample as hs ON hs.host_sample_id = it.host_sample_id
                 WHERE collection_date > '2019-01-01'
+                AND coll_date_precision > 1
                 {where_part}
                 GROUP BY collection_date
                 ORDER BY collection_date """
@@ -1870,6 +1884,7 @@ class FieldValue(Resource):
         query1 = f""" SELECT collection_date as name, count(*) as value
                 FROM sequence as it JOIN host_sample as hs ON hs.host_sample_id = it.host_sample_id
                 WHERE collection_date > '2019-01-01'
+                AND coll_date_precision > 1
                 {where_part}
                 GROUP BY collection_date
                 ORDER BY collection_date """
@@ -1992,6 +2007,7 @@ class FieldValue(Resource):
                         JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                         {where_part_target}
+                        AND coll_date_precision > 1
                         {where_protein}
                         GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                         ORDER BY product, start_aa_original """
@@ -2006,6 +2022,7 @@ class FieldValue(Resource):
                             SELECT distinct it.sequence_id
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                             {where_part_background}
+                            AND coll_date_precision > 1
                         ) as a """
 
         res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
@@ -2021,6 +2038,7 @@ class FieldValue(Resource):
                                     SELECT distinct it.sequence_id
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     {where_part_target}
+                                    AND coll_date_precision > 1
                                 ) as a """
 
         res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
@@ -2036,6 +2054,7 @@ class FieldValue(Resource):
                                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                 {where_part_background}
+                                AND coll_date_precision > 1
                                 {where_protein}
                                 GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                 ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
@@ -2148,6 +2167,7 @@ class FieldValue(Resource):
                         JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                         {where_part_target}
+                        AND coll_date_precision > 1
                         {where_protein}
                         GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                         ORDER BY product, start_aa_original """
@@ -2162,10 +2182,12 @@ class FieldValue(Resource):
                             SELECT distinct it.sequence_id
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                             {where_part_background}
+                            AND hs.coll_date_precision > 1
                             AND it.sequence_id not in (
                                  SELECT distinct it2.sequence_id
                                  FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                                  {where_part_target}
+                                 AND hs2.coll_date_precision > 1
                             )
                         ) as a """
 
@@ -2182,6 +2204,7 @@ class FieldValue(Resource):
                                     SELECT distinct it.sequence_id
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     {where_part_target}
+                                    AND coll_date_precision > 1
                                 ) as a """
 
         res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
@@ -2197,10 +2220,12 @@ class FieldValue(Resource):
                                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                 {where_part_background}
+                                AND hs.coll_date_precision > 1
                                 AND it.sequence_id not in (
                                      SELECT distinct it2.sequence_id
                                      FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                                      {where_part_target}
+                                     AND hs2.coll_date_precision > 1
                                 )
                                 {where_protein}
                                 GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
@@ -2292,10 +2317,12 @@ class FieldValue(Resource):
         query1 = f""" SELECT count(distinct it.sequence_id)
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     {where_part_background}
+                    AND hs.coll_date_precision > 1
                     AND it.sequence_id in (
                          SELECT distinct it2.sequence_id
                          FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                          {where_part_target}
+                         AND hs2.coll_date_precision > 1
                     ) """
 
         res_query1 = db.engine.execute(query1).fetchall()
@@ -2338,6 +2365,7 @@ class FieldValue(Resource):
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     {where_part}
                     AND {field_name} is NOT null
+                    AND coll_date_precision > 1
                     GROUP BY {field_name}
                     ORDER BY count desc """
 
@@ -2414,6 +2442,7 @@ class FieldValue(Resource):
                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                     {where_part} 
+                    AND coll_date_precision > 1
                     {where_part_target} """
 
         res_query1 = db.engine.execute(query1).fetchall()
@@ -2430,6 +2459,8 @@ class FieldValue(Resource):
 
         query = f"""SELECT distinct geo_group, country, region, province, count(distinct sequence_id)
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
+                    WHERE coll_date_precision > 1
+                    AND collection_date > '2019-01-01'
                     GROUP BY geo_group, country, region, province
                     ORDER BY geo_group, country, region, province """
 
