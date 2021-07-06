@@ -1685,14 +1685,23 @@ class FieldValue(Resource):
         where_part = ""
         if query_fields is not None:
             for key in query_fields:
-                where_part += f""" AND """
                 if key == 'minDate':
+                    where_part += f""" AND """
                     where_part += f""" collection_date >= '{query_fields[key]}' """
                 elif key == 'maxDate':
+                    where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    replace_fields_value = query_fields[key].replace("'", "''")
-                    where_part += f""" {key} = '{replace_fields_value }' """
+                    if key == 'includeUK':
+                        if query_fields[key]:
+                            where_part += f""" """
+                        else:
+                            where_part += f""" AND """
+                            where_part += f""" country != 'United Kingdom' """
+                    else:
+                        where_part += f""" AND """
+                        replace_fields_value = query_fields[key].replace("'", "''")
+                        where_part += f""" {key} = '{replace_fields_value }' """
                 i = i + 1
 
         if 'lineage' in query_fields:
@@ -1829,14 +1838,23 @@ class FieldValue(Resource):
         where_part = ""
         if query_fields is not None:
             for key in query_fields:
-                where_part += f""" AND """
                 if key == 'minDate':
+                    where_part += f""" AND """
                     where_part += f""" collection_date >= '{query_fields[key]}' """
                 elif key == 'maxDate':
+                    where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    replace_fields_value = query_fields[key].replace("'", "''")
-                    where_part += f""" {key} = '{replace_fields_value }' """
+                    if key == 'includeUK':
+                        if query_fields[key]:
+                            where_part += f""" """
+                        else:
+                            where_part += f""" AND """
+                            where_part += f""" country != 'United Kingdom' """
+                    else:
+                        where_part += f""" AND """
+                        replace_fields_value = query_fields[key].replace("'", "''")
+                        where_part += f""" {key} = '{replace_fields_value }' """
                 i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
@@ -2417,17 +2435,35 @@ class FieldValue(Resource):
                                  FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                                 """
             for key in query_target:
-                if j == 0:
-                    where_part_target += f""" WHERE """
-                else:
-                    where_part_target += f""" AND """
                 if key == 'minDate':
+                    if j == 0:
+                        where_part_target += f""" WHERE """
+                    else:
+                        where_part_target += f""" AND """
                     where_part_target += f""" collection_date >= '{query_target[key]}' """
                 elif key == 'maxDate':
+                    if j == 0:
+                        where_part_target += f""" WHERE """
+                    else:
+                        where_part_target += f""" AND """
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
-                    replace_fields_value = query_target[key].replace("'", "''")
-                    where_part_target += f""" {key} = '{replace_fields_value}' """
+                    if key == 'includeUK':
+                        if query_fields[key]:
+                            where_part_target += f""" """
+                        else:
+                            if j == 0:
+                                where_part_target += f""" WHERE """
+                            else:
+                                where_part_target += f""" AND """
+                            where_part_target += f""" country != 'United Kingdom' """
+                    else:
+                        if j == 0:
+                            where_part_target += f""" WHERE """
+                        else:
+                            where_part_target += f""" AND """
+                        replace_fields_value = query_target[key].replace("'", "''")
+                        where_part_target += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
             where_part_target += " ) "
 
@@ -2435,24 +2471,50 @@ class FieldValue(Resource):
         where_part = " "
         if query_fields is not None:
             for key in query_fields:
-                if i == 0:
-                    where_part += f""" WHERE """
-                else:
-                    where_part += f""" AND """
                 if key == 'minDateBackground':
+                    if i == 0:
+                        where_part += f""" WHERE """
+                    else:
+                        where_part += f""" AND """
                     where_part += f""" collection_date >= '{query_fields[key]}' """
                 elif key == 'maxDateBackground':
+                    if i == 0:
+                        where_part += f""" WHERE """
+                    else:
+                        where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 elif key == 'minDateTarget':
+                    if i == 0:
+                        where_part += f""" WHERE """
+                    else:
+                        where_part += f""" AND """
                     where_part += f""" collection_date > '{query_fields[key]}' """
                 elif key == 'maxDateTarget':
+                    if i == 0:
+                        where_part += f""" WHERE """
+                    else:
+                        where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    if key == query_false_field:
-                        where_part += f""" ( {key} != '{query_fields[key]}' OR 
-                                             {key} is null ) """
+                    if key == 'includeUK':
+                        if query_fields[key]:
+                            where_part += f""" """
+                        else:
+                            if j == 0:
+                                where_part += f""" WHERE """
+                            else:
+                                where_part += f""" AND """
+                            where_part += f""" country != 'United Kingdom' """
                     else:
-                        where_part += f""" {key} = '{query_fields[key]}' """
+                        if j == 0:
+                            where_part += f""" WHERE """
+                        else:
+                            where_part += f""" AND """
+                        if key == query_false_field:
+                            where_part += f""" ( {key} != '{query_fields[key]}' OR 
+                                                 {key} is null ) """
+                        else:
+                            where_part += f""" {key} = '{query_fields[key]}' """
                 i = i + 1
 
         query1 = f""" SELECT array_agg(distinct it.accession_id ORDER BY it.accession_id) as acc_ids
