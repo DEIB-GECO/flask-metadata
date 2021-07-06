@@ -1937,6 +1937,7 @@ class FieldValue(Resource):
 
         array_protein = payload['protein']    # ['Spike (surface glycoprotein)']
         query_fields = payload['query']
+        includeUKBackground = payload['includeUKBackground']
 
         if 'province' in query_fields:
             target = query_fields['province']
@@ -2002,6 +2003,10 @@ class FieldValue(Resource):
                         where_part_background += f""" {key} = '{replace_fields_value}' """
 
                 i = i + 1
+            if includeUKBackground:
+                where_part_background = """ """
+            else:
+                where_part_background = """ AND country != 'United Kingdom' """
 
         where_protein = ""
         k = 0
