@@ -2013,9 +2013,9 @@ class FieldValue(Resource):
 
                 i = i + 1
             if includeUKBackground:
-                where_part_background = """ """
+                where_part_background += """ """
             else:
-                where_part_background = """ AND country != 'United Kingdom' """
+                where_part_background += """ AND country != 'United Kingdom' """
 
         where_protein = ""
         k = 0
