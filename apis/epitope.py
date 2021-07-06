@@ -1885,18 +1885,27 @@ class FieldValue(Resource):
         where_part = ""
         if query_fields is not None:
             for key in query_fields:
-                where_part += f""" AND """
                 if key == 'minDate':
+                    where_part += f""" AND """
                     where_part += f""" collection_date >= '{query_fields[key]}' """
                 elif key == 'maxDate':
+                    where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    replace_fields_value = query_fields[key].replace("'", "''")
-                    if key == query_false:
-                        where_part += f""" ( {key} != '{replace_fields_value}' OR
-                                                                    {key} is null ) """
+                    if key == 'includeUK':
+                        if query_fields[key]:
+                            where_part += f""" """
+                        else:
+                            where_part += f""" AND """
+                            where_part += f""" country != 'United Kingdom' """
                     else:
-                        where_part += f""" {key} = '{replace_fields_value}' """
+                        where_part += f""" AND """
+                        replace_fields_value = query_fields[key].replace("'", "''")
+                        if key == query_false:
+                            where_part += f""" ( {key} != '{replace_fields_value}' OR
+                                                                        {key} is null ) """
+                        else:
+                            where_part += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
