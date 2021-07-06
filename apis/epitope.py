@@ -2136,32 +2136,68 @@ class FieldValue(Resource):
         where_part_background = ""
         if query_target is not None:
             for key in query_target:
-                if i == 0:
-                    where_part_target += f""" WHERE """
-                else:
-                    where_part_target += f""" AND """
                 if key == 'minDate':
+                    if i == 0:
+                        where_part_target += f""" WHERE """
+                    else:
+                        where_part_target += f""" AND """
                     where_part_target += f""" collection_date >= '{query_target[key]}' """
                 elif key == 'maxDate':
+                    if i == 0:
+                        where_part_target += f""" WHERE """
+                    else:
+                        where_part_target += f""" AND """
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
-                    replace_fields_value = query_target[key].replace("'", "''")
-                    where_part_target += f""" {key} = '{replace_fields_value}' """
+                    if key == 'includeUK':
+                        if query_target[key]:
+                            where_part_target += f""" """
+                        else:
+                            if i == 0:
+                                where_part_target += f""" WHERE """
+                            else:
+                                where_part_target += f""" AND """
+                            where_part_target += f""" country != 'United Kingdom' """
+                    else:
+                        if i == 0:
+                            where_part_target += f""" WHERE """
+                        else:
+                            where_part_target += f""" AND """
+                        replace_fields_value = query_target[key].replace("'", "''")
+                        where_part_target += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         if query_background is not None:
             for key in query_background:
-                if j == 0:
-                    where_part_background += f""" WHERE """
-                else:
-                    where_part_background += f""" AND """
                 if key == 'minDate':
+                    if j == 0:
+                        where_part_background += f""" WHERE """
+                    else:
+                        where_part_background += f""" AND """
                     where_part_background += f""" collection_date >= '{query_background[key]}' """
                 elif key == 'maxDate':
+                    if j == 0:
+                        where_part_background += f""" WHERE """
+                    else:
+                        where_part_background += f""" AND """
                     where_part_background += f""" collection_date <= '{query_background[key]}' """
                 else:
-                    replace_fields_value = query_background[key].replace("'", "''")
-                    where_part_background += f""" {key} = '{replace_fields_value}' """
+                    if key == 'includeUK':
+                        if query_background[key]:
+                            where_part_background += f""" """
+                        else:
+                            if j == 0:
+                                where_part_background += f""" WHERE """
+                            else:
+                                where_part_background += f""" AND """
+                            where_part_background += f""" country != 'United Kingdom' """
+                    else:
+                        if j == 0:
+                            where_part_background += f""" WHERE """
+                        else:
+                            where_part_background += f""" AND """
+                        replace_fields_value = query_background[key].replace("'", "''")
+                        where_part_background += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
 
         where_protein = ""
@@ -2304,32 +2340,68 @@ class FieldValue(Resource):
         where_part_background = ""
         if query_target is not None:
             for key in query_target:
-                if i == 0:
-                    where_part_target += f""" WHERE """
-                else:
-                    where_part_target += f""" AND """
                 if key == 'minDate':
+                    if i == 0:
+                        where_part_target += f""" WHERE """
+                    else:
+                        where_part_target += f""" AND """
                     where_part_target += f""" collection_date >= '{query_target[key]}' """
                 elif key == 'maxDate':
+                    if i == 0:
+                        where_part_target += f""" WHERE """
+                    else:
+                        where_part_target += f""" AND """
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
-                    replace_fields_value = query_target[key].replace("'", "''")
-                    where_part_target += f""" {key} = '{replace_fields_value}' """
+                    if key == 'includeUK':
+                        if query_target[key]:
+                            where_part_target += f""" """
+                        else:
+                            if i == 0:
+                                where_part_target += f""" WHERE """
+                            else:
+                                where_part_target += f""" AND """
+                            where_part_target += f""" country != 'United Kingdom' """
+                    else:
+                        if i == 0:
+                            where_part_target += f""" WHERE """
+                        else:
+                            where_part_target += f""" AND """
+                        replace_fields_value = query_target[key].replace("'", "''")
+                        where_part_target += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         if query_background is not None:
             for key in query_background:
-                if j == 0:
-                    where_part_background += f""" WHERE """
-                else:
-                    where_part_background += f""" AND """
                 if key == 'minDate':
+                    if j == 0:
+                        where_part_background += f""" WHERE """
+                    else:
+                        where_part_background += f""" AND """
                     where_part_background += f""" collection_date >= '{query_background[key]}' """
                 elif key == 'maxDate':
+                    if j == 0:
+                        where_part_background += f""" WHERE """
+                    else:
+                        where_part_background += f""" AND """
                     where_part_background += f""" collection_date <= '{query_background[key]}' """
                 else:
-                    replace_fields_value = query_background[key].replace("'", "''")
-                    where_part_background += f""" {key} = '{replace_fields_value}' """
+                    if key == 'includeUK':
+                        if query_background[key]:
+                            where_part_background += f""" """
+                        else:
+                            if j == 0:
+                                where_part_background += f""" WHERE """
+                            else:
+                                where_part_background += f""" AND """
+                            where_part_background += f""" country != 'United Kingdom' """
+                    else:
+                        if j == 0:
+                            where_part_background += f""" WHERE """
+                        else:
+                            where_part_background += f""" AND """
+                        replace_fields_value = query_background[key].replace("'", "''")
+                        where_part_background += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
 
         query1 = f""" SELECT count(distinct it.sequence_id)
