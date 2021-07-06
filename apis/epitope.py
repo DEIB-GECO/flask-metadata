@@ -2358,7 +2358,13 @@ class FieldValue(Resource):
                 elif key == 'maxDate':
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    where_part += f""" {key} = '{query_fields[key]}' """
+                    if key == 'includeUK':
+                        if query_fields[key]:
+                            where_part += f""" """
+                        else:
+                            where_part += f""" country != 'United Kingdom' """
+                    else:
+                        where_part += f""" {key} = '{query_fields[key]}' """
                 i = i + 1
 
         query1 = f""" SELECT {field_name} as value, count(distinct it.sequence_id) as count
