@@ -2372,6 +2372,10 @@ class FieldValue(Resource):
                                 where_part += f""" AND """
                             where_part += f""" country != 'United Kingdom' """
                     else:
+                        if i == 0:
+                            where_part += f""" WHERE """
+                        else:
+                            where_part += f""" AND """
                         where_part += f""" {key} = '{query_fields[key]}' """
                 i = i + 1
 
