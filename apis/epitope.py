@@ -2500,13 +2500,13 @@ class FieldValue(Resource):
                         if query_fields[key]:
                             where_part += f""" """
                         else:
-                            if j == 0:
+                            if i == 0:
                                 where_part += f""" WHERE """
                             else:
                                 where_part += f""" AND """
                             where_part += f""" country != 'United Kingdom' """
                     else:
-                        if j == 0:
+                        if i == 0:
                             where_part += f""" WHERE """
                         else:
                             where_part += f""" AND """
