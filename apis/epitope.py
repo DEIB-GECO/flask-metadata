@@ -2140,6 +2140,7 @@ class FieldValue(Resource):
         array_protein = payload['protein']
         query_target = payload['query_target']
         query_background = payload['query_background']
+        remove_overlapping = payload['removeOverlapping']
 
         target = 'empty'
         background = 'empty'
@@ -2229,6 +2230,24 @@ class FieldValue(Resource):
 
         array_result = []
 
+        overlapping_part_background = " "
+        overlapping_part_target = " "
+        if remove_overlapping.lower() == 'background' or remove_overlapping.lower() == 'both':
+            overlapping_part_background = f""" AND it.sequence_id not in (
+                 SELECT distinct it2.sequence_id
+                 FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                 {where_part_target}
+                 AND hs2.coll_date_precision > 1
+            ) """
+
+        if remove_overlapping.lower() == 'target' or remove_overlapping.lower() == 'both':
+            overlapping_part_target = f""" AND it.sequence_id not in (
+                 SELECT distinct it2.sequence_id
+                 FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
+                 {where_part_background}
+                 AND hs2.coll_date_precision > 1
+            ) """
+
         query1 = f""" SELECT distinct ann.product, start_aa_original, sequence_aa_original,
                         sequence_aa_alternative, count(*) as total, array_agg(distinct lineage) as lineage
                         FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
@@ -2236,6 +2255,7 @@ class FieldValue(Resource):
                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                         {where_part_target}
                         AND coll_date_precision > 1
+                        {overlapping_part_target}
                         {where_protein}
                         GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                         ORDER BY product, start_aa_original """
@@ -2251,12 +2271,7 @@ class FieldValue(Resource):
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                             {where_part_background}
                             AND hs.coll_date_precision > 1
-                            AND it.sequence_id not in (
-                                 SELECT distinct it2.sequence_id
-                                 FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
-                                 {where_part_target}
-                                 AND hs2.coll_date_precision > 1
-                            )
+                            {overlapping_part_background}
                         ) as a """
 
         res_query_count_denominator = db.engine.execute(query_count_denominator).fetchall()
@@ -2273,6 +2288,7 @@ class FieldValue(Resource):
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     {where_part_target}
                                     AND coll_date_precision > 1
+                                    {overlapping_part_target}
                                 ) as a """
 
         res_query_count_denominator_target = db.engine.execute(query_count_denominator_target).fetchall()
@@ -2289,12 +2305,7 @@ class FieldValue(Resource):
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                 {where_part_background}
                                 AND hs.coll_date_precision > 1
-                                AND it.sequence_id not in (
-                                     SELECT distinct it2.sequence_id
-                                     FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
-                                     {where_part_target}
-                                     AND hs2.coll_date_precision > 1
-                                )
+                                {overlapping_part_background}
                                 {where_protein}
                                 GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
                                 ORDER BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative"""
