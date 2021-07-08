@@ -1724,7 +1724,7 @@ class FieldValue(Resource):
                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
-                WHERE collection_date > '{start_target_time}'
+                WHERE collection_date >= '{start_target_time}'
                 AND collection_date <= '{end_target_time}'
                 AND coll_date_precision > 1
                 {where_part}
@@ -1759,7 +1759,7 @@ class FieldValue(Resource):
                             (
                                 SELECT distinct it.sequence_id
                                 FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
-                                WHERE collection_date > '{start_target_time}'
+                                WHERE collection_date >= '{start_target_time}'
                                 AND collection_date <= '{end_target_time}'
                                 AND coll_date_precision > 1
                                 {where_part}
@@ -2585,7 +2585,7 @@ class FieldValue(Resource):
                         where_part += f""" WHERE """
                     else:
                         where_part += f""" AND """
-                    where_part += f""" collection_date > '{query_fields[key]}' """
+                    where_part += f""" collection_date >= '{query_fields[key]}' """
                 elif key == 'maxDateTarget':
                     if i == 0:
                         where_part += f""" WHERE """
