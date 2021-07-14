@@ -1692,12 +1692,8 @@ class FieldValue(Resource):
                     where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_fields[key]:
-                            where_part += f""" """
-                        else:
-                            where_part += f""" AND """
-                            where_part += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part += f""" """
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
@@ -1845,12 +1841,8 @@ class FieldValue(Resource):
                     where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_fields[key]:
-                            where_part += f""" """
-                        else:
-                            where_part += f""" AND """
-                            where_part += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part += f""" """
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
@@ -1892,12 +1884,8 @@ class FieldValue(Resource):
                     where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_fields[key]:
-                            where_part += f""" """
-                        else:
-                            where_part += f""" AND """
-                            where_part += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part += f""" """
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
@@ -1946,7 +1934,7 @@ class FieldValue(Resource):
 
         array_protein = payload['protein']    # ['Spike (surface glycoprotein)']
         query_fields = payload['query']
-        includeUKBackground = payload['includeUKBackground']
+        toExcludeBackground = payload['toExcludeBackground']
 
         if 'province' in query_fields:
             target = query_fields['province']
@@ -2012,10 +2000,10 @@ class FieldValue(Resource):
                         where_part_background += f""" {key} = '{replace_fields_value}' """
 
                 i = i + 1
-            if includeUKBackground:
-                where_part_background += """ """
-            else:
-                where_part_background += """ AND country != 'United Kingdom' """
+            # if toExcludeBackground:
+            #     where_part_background += """ """
+            # else:
+            #     where_part_background += """ AND country != 'United Kingdom' """
 
         where_protein = ""
         k = 0
@@ -2164,15 +2152,8 @@ class FieldValue(Resource):
                         where_part_target += f""" AND """
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_target[key]:
-                            where_part_target += f""" """
-                        else:
-                            if i == 0:
-                                where_part_target += f""" WHERE """
-                            else:
-                                where_part_target += f""" AND """
-                            where_part_target += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part_target += f""" """
                     else:
                         if i == 0:
                             where_part_target += f""" WHERE """
@@ -2197,15 +2178,8 @@ class FieldValue(Resource):
                         where_part_background += f""" AND """
                     where_part_background += f""" collection_date <= '{query_background[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_background[key]:
-                            where_part_background += f""" """
-                        else:
-                            if j == 0:
-                                where_part_background += f""" WHERE """
-                            else:
-                                where_part_background += f""" AND """
-                            where_part_background += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part_background += f""" """
                     else:
                         if j == 0:
                             where_part_background += f""" WHERE """
@@ -2378,15 +2352,8 @@ class FieldValue(Resource):
                         where_part_target += f""" AND """
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_target[key]:
-                            where_part_target += f""" """
-                        else:
-                            if i == 0:
-                                where_part_target += f""" WHERE """
-                            else:
-                                where_part_target += f""" AND """
-                            where_part_target += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part_target += f""" """
                     else:
                         if i == 0:
                             where_part_target += f""" WHERE """
@@ -2411,15 +2378,8 @@ class FieldValue(Resource):
                         where_part_background += f""" AND """
                     where_part_background += f""" collection_date <= '{query_background[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_background[key]:
-                            where_part_background += f""" """
-                        else:
-                            if j == 0:
-                                where_part_background += f""" WHERE """
-                            else:
-                                where_part_background += f""" AND """
-                            where_part_background += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part_background += f""" """
                     else:
                         if j == 0:
                             where_part_background += f""" WHERE """
@@ -2477,15 +2437,8 @@ class FieldValue(Resource):
                         where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_fields[key]:
-                            where_part += f""" """
-                        else:
-                            if i == 0:
-                                where_part += f""" WHERE """
-                            else:
-                                where_part += f""" AND """
-                            where_part += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part += f""" """
                     else:
                         if i == 0:
                             where_part += f""" WHERE """
@@ -2545,15 +2498,8 @@ class FieldValue(Resource):
                         where_part_target += f""" AND """
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_fields[key]:
-                            where_part_target += f""" """
-                        else:
-                            if j == 0:
-                                where_part_target += f""" WHERE """
-                            else:
-                                where_part_target += f""" AND """
-                            where_part_target += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part_target += f""" """
                     else:
                         if j == 0:
                             where_part_target += f""" WHERE """
@@ -2593,15 +2539,17 @@ class FieldValue(Resource):
                         where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    if key == 'includeUK':
-                        if query_fields[key]:
-                            where_part += f""" """
-                        else:
-                            if i == 0:
-                                where_part += f""" WHERE """
-                            else:
-                                where_part += f""" AND """
-                            where_part += f""" country != 'United Kingdom' """
+                    # if key == 'includeUK':
+                    #     if query_fields[key]:
+                    #         where_part += f""" """
+                    #     else:
+                    #         if i == 0:
+                    #             where_part += f""" WHERE """
+                    #         else:
+                    #             where_part += f""" AND """
+                    #         where_part += f""" country != 'United Kingdom' """
+                    if key == 'toExclude':
+                        where_part += f""" """
                     else:
                         if i == 0:
                             where_part += f""" WHERE """
