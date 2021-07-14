@@ -1693,7 +1693,15 @@ class FieldValue(Resource):
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part += f""" """
+                        for fieldToExclude in query_fields[key]:
+                            j = 0
+                            for geoToExclude in query_fields[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part += f""" WHERE """
+                                else:
+                                    where_part += f""" AND """
+                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
@@ -1842,7 +1850,15 @@ class FieldValue(Resource):
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part += f""" """
+                        for fieldToExclude in query_fields[key]:
+                            j = 0
+                            for geoToExclude in query_fields[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part += f""" WHERE """
+                                else:
+                                    where_part += f""" AND """
+                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
@@ -1885,7 +1901,15 @@ class FieldValue(Resource):
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part += f""" """
+                        for fieldToExclude in query_fields[key]:
+                            j = 0
+                            for geoToExclude in query_fields[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part += f""" WHERE """
+                                else:
+                                    where_part += f""" AND """
+                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
@@ -2000,10 +2024,10 @@ class FieldValue(Resource):
                         where_part_background += f""" {key} = '{replace_fields_value}' """
 
                 i = i + 1
-            # if toExcludeBackground:
-            #     where_part_background += """ """
-            # else:
-            #     where_part_background += """ AND country != 'United Kingdom' """
+
+            for fieldToExclude in toExcludeBackground:
+                for geoToExclude in toExcludeBackground[fieldToExclude]:
+                    where_part_background += f""" AND {fieldToExclude} != '{geoToExclude}' """
 
         where_protein = ""
         k = 0
@@ -2153,7 +2177,15 @@ class FieldValue(Resource):
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part_target += f""" """
+                        for fieldToExclude in query_target[key]:
+                            j = 0
+                            for geoToExclude in query_target[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part_target += f""" WHERE """
+                                else:
+                                    where_part_target += f""" AND """
+                                where_part_target += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         if i == 0:
                             where_part_target += f""" WHERE """
@@ -2179,7 +2211,15 @@ class FieldValue(Resource):
                     where_part_background += f""" collection_date <= '{query_background[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part_background += f""" """
+                        for fieldToExclude in query_background[key]:
+                            j = 0
+                            for geoToExclude in query_background[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part_background += f""" WHERE """
+                                else:
+                                    where_part_background += f""" AND """
+                                where_part_background += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         if j == 0:
                             where_part_background += f""" WHERE """
@@ -2353,7 +2393,15 @@ class FieldValue(Resource):
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part_target += f""" """
+                        for fieldToExclude in query_target[key]:
+                            j = 0
+                            for geoToExclude in query_target[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part_target += f""" WHERE """
+                                else:
+                                    where_part_target += f""" AND """
+                                where_part_target += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         if i == 0:
                             where_part_target += f""" WHERE """
@@ -2379,7 +2427,15 @@ class FieldValue(Resource):
                     where_part_background += f""" collection_date <= '{query_background[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part_background += f""" """
+                        for fieldToExclude in query_background[key]:
+                            j = 0
+                            for geoToExclude in query_background[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part_background += f""" WHERE """
+                                else:
+                                    where_part_background += f""" AND """
+                                where_part_background += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         if j == 0:
                             where_part_background += f""" WHERE """
@@ -2438,7 +2494,15 @@ class FieldValue(Resource):
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part += f""" """
+                        for fieldToExclude in query_fields[key]:
+                            j = 0
+                            for geoToExclude in query_fields[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part += f""" WHERE """
+                                else:
+                                    where_part += f""" AND """
+                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         if i == 0:
                             where_part += f""" WHERE """
@@ -2499,7 +2563,15 @@ class FieldValue(Resource):
                     where_part_target += f""" collection_date <= '{query_target[key]}' """
                 else:
                     if key == 'toExclude':
-                        where_part_target += f""" """
+                        for fieldToExclude in query_fields[key]:
+                            k = 0
+                            for geoToExclude in query_fields[key][fieldToExclude]:
+                                if k == 0 and j == 0:
+                                    where_part_target += f""" WHERE """
+                                else:
+                                    where_part_target += f""" AND """
+                                where_part_target += f""" {fieldToExclude} != '{geoToExclude}' """
+                                k = k + 1
                     else:
                         if j == 0:
                             where_part_target += f""" WHERE """
@@ -2539,17 +2611,16 @@ class FieldValue(Resource):
                         where_part += f""" AND """
                     where_part += f""" collection_date <= '{query_fields[key]}' """
                 else:
-                    # if key == 'includeUK':
-                    #     if query_fields[key]:
-                    #         where_part += f""" """
-                    #     else:
-                    #         if i == 0:
-                    #             where_part += f""" WHERE """
-                    #         else:
-                    #             where_part += f""" AND """
-                    #         where_part += f""" country != 'United Kingdom' """
                     if key == 'toExclude':
-                        where_part += f""" """
+                        for fieldToExclude in query_fields[key]:
+                            j = 0
+                            for geoToExclude in query_fields[key][fieldToExclude]:
+                                if i == 0 and j == 0:
+                                    where_part += f""" WHERE """
+                                else:
+                                    where_part += f""" AND """
+                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                j = j + 1
                     else:
                         if i == 0:
                             where_part += f""" WHERE """
