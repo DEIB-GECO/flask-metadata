@@ -1708,8 +1708,7 @@ class FieldValue(Resource):
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
-                        field_value = replace_fields_value.replace("'", "''")
-                        where_part += f""" {key} = '{field_value}' """
+                        where_part += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         if 'lineage' in query_fields:
@@ -1867,8 +1866,7 @@ class FieldValue(Resource):
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
-                        field_value = replace_fields_value.replace("'", "''")
-                        where_part += f""" {key} = '{field_value}' """
+                        where_part += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
@@ -1920,12 +1918,11 @@ class FieldValue(Resource):
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
-                        field_value = replace_fields_value.replace("'", "''")
                         if key == query_false:
-                            where_part += f""" ( {key} != '{field_value}' OR
+                            where_part += f""" ( {key} != '{replace_fields_value}' OR
                                                                         {key} is null ) """
                         else:
-                            where_part += f""" {key} = '{field_value}' """
+                            where_part += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
@@ -2024,14 +2021,12 @@ class FieldValue(Resource):
                 else:
                     replace_fields_value = query_fields[key].replace("'", "''")
                     if key == target_key:
-                        field_value = replace_fields_value.replace("'", "''")
-                        where_part_target += f""" {key} = '{field_value}' """
-                        where_part_background += f""" ( {key} != '{field_value}' OR
+                        where_part_target += f""" {key} = '{replace_fields_value}' """
+                        where_part_background += f""" ( {key} != '{replace_fields_value}' OR
                                                         {key} is null ) """
                     else:
-                        field_value = replace_fields_value.replace("'", "''")
-                        where_part_target += f""" {key} = '{field_value}' """
-                        where_part_background += f""" {key} = '{field_value}' """
+                        where_part_target += f""" {key} = '{replace_fields_value}' """
+                        where_part_background += f""" {key} = '{replace_fields_value}' """
 
                 i = i + 1
 
