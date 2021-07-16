@@ -1406,6 +1406,7 @@ class FieldValue(Resource):
         min_date = filter_geo['minDate']
         max_date = filter_geo['maxDate']
         geo_where_value = filter_geo['value']
+        geo_where_value = geo_where_value.replace("'", "''")
 
         if geo_where_value is not None:
             geo_where_value = geo_where_value.lower()
@@ -1462,6 +1463,7 @@ class FieldValue(Resource):
         min_date = filter_geo['minDate']
         max_date = filter_geo['maxDate']
         geo_where_value = filter_geo['value']
+        geo_where_value = geo_where_value.replace("'", "''")
 
         if geo_where_value is not None:
             geo_where_value = geo_where_value.lower()
@@ -1700,12 +1702,14 @@ class FieldValue(Resource):
                                     where_part += f""" WHERE """
                                 else:
                                     where_part += f""" AND """
-                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
-                        where_part += f""" {key} = '{replace_fields_value }' """
+                        field_value = replace_fields_value.replace("'", "''")
+                        where_part += f""" {key} = '{field_value}' """
                 i = i + 1
 
         if 'lineage' in query_fields:
@@ -1857,12 +1861,14 @@ class FieldValue(Resource):
                                     where_part += f""" WHERE """
                                 else:
                                     where_part += f""" AND """
-                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
-                        where_part += f""" {key} = '{replace_fields_value }' """
+                        field_value = replace_fields_value.replace("'", "''")
+                        where_part += f""" {key} = '{field_value}' """
                 i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
@@ -1908,16 +1914,18 @@ class FieldValue(Resource):
                                     where_part += f""" WHERE """
                                 else:
                                     where_part += f""" AND """
-                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         where_part += f""" AND """
                         replace_fields_value = query_fields[key].replace("'", "''")
+                        field_value = replace_fields_value.replace("'", "''")
                         if key == query_false:
-                            where_part += f""" ( {key} != '{replace_fields_value}' OR
+                            where_part += f""" ( {key} != '{field_value}' OR
                                                                         {key} is null ) """
                         else:
-                            where_part += f""" {key} = '{replace_fields_value}' """
+                            where_part += f""" {key} = '{field_value}' """
                 i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
@@ -2016,18 +2024,21 @@ class FieldValue(Resource):
                 else:
                     replace_fields_value = query_fields[key].replace("'", "''")
                     if key == target_key:
-                        where_part_target += f""" {key} = '{replace_fields_value}' """
-                        where_part_background += f""" ( {key} != '{replace_fields_value}' OR
+                        field_value = replace_fields_value.replace("'", "''")
+                        where_part_target += f""" {key} = '{field_value}' """
+                        where_part_background += f""" ( {key} != '{field_value}' OR
                                                         {key} is null ) """
                     else:
-                        where_part_target += f""" {key} = '{replace_fields_value}' """
-                        where_part_background += f""" {key} = '{replace_fields_value}' """
+                        field_value = replace_fields_value.replace("'", "''")
+                        where_part_target += f""" {key} = '{field_value}' """
+                        where_part_background += f""" {key} = '{field_value}' """
 
                 i = i + 1
 
             for fieldToExclude in toExcludeBackground:
                 for geoToExclude in toExcludeBackground[fieldToExclude]:
-                    where_part_background += f""" AND {fieldToExclude} != '{geoToExclude}' """
+                    geo_value = geoToExclude.replace("'", "''")
+                    where_part_background += f""" AND {fieldToExclude} != '{geo_value}' """
 
         where_protein = ""
         k = 0
@@ -2184,7 +2195,8 @@ class FieldValue(Resource):
                                     where_part_target += f""" WHERE """
                                 else:
                                     where_part_target += f""" AND """
-                                where_part_target += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part_target += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         if i == 0:
@@ -2218,7 +2230,8 @@ class FieldValue(Resource):
                                     where_part_background += f""" WHERE """
                                 else:
                                     where_part_background += f""" AND """
-                                where_part_background += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part_background += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         if j == 0:
@@ -2400,7 +2413,8 @@ class FieldValue(Resource):
                                     where_part_target += f""" WHERE """
                                 else:
                                     where_part_target += f""" AND """
-                                where_part_target += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part_target += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         if i == 0:
@@ -2434,7 +2448,8 @@ class FieldValue(Resource):
                                     where_part_background += f""" WHERE """
                                 else:
                                     where_part_background += f""" AND """
-                                where_part_background += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part_background += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         if j == 0:
@@ -2501,14 +2516,16 @@ class FieldValue(Resource):
                                     where_part += f""" WHERE """
                                 else:
                                     where_part += f""" AND """
-                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         if i == 0:
                             where_part += f""" WHERE """
                         else:
                             where_part += f""" AND """
-                        where_part += f""" {key} = '{query_fields[key]}' """
+                        field_value = query_fields[key].replace("'", "''")
+                        where_part += f""" {key} = '{field_value}' """
                 i = i + 1
 
         query1 = f""" SELECT {field_name} as value, count(distinct it.sequence_id) as count
@@ -2570,7 +2587,8 @@ class FieldValue(Resource):
                                     where_part_target += f""" WHERE """
                                 else:
                                     where_part_target += f""" AND """
-                                where_part_target += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part_target += f""" {fieldToExclude} != '{geo_value}' """
                                 k = k + 1
                     else:
                         if j == 0:
@@ -2619,18 +2637,20 @@ class FieldValue(Resource):
                                     where_part += f""" WHERE """
                                 else:
                                     where_part += f""" AND """
-                                where_part += f""" {fieldToExclude} != '{geoToExclude}' """
+                                geo_value = geoToExclude.replace("'", "''")
+                                where_part += f""" {fieldToExclude} != '{geo_value}' """
                                 j = j + 1
                     else:
                         if i == 0:
                             where_part += f""" WHERE """
                         else:
                             where_part += f""" AND """
+                        field_value = query_fields[key].replace("'", "''")
                         if key == query_false_field:
-                            where_part += f""" ( {key} != '{query_fields[key]}' OR 
+                            where_part += f""" ( {key} != '{field_value}' OR 
                                                  {key} is null ) """
                         else:
-                            where_part += f""" {key} = '{query_fields[key]}' """
+                            where_part += f""" {key} = '{field_value}' """
                 i = i + 1
 
         query1 = f""" SELECT array_agg(distinct it.accession_id ORDER BY it.accession_id) as acc_ids
