@@ -2765,6 +2765,40 @@ class FieldValue(Resource):
             return all_epitope_dict
 
 
+@api.route('/allImportantMutations')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def get(self):
+
+        query_mutations = f""" WITH 
+                lineage_tot AS(
+                select s.lineage, count(*) as lin_tot
+                from sequence s
+                natural join host_sample
+                group by s.lineage
+                ),
+                array_changes AS(
+                select s.lineage, lineage_tot.lin_tot, concat(split_part(product, ' ', 1),'_', 
+                sequence_aa_original, start_aa_original, sequence_aa_alternative) as changes
+                from sequence s
+                natural join host_sample
+                natural join annotation
+                natural join aminoacid_variant
+                join lineage_tot on lineage_tot.lineage = s.lineage
+                group by s.lineage, lineage_tot.lin_tot, concat(split_part(product, ' ', 1),'_', sequence_aa_original,
+                 start_aa_original, sequence_aa_alternative)
+                having ROUND(CAST((count(*)/lineage_tot.lin_tot::float)*100 AS NUMERIC), 2) >= 75
+                )
+                select lineage, ac.lin_tot as lin_sequences, array_agg(ac.changes order by ac.changes) as common_changes
+                from array_changes ac
+                group by lineage, ac.lin_tot; """
+
+        res = db.engine.execute(query_mutations).fetchall()
+        res = [{column: value for column, value in row.items()} for row in res]
+
+        return res
+
+
 ######################################## END API NEW PROJECT #####################################################
 
 
