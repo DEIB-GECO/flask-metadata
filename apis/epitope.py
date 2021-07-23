@@ -2590,7 +2590,9 @@ class FieldValue(Resource):
                             where_part_target += f""" WHERE """
                         else:
                             where_part_target += f""" AND """
-                        replace_fields_value = query_target[key].replace("'", "''")
+                        replace_fields_value = query_target[key]
+                        if key != 'start_aa_original':
+                            replace_fields_value = query_target[key].replace("'", "''")
                         where_part_target += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
             where_part_target += " ) "
@@ -2640,7 +2642,9 @@ class FieldValue(Resource):
                             where_part += f""" WHERE """
                         else:
                             where_part += f""" AND """
-                        field_value = query_fields[key].replace("'", "''")
+                        field_value = query_fields[key]
+                        if key != 'start_aa_original':
+                            field_value = query_fields[key].replace("'", "''")
                         if key == query_false_field:
                             where_part += f""" ( {key} != '{field_value}' OR 
                                                  {key} is null ) """
