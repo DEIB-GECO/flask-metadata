@@ -2001,6 +2001,11 @@ class FieldValue(Resource):
             target_key = 'empty'
             background = 'empty'
 
+        if 'lineage' in query_fields:
+            lineage = query_fields['lineage']
+        else:
+            lineage = 'empty'
+
         i = 0
         where_part_target = ""
         where_part_background = ""
@@ -2132,7 +2137,7 @@ class FieldValue(Resource):
             else:
                 fraction_target = (item['total'] / denominator_target)
 
-            single_line = {'lineage': item['lineage'], 'target': target, 'background': background,
+            single_line = {'lineage': lineage, 'target': target, 'background': background,
                            'count_seq': item['total'],
                            'product': item['product'],
                            'start_aa_original': item['start_aa_original'],
@@ -2162,6 +2167,15 @@ class FieldValue(Resource):
 
         target = 'empty'
         background = 'empty'
+
+        if 'lineage' in query_target:
+            lineage_target = query_target['lineage']
+        else:
+            lineage_target = 'empty'
+        if 'lineage' in query_background:
+            lineage_background = query_background['lineage']
+        else:
+            lineage_background = 'empty'
 
         j = 0
         i = 0
@@ -2355,7 +2369,9 @@ class FieldValue(Resource):
             else:
                 fraction_target = (item['total'] / denominator_target)
 
-            single_line = {'lineage': item['lineage'], 'target': target, 'background': background,
+            single_line = {'lineage': 'empty', 'lineage_target': lineage_target,
+                           'lineage_background': lineage_background,
+                           'target': target, 'background': background,
                            'count_seq': item['total'],
                            'product': item['product'],
                            'start_aa_original': item['start_aa_original'],
@@ -2593,7 +2609,8 @@ class FieldValue(Resource):
                         replace_fields_value = query_target[key]
                         if key != 'start_aa_original':
                             replace_fields_value = query_target[key].replace("'", "''")
-                        where_part_target += f""" {key} = '{replace_fields_value}' """
+                        if replace_fields_value != 'empty':
+                            where_part_target += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
             where_part_target += " ) "
 
@@ -2646,10 +2663,12 @@ class FieldValue(Resource):
                         if key != 'start_aa_original':
                             field_value = query_fields[key].replace("'", "''")
                         if key == query_false_field:
-                            where_part += f""" ( {key} != '{field_value}' OR 
+                            if field_value != 'empty':
+                                where_part += f""" ( {key} != '{field_value}' OR 
                                                  {key} is null ) """
                         else:
-                            where_part += f""" {key} = '{field_value}' """
+                            if field_value != 'empty':
+                                where_part += f""" {key} = '{field_value}' """
                 i = i + 1
 
         query1 = f""" SELECT array_agg(distinct it.accession_id ORDER BY it.accession_id) as acc_ids
