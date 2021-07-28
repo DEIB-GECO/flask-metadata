@@ -1818,8 +1818,8 @@ class FieldValue(Resource):
                 fraction_target = (item['total'] / denominator_country)
 
             single_line = {'lineage': lineage, 'country': geo1, 'count_seq': item['total'],
-                           'target_time': start_target_time + '//' + end_target_time,
-                           'background_time': start_background_time + '//' + end_background_time,
+                           'target_time': start_target_time + ' / ' + end_target_time,
+                           'background_time': start_background_time + ' / ' + end_background_time,
                            'start_aa_original': item['start_aa_original'],
                            'product': item['product'],
                            'sequence_aa_original': item['sequence_aa_original'],
