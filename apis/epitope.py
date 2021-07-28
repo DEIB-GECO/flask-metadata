@@ -1406,7 +1406,8 @@ class FieldValue(Resource):
         min_date = filter_geo['minDate']
         max_date = filter_geo['maxDate']
         geo_where_value = filter_geo['value']
-        geo_where_value = geo_where_value.replace("'", "''")
+        if geo_where_value is not None:
+            geo_where_value = geo_where_value.replace("'", "''")
 
         if geo_where_value is not None:
             geo_where_value = geo_where_value.lower()
@@ -1463,7 +1464,8 @@ class FieldValue(Resource):
         min_date = filter_geo['minDate']
         max_date = filter_geo['maxDate']
         geo_where_value = filter_geo['value']
-        geo_where_value = geo_where_value.replace("'", "''")
+        if geo_where_value is not None:
+            geo_where_value = geo_where_value.replace("'", "''")
 
         if geo_where_value is not None:
             geo_where_value = geo_where_value.lower()
