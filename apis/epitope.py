@@ -2214,8 +2214,23 @@ class FieldValue(Resource):
                             where_part_target += f""" WHERE """
                         else:
                             where_part_target += f""" AND """
-                        replace_fields_value = query_target[key].replace("'", "''")
-                        where_part_target += f""" {key} = '{replace_fields_value}' """
+                        kk = 0
+                        if isinstance(query_target[key], list):
+                            where_part_target += f""" ( """
+                            for itm in query_target[key]:
+                                if kk != 0:
+                                    where_part_target += f""" OR """
+                                field_value = itm
+                                if key != 'start_aa_original':
+                                    field_value = itm.replace("'", "''")
+                                where_part_target += f""" {key} = '{field_value}' """
+                                kk = kk + 1
+                            where_part_target += f""" ) """
+                        else:
+                            replace_fields_value = query_target[key]
+                            if key != 'start_aa_original':
+                                replace_fields_value = query_target[key].replace("'", "''")
+                            where_part_target += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         if query_background is not None:
@@ -2249,8 +2264,23 @@ class FieldValue(Resource):
                             where_part_background += f""" WHERE """
                         else:
                             where_part_background += f""" AND """
-                        replace_fields_value = query_background[key].replace("'", "''")
-                        where_part_background += f""" {key} = '{replace_fields_value}' """
+                        kk = 0
+                        if isinstance(query_background[key], list):
+                            where_part_background += f""" ( """
+                            for itm in query_background[key]:
+                                if kk != 0:
+                                    where_part_background += f""" OR """
+                                field_value = itm
+                                if key != 'start_aa_original':
+                                    field_value = itm.replace("'", "''")
+                                where_part_background += f""" {key} = '{field_value}' """
+                                kk = kk + 1
+                            where_part_background += f""" ) """
+                        else:
+                            replace_fields_value = query_background[key]
+                            if key != 'start_aa_original':
+                                replace_fields_value = query_background[key].replace("'", "''")
+                            where_part_background += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
 
         where_protein = ""
@@ -2609,10 +2639,23 @@ class FieldValue(Resource):
                                 where_part_target += f""" WHERE """
                             else:
                                 where_part_target += f""" AND """
-                            replace_fields_value = query_target[key]
-                            if key != 'start_aa_original':
-                                replace_fields_value = query_target[key].replace("'", "''")
-                            where_part_target += f""" {key} = '{replace_fields_value}' """
+                            kk = 0
+                            if isinstance(query_target[key], list):
+                                where_part_target += f""" ( """
+                                for itm in query_target[key]:
+                                    if kk != 0:
+                                        where_part_target += f""" OR """
+                                    field_value = itm
+                                    if key != 'start_aa_original':
+                                        field_value = itm.replace("'", "''")
+                                    where_part_target += f""" {key} = '{field_value}' """
+                                    kk = kk + 1
+                                where_part_target += f""" ) """
+                            else:
+                                replace_fields_value = query_target[key]
+                                if key != 'start_aa_original':
+                                    replace_fields_value = query_target[key].replace("'", "''")
+                                where_part_target += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
             where_part_target += " ) "
 
@@ -2662,14 +2705,27 @@ class FieldValue(Resource):
                                 where_part += f""" WHERE """
                             else:
                                 where_part += f""" AND """
-                            field_value = query_fields[key]
-                            if key != 'start_aa_original':
-                                field_value = query_fields[key].replace("'", "''")
-                            if key == query_false_field:
-                                where_part += f""" ( {key} != '{field_value}' OR 
-                                                     {key} is null ) """
+                            kk = 0
+                            if isinstance(query_fields[key], list):
+                                where_part += f""" ( """
+                                for itm in query_fields[key]:
+                                    if kk != 0:
+                                        where_part += f""" OR """
+                                    field_value = itm
+                                    if key != 'start_aa_original':
+                                        field_value = itm.replace("'", "''")
+                                    where_part += f""" {key} = '{field_value}' """
+                                    kk = kk + 1
+                                where_part += f""" ) """
                             else:
-                                where_part += f""" {key} = '{field_value}' """
+                                field_value = query_fields[key]
+                                if key != 'start_aa_original':
+                                    field_value = query_fields[key].replace("'", "''")
+                                if key == query_false_field:
+                                    where_part += f""" ( {key} != '{field_value}' OR 
+                                                         {key} is null ) """
+                                else:
+                                    where_part += f""" {key} = '{field_value}' """
                 i = i + 1
 
         query1 = f""" SELECT array_agg(distinct it.accession_id ORDER BY it.accession_id) as acc_ids
