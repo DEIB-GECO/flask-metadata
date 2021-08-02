@@ -2464,8 +2464,23 @@ class FieldValue(Resource):
                             where_part_target += f""" WHERE """
                         else:
                             where_part_target += f""" AND """
-                        replace_fields_value = query_target[key].replace("'", "''")
-                        where_part_target += f""" {key} = '{replace_fields_value}' """
+                        kk = 0
+                        if isinstance(query_target[key], list):
+                            where_part_target += f""" ( """
+                            for itm in query_target[key]:
+                                if kk != 0:
+                                    where_part_target += f""" OR """
+                                field_value = itm
+                                if key != 'start_aa_original':
+                                    field_value = itm.replace("'", "''")
+                                where_part_target += f""" {key} = '{field_value}' """
+                                kk = kk + 1
+                            where_part_target += f""" ) """
+                        else:
+                            replace_fields_value = query_target[key]
+                            if key != 'start_aa_original':
+                                replace_fields_value = query_target[key].replace("'", "''")
+                            where_part_target += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         if query_background is not None:
@@ -2499,8 +2514,23 @@ class FieldValue(Resource):
                             where_part_background += f""" WHERE """
                         else:
                             where_part_background += f""" AND """
-                        replace_fields_value = query_background[key].replace("'", "''")
-                        where_part_background += f""" {key} = '{replace_fields_value}' """
+                        kk = 0
+                        if isinstance(query_background[key], list):
+                            where_part_background += f""" ( """
+                            for itm in query_background[key]:
+                                if kk != 0:
+                                    where_part_background += f""" OR """
+                                field_value = itm
+                                if key != 'start_aa_original':
+                                    field_value = itm.replace("'", "''")
+                                where_part_background += f""" {key} = '{field_value}' """
+                                kk = kk + 1
+                            where_part_background += f""" ) """
+                        else:
+                            replace_fields_value = query_background[key]
+                            if key != 'start_aa_original':
+                                replace_fields_value = query_background[key].replace("'", "''")
+                            where_part_background += f""" {key} = '{replace_fields_value}' """
                 j = j + 1
 
         query1 = f""" SELECT count(distinct it.sequence_id)
