@@ -2179,6 +2179,17 @@ class FieldValue(Resource):
         else:
             lineage_background = 'empty'
 
+        precision_target = ' '
+        precision_background = ' '
+        precision_target_2 = ' '
+        precision_background_2 = ' '
+        if not query_target['accession_id']:
+            precision_target = ' AND coll_date_precision > 1 '
+            precision_target_2 = ' AND hs2.coll_date_precision > 1 '
+        if not query_background['accession_id']:
+            precision_background = ' AND coll_date_precision > 1 '
+            precision_background_2 = ' AND hs2.coll_date_precision > 1 '
+
         j = 0
         i = 0
         where_part_target = ""
@@ -2305,7 +2316,7 @@ class FieldValue(Resource):
                  SELECT distinct it2.sequence_id
                  FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                  {where_part_target}
-                 AND hs2.coll_date_precision > 1
+                 {precision_target_2}
             ) """
 
         if remove_overlapping.lower() == 'target' or remove_overlapping.lower() == 'both':
@@ -2313,7 +2324,7 @@ class FieldValue(Resource):
                  SELECT distinct it2.sequence_id
                  FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                  {where_part_background}
-                 AND hs2.coll_date_precision > 1
+                 {precision_background_2}
             ) """
 
         query1 = f""" SELECT distinct ann.product, start_aa_original, sequence_aa_original,
@@ -2322,7 +2333,7 @@ class FieldValue(Resource):
                         JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                         JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                         {where_part_target}
-                        AND coll_date_precision > 1
+                        {precision_target}
                         {overlapping_part_target}
                         {where_protein}
                         GROUP BY ann.product, start_aa_original, sequence_aa_original, sequence_aa_alternative
@@ -2338,7 +2349,7 @@ class FieldValue(Resource):
                             SELECT distinct it.sequence_id
                             FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                             {where_part_background}
-                            AND hs.coll_date_precision > 1
+                            {precision_background}
                             {overlapping_part_background}
                         ) as a """
 
@@ -2355,7 +2366,7 @@ class FieldValue(Resource):
                                     SELECT distinct it.sequence_id
                                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                                     {where_part_target}
-                                    AND coll_date_precision > 1
+                                    {precision_target}
                                     {overlapping_part_target}
                                 ) as a """
 
@@ -2372,7 +2383,7 @@ class FieldValue(Resource):
                                 JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                                 JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                                 {where_part_background}
-                                AND hs.coll_date_precision > 1
+                                {precision_background}
                                 {overlapping_part_background}
                                 {where_protein}
                                 GROUP BY product, start_aa_original, sequence_aa_original, sequence_aa_alternative
@@ -2428,6 +2439,13 @@ class FieldValue(Resource):
         payload = api.payload
         query_target = payload['query_target']
         query_background = payload['query_background']
+
+        precision_target = ' '
+        precision_background = ' '
+        if not query_target['accession_id']:
+            precision_target = ' AND hs2.coll_date_precision > 1 '
+        if not query_background['accession_id']:
+            precision_background = ' AND hs.coll_date_precision > 1 '
 
         j = 0
         i = 0
@@ -2536,12 +2554,12 @@ class FieldValue(Resource):
         query1 = f""" SELECT count(distinct it.sequence_id)
                     FROM sequence as it JOIN host_sample as hs ON it.host_sample_id = hs.host_sample_id
                     {where_part_background}
-                    AND hs.coll_date_precision > 1
+                    {precision_background}
                     AND it.sequence_id in (
                          SELECT distinct it2.sequence_id
                          FROM sequence as it2 JOIN host_sample as hs2 ON it2.host_sample_id = hs2.host_sample_id
                          {where_part_target}
-                         AND hs2.coll_date_precision > 1
+                         {precision_target}
                     ) """
 
         res_query1 = db.engine.execute(query1).fetchall()
@@ -2630,6 +2648,10 @@ class FieldValue(Resource):
         query_false_field = payload['query_false']
         query_fields = payload['query']
         query_target = payload['query_target']
+
+        precision_fields = ' '
+        if not query_fields['accession_id']:
+            precision_fields = ' AND coll_date_precision > 1 '
 
         j = 0
         where_part_target = ""
@@ -2763,7 +2785,7 @@ class FieldValue(Resource):
                     JOIN annotation as ann ON ann.sequence_id = it.sequence_id
                     JOIN aminoacid_variant as amin ON amin.annotation_id = ann.annotation_id
                     {where_part} 
-                    AND coll_date_precision > 1
+                    {precision_fields}
                     {where_part_target} """
 
         res_query1 = db.engine.execute(query1).fetchall()
