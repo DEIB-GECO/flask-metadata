@@ -2183,10 +2183,10 @@ class FieldValue(Resource):
         precision_background = ' '
         precision_target_2 = ' '
         precision_background_2 = ' '
-        if not query_target['accession_id']:
+        if 'accession_id' not in query_target:
             precision_target = ' AND coll_date_precision > 1 '
             precision_target_2 = ' AND hs2.coll_date_precision > 1 '
-        if not query_background['accession_id']:
+        if 'accession_id' not in query_background:
             precision_background = ' AND coll_date_precision > 1 '
             precision_background_2 = ' AND hs2.coll_date_precision > 1 '
 
@@ -2442,9 +2442,9 @@ class FieldValue(Resource):
 
         precision_target = ' '
         precision_background = ' '
-        if not query_target['accession_id']:
+        if 'accession_id' not in query_target:
             precision_target = ' AND hs2.coll_date_precision > 1 '
-        if not query_background['accession_id']:
+        if 'accession_id' not in query_background:
             precision_background = ' AND hs.coll_date_precision > 1 '
 
         j = 0
@@ -2650,7 +2650,7 @@ class FieldValue(Resource):
         query_target = payload['query_target']
 
         precision_fields = ' '
-        if not query_fields['accession_id']:
+        if 'accession_id' not in query_fields:
             precision_fields = ' AND coll_date_precision > 1 '
 
         j = 0
