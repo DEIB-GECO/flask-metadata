@@ -1867,8 +1867,23 @@ class FieldValue(Resource):
                                 j = j + 1
                     else:
                         where_part += f""" AND """
-                        replace_fields_value = query_fields[key].replace("'", "''")
-                        where_part += f""" {key} = '{replace_fields_value}' """
+                        kk = 0
+                        if isinstance(query_fields[key], list):
+                            where_part += f""" ( """
+                            for itm in query_fields[key]:
+                                if kk != 0:
+                                    where_part += f""" OR """
+                                field_value = itm
+                                if key != 'start_aa_original':
+                                    field_value = itm.replace("'", "''")
+                                where_part += f""" {key} = '{field_value}' """
+                                kk = kk + 1
+                            where_part += f""" ) """
+                        else:
+                            replace_fields_value = query_fields[key]
+                            if key != 'start_aa_original':
+                                replace_fields_value = query_fields[key].replace("'", "''")
+                            where_part += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         query1 = f""" SELECT collection_date as name, count(*) as value
@@ -2615,8 +2630,23 @@ class FieldValue(Resource):
                             where_part += f""" WHERE """
                         else:
                             where_part += f""" AND """
-                        field_value = query_fields[key].replace("'", "''")
-                        where_part += f""" {key} = '{field_value}' """
+                        kk = 0
+                        if isinstance(query_fields[key], list):
+                            where_part += f""" ( """
+                            for itm in query_fields[key]:
+                                if kk != 0:
+                                    where_part += f""" OR """
+                                field_value = itm
+                                if key != 'start_aa_original':
+                                    field_value = itm.replace("'", "''")
+                                where_part += f""" {key} = '{field_value}' """
+                                kk = kk + 1
+                            where_part += f""" ) """
+                        else:
+                            replace_fields_value = query_fields[key]
+                            if key != 'start_aa_original':
+                                replace_fields_value = query_fields[key].replace("'", "''")
+                            where_part += f""" {key} = '{replace_fields_value}' """
                 i = i + 1
 
         query1 = f""" SELECT {field_name} as value, count(distinct it.sequence_id) as count
