@@ -2861,6 +2861,21 @@ class FieldValue(Resource):
         return res_all
 
 
+@api.route('/allAccessionIds')
+@api.response(404, 'Field not found')
+class FieldValue(Resource):
+    def get(self):
+
+        query = f"""SELECT distinct accession_id
+                    FROM sequence"""
+
+        res_all = db.engine.execute(query).fetchall()
+        flask.current_app.logger.debug(query)
+        res_all = [{column: value for column, value in row.items()} for row in res_all]
+
+        return res_all
+
+
 @api.route('/allEpitopes')
 @api.response(404, 'Field not found')
 class FieldValue(Resource):
