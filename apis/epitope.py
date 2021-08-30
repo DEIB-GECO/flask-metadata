@@ -1376,7 +1376,7 @@ def getMatView(item_virus, item):
     item = item.replace("'", '')
     item = item.replace('/', '_')
     item = item.replace('\\', '_')
-    item = item[:11]
+    item = item[:28]
 
     name = name + '_' + str(taxon_id) + '_' + item
     res = name
@@ -2218,7 +2218,7 @@ def query_product_all_mat_view(field_name, filter_in, pair_query, type, panel, p
             item = item.replace("'", '')
             item = item.replace('/', '_')
             item = item.replace('\\', '_')
-            item = item[:11]
+            item = item[:28]
             all_modified.append(item)
 
     query_product = """"""
