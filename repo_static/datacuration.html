@@ -50,34 +50,22 @@
                             <td>
                                 <h1 class="text-primary">Metadata curation</h1>
                                 Our first curation contribution is to provide a unique schema
-                                (see <a href="https://www.biorxiv.org/content/10.1101/2020.04.29.067637v3">Viral
+                                (see <a href="https://doi.org/10.1007/978-3-030-62522-1_29">Viral
                                 Conceptual Model - VCM</a>) for different data sources.
                                 Different ad-hoc importer modules have been built to load GenBank, RefSeq, COG-UK,
-                                and GISAID data; the code is available <a
+                                and NMDC data; the code is available <a
                                     href="https://github.com/DEIB-GECO/virusurf_downloader">here</a>.
                                 Each source comes with different terminological choices when describing the different
                                 metadata.
                                 We have surveyed the the terms used in many sources to come up with appropriate
                                 reconciling solutions.
-                                <!--<br><br>
-                                <img src="./table.jpg" alt="table to compare terminology">
-                                <br><br>
-                                A complete mapping of our terms with the integrated sources can be found at...-->
                                 All import results have been browsed and manually checked by the development team.
-                                <br><br>
-                                Note that for the <a href="http://gmql.eu/virusurf_gisaid">GISAID-specific interface of
-                                ViruSurf</a>
-                                we use attribute names as specifie din GISAID EpiCoV database. In case the reconciling
-                                terminology from VCM is different, it is reported within parentheses in second position.
                                 <br><br>
                                 Specific curation efforts have been dedicated to:
                                 <br>
                                 <ul>
                                     <li>
                                         <b>Location</b> information.
-                                        GISAID provides the Location; we split the field according to the separator "/"
-                                        and save the first three levels
-                                        into the GeoGroup, the Country, and the Region.
                                         GenBank provides always the Country, often the Region almost always, while
                                         the GeoGroup is added from a maintained
                                         <a href="https://github.com/DEIB-GECO/virusurf_downloader/blob/master/geo_groups.py">
@@ -87,7 +75,6 @@
                                     </li>
                                     <li>
                                         <b>Collection date</b>.
-                                        GISAID is reported as communicated by GISAID team.
                                         For other sources, to make sequences more easily searchable through date
                                         filters,
                                         when the specific day is not available, we typically add 01 (the first day of
@@ -99,7 +86,6 @@
                                     </li>
                                     <li>
                                         <b>Submission date</b>.
-                                        GISAID provides the field.
                                         In GenBank it is retrieved from the JOURNAL field for SARS-CoV2, while at times
                                         from the PATENT field for SARS-CoV entries.
                                         In COG-UK we set it to null.
@@ -136,7 +122,7 @@
                                         (e.g., host="Homo sapiens; male; age 65").
                                     </li>
                                     <li>
-                                        From COG-UK and GISAID we only import SARS-CoV-2 data. For this kind of virus
+                                        From COG-UK we only import SARS-CoV-2 data. For this kind of virus
                                         the <b>reference sequence</b>
                                         is clear.
                                         From GenBank, not all the species of virus have a clearly specified reference
@@ -147,7 +133,6 @@
                                     <li>
                                         It is not always clear how to define a sequence <b>complete</b> or
                                         <b>partial</b>.
-                                        From GISAID this information is imported.
                                         For others, to set the "complete" value, in GenBank we look for the keyword
                                         "complete
                                         genome" in the DEFINITION field.
@@ -164,8 +149,7 @@
                                         are curated manually.
                                     </li>
                                     <li>
-                                        <b>GC%</b> and <b>N%</b> are provided by GISAID for their data, while
-                                        have been computed to provide users with an additional
+                                        <b>GC%</b> and <b>N%</b> have been computed to provide users with an additional
                                         information on
                                         the quality of the sequence.
                                     </li>
@@ -201,20 +185,13 @@
                                 </ul>
                                 <br><br>
                                 As an additional curation, the records of COG-UK are integrated with 5 additional metadata
-                                (Originating lab, Submission date, Submission Lab, Isolation source, IsComplete) when they correspond
-                                to GISAID records that hold such information.
+                                (Originating lab, Submission date, Submission Lab, Isolation source, IsComplete), retrieved from other databases.
                             </td>
                         </tr>
                         <tr>
                             <td>
                                 <h1 class="text-primary">Data curation</h1>
-                                Data curation is not performed for instances of GISAID, as we do not import sequences
-                                from this source.
-                                Amino acid level changes are imported from periodical exports from GISAID and simply
-                                parsed into
-                                our database.
-
-                                For other sources, we engineered our pipelines to provide a unique annotation procedure
+                                We engineered our pipelines to provide a unique annotation procedure
                                 that will seamlessly process sequences that come with existing annotations as well as
                                 sequences that do not.
                                 <br>
@@ -287,23 +264,7 @@
                                 then recomputes it using the same reference sequence and alignment algorithm used for
                                 other sources. This choice has been done to ensure uniformity of the alignment among
                                 different data sources.
-                                <br>
-                                <br>
-                                Note that for protein names we use the typical terminology of GISAID, while we put
-                                within parentheses
-                                in second position the (possibly) alternative terminology adopted by NBI GenBank-related
-                                resources.
                             </a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <h1 class="text-primary">Overlap detection and management</h1>
-                                ViruSurf solves the problem of record redundancy among different databases by using
-                                different external references IDs that are either available from the origin sources or
-                                by computing in-house the matches between strain names and sequence length.
-                                We store this information and allow the possibility of performing queries on just
-                                ``GISAID only'' sequences, i.e., that are not present in GenBank, COG-UK or NMDC.
                             </td>
                         </tr>
                         <tr>
